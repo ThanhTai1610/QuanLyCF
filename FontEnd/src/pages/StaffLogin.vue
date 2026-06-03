@@ -131,11 +131,12 @@
           </div>
         </div>
 
-        <!-- Login with another account -->
-        <div class="mt-6 text-center">
-          <a href="/login" class="text-[10px] font-bold text-[#8A8178] hover:text-[#CC8033] transition-colors uppercase tracking-widest">
-            Đăng nhập Admin
-          </a>
+        <!-- Actions -->
+        <div class="mt-6 flex flex-col items-center justify-center gap-4">
+          <router-link to="/" class="group flex items-center gap-1.5 text-[10px] font-bold text-[#8A8178] hover:text-[#CC8033] transition-all uppercase tracking-widest">
+            <ArrowLeft class="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+            Quay lại trang chủ
+          </router-link>
         </div>
       </section>
     </main>
@@ -150,7 +151,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Coffee, Delete } from 'lucide-vue-next'
+import { Coffee, Delete, ArrowLeft } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()

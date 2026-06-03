@@ -16,7 +16,7 @@
         </div>
         <div class="mt-6">
           <div class="text-[10px] uppercase tracking-[0.15em] text-[#8A8178] font-bold">{{ s.label }}</div>
-          <div class="font-premium-serif text-4xl text-[#2A231E] font-bold mt-2 tracking-tight">{{ s.value }}</div>
+          <div class="font-premium-sans text-4xl text-[#2A231E] font-bold mt-2 tracking-tight">{{ s.value }}</div>
         </div>
       </div>
     </div>
@@ -30,7 +30,7 @@
             <h3 class="font-premium-serif text-3xl font-bold text-[#2A231E]">Doanh thu 7 ngày qua</h3>
             <p class="text-[10px] uppercase tracking-[0.2em] text-[#8A8178] font-bold mt-2">Cập nhật liên tục theo từng đơn hàng</p>
           </div>
-          <span class="text-3xl font-premium-serif font-bold text-[#CC8033]">{{ currentRevenue }}</span>
+          <span class="text-3xl font-premium-sans font-bold text-[#CC8033]">{{ currentRevenue }}</span>
         </div>
         <div class="w-full h-[300px]">
           <!-- @ts-ignore -->

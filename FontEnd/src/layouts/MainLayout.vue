@@ -133,20 +133,28 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import {
   LayoutDashboard, ShoppingBag, Coffee, Users, Settings, LogOut, Search,
   QrCode, FileText, FolderTree, Package, ClipboardCheck, CalendarDays, BookOpen, ChefHat, Bell, ShieldCheck,
-  ChevronDown
+  ChevronDown, Wallet
 } from 'lucide-vue-next'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 
 const navItems = [
-  { to: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
-  { to: "/staff", label: "Phân quyền", icon: ShieldCheck, badge: "Cấp 1" },
+  {
+    label: "Nhân sự & Ca làm",
+    icon: Users,
+    children: [
+      { to: "/staff", label: "Phân quyền", badge: "Cấp 1" },
+      { to: "/check-in", label: "Chấm công & Yêu cầu" },
+      { to: "/shifts", label: "Ca làm & Bảng lương" },
+    ]
+  },
   {
     label: "Quản lý sản phẩm",
     icon: Coffee,
@@ -162,6 +170,14 @@ const navItems = [
     children: [
       { to: "/orders", label: "Đơn hàng", badge: "Cấp 1" },
       { to: "/invoices", label: "Hoá đơn", badge: "Cấp 2" },
+    ]
+  },
+  {
+    label: "Quản lý Tài chính",
+    icon: Wallet,
+    children: [
+      { to: "/cashflow", label: "Dòng tiền & Chi phí", badge: "Cấp 2" },
+      { to: "/revenue-report", label: "Báo cáo doanh thu", badge: "Cấp 2" },
     ]
   },
   {
@@ -186,7 +202,7 @@ const navItems = [
     icon: Settings,
     children: [
       { to: "/settings", label: "Cài đặt" },
-      { to: "/shifts", label: "Ca làm" },
+      { to: "/system-logs", label: "Nhật ký hệ thống" },
     ]
   }
 ]
@@ -210,6 +226,7 @@ const todayDate = new Date().toLocaleDateString("vi-VN", { weekday: 'long', year
 
 const handleLogout = () => {
   authStore.logout()
+  router.push('/login')
 }
 </script>
 

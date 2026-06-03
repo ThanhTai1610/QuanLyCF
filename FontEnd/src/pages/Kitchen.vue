@@ -17,21 +17,21 @@
       <div class="flex items-center gap-8">
         <div class="flex gap-6">
           <div class="text-center">
-            <div class="text-[#CC8033] font-premium-serif text-xl font-bold">{{ inProgress }}</div>
+            <div class="text-[#CC8033] font-premium-sans text-xl font-bold">{{ inProgress }}</div>
             <div class="text-[9px] uppercase tracking-widest text-[#8A8178] font-bold">Đang làm</div>
           </div>
           <div class="text-center">
-            <div class="text-emerald-400 font-premium-serif text-xl font-bold">{{ readyCount }}</div>
+            <div class="text-emerald-400 font-premium-sans text-xl font-bold">{{ readyCount }}</div>
             <div class="text-[9px] uppercase tracking-widest text-[#8A8178] font-bold">Sẵn sàng</div>
           </div>
           <div class="text-center">
-            <div class="text-[#8A8178] font-premium-serif text-xl font-bold">{{ completedOrders.length }}</div>
+            <div class="text-[#8A8178] font-premium-sans text-xl font-bold">{{ completedOrders.length }}</div>
             <div class="text-[9px] uppercase tracking-widest text-[#8A8178] font-bold">Đã xong</div>
           </div>
         </div>
         <div class="h-8 w-px bg-white/10"></div>
         <div class="flex items-center gap-4">
-          <div class="font-premium-serif text-3xl font-medium tabular-nums tracking-tight text-[#CC8033]">{{ timeString }}</div>
+          <div class="font-premium-sans text-3xl font-medium tabular-nums tracking-tight text-[#CC8033]">{{ timeString }}</div>
           <button @click="muted = !muted" class="w-9 h-9 rounded-lg border border-white/10 flex items-center justify-center">
             <VolumeX v-if="muted" class="w-4 h-4 text-[#8A8178]" />
             <Volume2 v-else class="w-4 h-4 text-[#CC8033]" />
@@ -81,7 +81,7 @@
           <!-- Card Header -->
           <div class="p-4 border-b-2 border-white/10 flex justify-between items-start bg-black/30">
             <div>
-              <div class="font-premium-serif text-3xl font-bold tracking-tight">Bàn {{ o.table }}</div>
+              <div class="font-premium-sans text-3xl font-bold tracking-tight">Bàn {{ o.table }}</div>
               <div class="text-[9px] uppercase tracking-widest text-[#8A8178] font-bold mt-0.5">Order #{{ o.id }}</div>
             </div>
             <!-- Timer badge -->
@@ -202,15 +202,15 @@
       <!-- Summary strip -->
       <div class="grid grid-cols-3 gap-4 mb-6">
         <div class="bg-[#1A1512] rounded-lg border border-white/10 p-4 text-center">
-          <div class="font-premium-serif text-3xl font-bold text-emerald-400">{{ completedOrders.length }}</div>
+          <div class="font-premium-sans text-3xl font-bold text-emerald-400">{{ completedOrders.length }}</div>
           <div class="text-[9px] uppercase tracking-widest text-[#8A8178] font-bold mt-1">Đơn hoàn thành</div>
         </div>
         <div class="bg-[#1A1512] rounded-lg border border-white/10 p-4 text-center">
-          <div class="font-premium-serif text-3xl font-bold text-[#CC8033]">{{ totalItemsDone }}</div>
+          <div class="font-premium-sans text-3xl font-bold text-[#CC8033]">{{ totalItemsDone }}</div>
           <div class="text-[9px] uppercase tracking-widest text-[#8A8178] font-bold mt-1">Món đã phục vụ</div>
         </div>
         <div class="bg-[#1A1512] rounded-lg border border-white/10 p-4 text-center">
-          <div class="font-premium-serif text-3xl font-bold text-white">{{ avgDuration }}</div>
+          <div class="font-premium-sans text-3xl font-bold text-white">{{ avgDuration }}</div>
           <div class="text-[9px] uppercase tracking-widest text-[#8A8178] font-bold mt-1">TG xử lý TB</div>
         </div>
       </div>
@@ -230,7 +230,7 @@
                 <CheckCircle2 class="w-4 h-4 text-emerald-400" stroke-width="2" />
               </div>
               <div>
-                <span class="font-premium-serif text-lg font-bold">Bàn {{ o.table }}</span>
+                <span class="font-premium-sans text-lg font-bold">Bàn {{ o.table }}</span>
                 <span class="ml-2 text-[#8A8178] text-xs font-medium">#{{ o.id }}</span>
               </div>
               <!-- Items count pill -->
