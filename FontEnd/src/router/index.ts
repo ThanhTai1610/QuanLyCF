@@ -42,6 +42,7 @@ const router = createRouter({
         { path: 'orders', name: 'orders', component: () => import('../pages/Orders.vue') },
         { path: 'invoices', name: 'invoices', component: () => import('../pages/Invoices.vue') },
         { path: 'menu-admin', name: 'menu-admin', component: () => import('../pages/MenuAdmin.vue') },
+        { path: 'combos', name: 'combos', component: () => import('../pages/Combos.vue') },
         { path: 'categories', name: 'categories', component: () => import('../pages/Categories.vue') },
         { path: 'tables', name: 'tables', component: () => import('../pages/Tables.vue') },
         { path: 'inventory', name: 'inventory', component: () => import('../pages/Inventory.vue') },
@@ -74,6 +75,11 @@ const router = createRouter({
           path: 'revenue-report',
           name: 'revenue-report',
           component: () => import('../pages/Dashboard.vue'),
+        },
+        {
+          path: 'pos-sale',
+          name: 'pos-sale',
+          component: () => import('../pages/POSSale.vue'),
         }
       ]
     },

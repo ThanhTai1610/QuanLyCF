@@ -160,6 +160,7 @@ const navItems = [
     icon: Coffee,
     children: [
       { to: "/menu-admin", label: "Thực đơn", badge: "Cấp 1" },
+      { to: "/combos", label: "Quản lý Combo", badge: "Cấp 1" },
       { to: "/categories", label: "Danh mục", badge: "Cấp 2" },
       { to: "/recipes", label: "Công thức", badge: "Cấp 1" },
     ]
@@ -186,6 +187,7 @@ const navItems = [
     children: [
       { to: "/kitchen", label: "Màn hình bếp", external: true, badge: "Cấp 1" },
       { to: "/tables", label: "Bàn & QR", badge: "Cấp 1" },
+      { to: "/pos-sale", label: "Bán hàng tại quầy", badge: "Cấp 1" },
     ]
   },
   {
