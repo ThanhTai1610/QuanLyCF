@@ -42,6 +42,6 @@ import Button from '@/components/ui/Button.vue'
   font-family: 'Cormorant Garamond', Georgia, serif;
 }
 .font-premium-sans {
-  font-family: 'Montserrat', system-ui, sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 </style>

@@ -257,6 +257,6 @@ const barChartOptions = {
 }
 
 .font-premium-sans {
-  font-family: 'Montserrat', system-ui, sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 </style>

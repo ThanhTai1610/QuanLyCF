@@ -441,7 +441,7 @@ const openPaymentModal = () => {
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
 
 .font-premium-sans {
-  font-family: 'Montserrat', system-ui, sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .custom-scrollbar::-webkit-scrollbar {

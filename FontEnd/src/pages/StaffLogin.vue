@@ -244,7 +244,7 @@ const verifyPin = () => {
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 
 .font-premium-serif { font-family: 'Cormorant Garamond', Georgia, serif; }
-.font-premium-sans  { font-family: 'Montserrat', system-ui, sans-serif; }
+.font-premium-sans  { font-family: 'Inter', sans-serif; }
 
 .numpad-btn {
   @apply w-full aspect-square flex items-center justify-center

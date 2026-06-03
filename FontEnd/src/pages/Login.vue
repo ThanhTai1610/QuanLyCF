@@ -224,7 +224,7 @@ const handleGoogleLogin = () => {
 }
 
 .font-premium-sans {
-  font-family: 'Montserrat', system-ui, sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 @keyframes shimmer {
