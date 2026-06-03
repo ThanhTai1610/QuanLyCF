@@ -8,7 +8,7 @@
         <span class="font-display text-xl text-espresso font-semibold">BrewManager</span>
       </div>
       <router-link
-        to="/login"
+        to="/staff-login"
         class="px-4 py-2 rounded-lg bg-caramel hover:bg-brown text-cream text-sm font-semibold transition-colors"
       >
         Đăng nhập

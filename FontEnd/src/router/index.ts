@@ -31,10 +31,14 @@ const router = createRouter({
     },
     {
       path: '/',
+      name: 'home',
+      component: () => import('../pages/Index.vue')
+    },
+    {
+      path: '/',
       component: () => import('../layouts/MainLayout.vue'),
       meta: { requiresAuth: true },
       children: [
-        { path: '', redirect: '/dashboard' },
         { path: 'dashboard', name: 'dashboard', component: () => import('../pages/Dashboard.vue') },
         { path: 'orders', name: 'orders', component: () => import('../pages/Orders.vue') },
         { path: 'invoices', name: 'invoices', component: () => import('../pages/Invoices.vue') },
