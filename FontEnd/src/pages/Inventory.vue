@@ -9,7 +9,7 @@
       <div class="bg-white rounded-xl border border-[#EAE3D9] p-5 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
         <div>
           <p class="text-xs font-bold text-[#8A8178] uppercase tracking-wider mb-1">Tổng SKU Hiện Có</p>
-          <h3 class="text-3xl font-display font-bold text-[#2A231E]">142</h3>
+          <h3 class="text-3xl font-sans font-bold text-[#2A231E]">142</h3>
           <p class="text-[11px] text-[#5C544E] mt-2">+5 SKU mới trong tháng này</p>
         </div>
         <div class="w-12 h-12 rounded-full bg-[#FDFBF7] border border-[#EAE3D9] flex items-center justify-center text-[#2A231E]">
@@ -22,7 +22,7 @@
         <div class="absolute inset-y-0 left-0 w-1 bg-[#CC8033]"></div>
         <div class="pl-2">
           <p class="text-xs font-bold text-[#CC8033] uppercase tracking-wider mb-1">Sắp Hết Hàng</p>
-          <h3 class="text-3xl font-display font-bold text-[#2A231E]">12</h3>
+          <h3 class="text-3xl font-sans font-bold text-[#2A231E]">12</h3>
           <p class="text-[11px] text-[#5C544E] mt-2">Nguyên liệu chạm ngưỡng tối thiểu</p>
         </div>
         <div class="w-12 h-12 rounded-full bg-[#FFF9F2] border border-[#E8C5A5] flex items-center justify-center text-[#CC8033]">
@@ -35,7 +35,7 @@
         <div class="absolute inset-y-0 left-0 w-1 bg-red-500"></div>
         <div class="pl-2">
           <p class="text-xs font-bold text-red-500 uppercase tracking-wider mb-1">Sắp Hết Hạn</p>
-          <h3 class="text-3xl font-display font-bold text-[#2A231E]">3</h3>
+          <h3 class="text-3xl font-sans font-bold text-[#2A231E]">3</h3>
           <p class="text-[11px] text-[#5C544E] mt-2">Lô hàng hết hạn trong 7 ngày tới</p>
         </div>
         <div class="w-12 h-12 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-red-500">

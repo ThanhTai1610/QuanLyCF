@@ -182,7 +182,7 @@
           </div>
          
           <div class="border-t border-black/10 pt-4 mt-2">
-            <div class="flex justify-between items-end font-premium-serif">
+            <div class="flex justify-between items-end font-premium-sans">
               <span class="text-xl font-bold text-[#2A231E]">Tổng cộng</span>
               <span class="text-3xl font-bold text-[#CC8033]">{{ formatVND(preview.total) }}</span>
             </div>

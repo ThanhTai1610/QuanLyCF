@@ -52,17 +52,46 @@
       </div>
 
       <!-- Right Side: Admin Login Form -->
-      <div class="flex-1 p-8 md:p-12 bg-white flex flex-col justify-center animate-in slide-in-from-right-8 duration-1000 delay-300">
-        <div class="mb-10">
+      <div class="flex-1 p-8 md:p-12 bg-white flex flex-col justify-center relative animate-in slide-in-from-right-8 duration-1000 delay-300">
+        <!-- Nút Trở về Trang Chính -->
+        <router-link to="/" class="absolute top-6 right-6 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[#8A8178] hover:text-[#CC8033] hover:bg-[#CC8033]/10 transition-colors text-[9px] font-bold uppercase tracking-widest border border-transparent hover:border-[#CC8033]/20">
+          <Home class="w-3.5 h-3.5" stroke-width="2.5" /> Trang chính
+        </router-link>
+
+        <div class="mb-8">
           <div class="inline-flex items-center gap-2 mb-4 px-2.5 py-1 rounded-md bg-[#CC8033]/8 border border-[#CC8033]/15">
             <Lock class="w-2.5 h-2.5 text-[#CC8033]" stroke-width="2.5" />
             <span class="text-[8px] uppercase tracking-[0.2em] text-[#CC8033] font-black">Truy cập hạn chế</span>
           </div>
-          <h1 class="font-premium-serif text-4xl font-semibold text-[#1A1512] tracking-tight">Cổng Quản Trị<br/>Hệ Thống</h1>
-          <p class="text-[11px] text-[#8A8178] mt-3 font-medium leading-relaxed">Vui lòng nhập thông tin để truy cập hệ thống quản lý BrewManager.</p>
+          <h1 class="font-premium-serif text-4xl font-semibold text-[#1A1512] tracking-tight">Cổng Đăng Nhập<br/>Hệ Thống</h1>
         </div>
 
-        <form @submit.prevent="handleSubmit" class="space-y-6">
+        <!-- Tabs -->
+        <div class="flex items-center gap-6 border-b border-[#EAE3D9] mb-8">
+          <button 
+            @click="activeTab = 'admin'"
+            :class="[
+              'pb-3 text-[10px] font-black uppercase tracking-widest transition-all duration-300 relative',
+              activeTab === 'admin' ? 'text-[#CC8033]' : 'text-[#8A8178] hover:text-[#2A231E]'
+            ]"
+          >
+            Tài khoản Admin
+            <div v-if="activeTab === 'admin'" class="absolute bottom-0 left-0 w-full h-[2px] bg-[#CC8033]"></div>
+          </button>
+          <button 
+            @click="activeTab = 'staff'"
+            :class="[
+              'pb-3 text-[10px] font-black uppercase tracking-widest transition-all duration-300 relative',
+              activeTab === 'staff' ? 'text-[#CC8033]' : 'text-[#8A8178] hover:text-[#2A231E]'
+            ]"
+          >
+            Nhân viên ca trực
+            <div v-if="activeTab === 'staff'" class="absolute bottom-0 left-0 w-full h-[2px] bg-[#CC8033]"></div>
+          </button>
+        </div>
+
+        <!-- Admin/Staff Form -->
+        <form :key="activeTab" @submit.prevent="handleSubmit" class="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
           <!-- Email Input -->
           <div class="space-y-1.5 group">
             <label for="email" class="text-[9px] uppercase tracking-widest text-[#8A8178] font-black group-focus-within:text-[#CC8033] transition-colors duration-300">Tài khoản Email</label>
@@ -158,23 +187,11 @@
           </div>
         </form>
 
-        <div class="mt-8 text-center">
+        <div class="mt-8 text-center animate-in slide-in-from-bottom-2 duration-500 delay-200">
           <p class="text-[9px] uppercase tracking-widest text-[#8A8178] font-bold">
             Chưa được cấp quyền?
             <a href="#" class="ml-1 text-[#CC8033] border-b border-[#CC8033]/30 hover:border-[#CC8033] transition-all">Yêu cầu tài khoản ngay</a>
           </p>
-        </div>
-
-        <!-- Staff shortcut -->
-        <div class="mt-4 pt-4 border-t border-[#F5F2ED] text-center">
-          <router-link
-            to="/staff-login"
-            class="inline-flex items-center gap-2 text-[10px] font-bold text-[#8A8178] hover:text-[#CC8033] transition-colors duration-200 group"
-          >
-            <Users class="w-3 h-3 group-hover:text-[#CC8033] transition-colors" stroke-width="2" />
-            Bạn là nhân viên? Đăng nhập bằng mã PIN
-            <ArrowRight class="w-2.5 h-2.5 group-hover:translate-x-1 transition-transform duration-300" stroke-width="2.5" />
-          </router-link>
         </div>
       </div>
     </div>
@@ -184,9 +201,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Coffee, Eye, EyeOff, ArrowRight, Check, Lock, Shield, Users } from 'lucide-vue-next'
+import { Coffee, Eye, EyeOff, ArrowRight, Check, Lock, Shield, Users, Home } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 
+const activeTab = ref<'admin'|'staff'>('admin')
 const showPwd = ref(false)
 const email = ref('admin@brew.vn')
 const password = ref('demo1234')
@@ -194,6 +212,18 @@ const rememberMe = ref(false)
 const isLoading = ref(false)
 const router = useRouter()
 const authStore = useAuthStore()
+
+// Watch for tab change to update placeholders
+import { watch } from 'vue'
+watch(activeTab, (newTab) => {
+  if (newTab === 'admin') {
+    email.value = 'admin@brew.vn'
+    password.value = 'demo1234'
+  } else {
+    email.value = 'staff@brew.vn'
+    password.value = 'staff1234'
+  }
+})
 
 const securityFeatures = [
   'Kết nối mã hóa SSL/TLS',
@@ -207,7 +237,7 @@ const handleSubmit = async () => {
   await new Promise(r => setTimeout(r, 800))
   authStore.login()
   isLoading.value = false
-  router.push('/dashboard')
+  router.push('/revenue-report')
 }
 
 const handleGoogleLogin = () => {

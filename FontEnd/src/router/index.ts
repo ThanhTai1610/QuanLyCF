@@ -39,7 +39,6 @@ const router = createRouter({
       component: () => import('../layouts/MainLayout.vue'),
       meta: { requiresAuth: true },
       children: [
-        { path: 'dashboard', name: 'dashboard', component: () => import('../pages/Dashboard.vue') },
         { path: 'orders', name: 'orders', component: () => import('../pages/Orders.vue') },
         { path: 'invoices', name: 'invoices', component: () => import('../pages/Invoices.vue') },
         { path: 'menu-admin', name: 'menu-admin', component: () => import('../pages/MenuAdmin.vue') },
@@ -51,7 +50,31 @@ const router = createRouter({
         { path: 'recipes', name: 'recipes', component: () => import('../pages/Recipes.vue') },
         { path: 'shifts', name: 'shifts', component: () => import('../pages/Shifts.vue') },
         { path: 'staff', name: 'staff', component: () => import('../pages/Staff.vue') },
-        { path: 'settings', name: 'settings', component: () => import('../pages/Settings.vue') }
+        {
+          path: 'settings',
+          name: 'settings',
+          component: () => import('../pages/Settings.vue'),
+        },
+        {
+          path: 'system-logs',
+          name: 'system-logs',
+          component: () => import('../pages/SystemLogs.vue'),
+        },
+        {
+          path: 'check-in',
+          name: 'check-in',
+          component: () => import('../pages/CheckIn.vue'),
+        },
+        {
+          path: 'cashflow',
+          name: 'cashflow',
+          component: () => import('../pages/CashFlow.vue'),
+        },
+        {
+          path: 'revenue-report',
+          name: 'revenue-report',
+          component: () => import('../pages/Dashboard.vue'),
+        }
       ]
     },
     {

@@ -87,16 +87,16 @@
           :key="m.id"
           class="bg-white rounded-lg border border-[#EAE3D9] shadow-card flex flex-col relative overflow-hidden"
         >
-          <!-- Image Container -->
-          <div class="relative aspect-[4/3] overflow-hidden bg-[#F5F2ED]">
+          <!-- Image Container (Clickable) -->
+          <div @click="openItemOptions(m)" class="relative aspect-[4/3] overflow-hidden bg-[#F5F2ED] cursor-pointer group">
             <img
               :src="m.image"
               :alt="m.name"
               loading="lazy"
-              class="w-full h-full object-cover"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
             <!-- Gradient Overlay -->
-            <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
            
             <div v-if="m.popular" class="absolute top-3 left-3 px-3 py-1.5 rounded-lg bg-white/95 backdrop-blur-md text-[#CC8033] text-[9px] uppercase tracking-[0.2em] font-bold shadow-xl">
               Nổi bật
@@ -105,18 +105,38 @@
          
           <!-- Content -->
           <div class="p-4 sm:p-5 flex flex-col flex-1 bg-white relative">
-            <h3 class="font-premium-serif text-xl font-bold leading-snug text-[#2A231E]">{{ m.name }}</h3>
+            <h3 class="font-premium-serif text-xl font-bold leading-snug text-[#2A231E] cursor-pointer hover:text-[#CC8033] transition-colors" @click="openItemOptions(m)">{{ m.name }}</h3>
             <p class="text-[11px] text-[#8A8178] mt-2 line-clamp-2 leading-relaxed flex-1 font-medium">{{ m.description }}</p>
            
-            <div class="flex items-center justify-between mt-5 pt-4 border-t border-[#EAE3D9]/60">
+            <div class="flex flex-wrap items-center justify-between gap-y-2 mt-5 pt-4 border-t border-[#EAE3D9]/60">
               <span class="text-[#CC8033] font-bold text-base tracking-wide">{{ formatVND(m.price) }}</span>
-              <button
-                @click="addToCart(m)"
-                class="w-9 h-9 rounded-lg bg-[#F5F2ED] border border-[#EAE3D9] flex items-center justify-center text-[#2A231E] shadow-xl"
-                title="Thêm vào giỏ"
-              >
-                <Plus class="w-4 h-4" stroke-width="2" />
-              </button>
+              <div class="flex items-center gap-1.5 sm:gap-2">
+                <button 
+                  @click="openItemOptions(m)" 
+                  class="h-9 px-3 rounded-xl bg-[#FDFBF7] border border-[#EAE3D9] text-[#8A8178] text-[10px] font-bold uppercase tracking-widest hover:bg-[#F5F2ED] hover:text-[#CC8033] hover:border-[#CC8033]/30 transition-all shadow-sm"
+                >
+                  Tùy chỉnh
+                </button>
+                <div v-if="(cart.lines.find(l => l.item.id === m.id)?.qty || 0) > 0" class="flex items-center bg-[#FDFBF7] rounded-xl border border-[#EAE3D9] p-0.5 shadow-sm h-9">
+                  <button @click="cart.setQty(m.id, cart.lines.find(l => l.item.id === m.id)!.qty - 1)" class="w-8 h-full rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
+                    <Minus class="w-3.5 h-3.5" stroke-width="2.5" />
+                  </button>
+                  <span class="w-8 text-center text-sm font-bold text-[#2A231E]">
+                    {{ cart.lines.find(l => l.item.id === m.id)?.qty }}
+                  </span>
+                  <button @click="cart.setQty(m.id, cart.lines.find(l => l.item.id === m.id)!.qty + 1)" class="w-8 h-full rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
+                    <Plus class="w-3.5 h-3.5" stroke-width="2.5" />
+                  </button>
+                </div>
+                <button
+                  v-else
+                  @click="addToCart(m)"
+                  class="w-9 h-9 rounded-xl bg-[#F5F2ED] border border-[#EAE3D9] flex items-center justify-center text-[#2A231E] shadow-sm hover:bg-[#CC8033] hover:text-white hover:border-[#CC8033] transition-colors"
+                  title="Thêm vào giỏ"
+                >
+                  <Plus class="w-4 h-4" stroke-width="2" />
+                </button>
+              </div>
             </div>
           </div>
         </article>
@@ -175,7 +195,7 @@
             </div>
           </div>
           <div class="flex items-center gap-5">
-            <span class="font-premium-serif text-2xl font-bold text-[#CC8033] tracking-wide">{{ formatVND(cart.total()) }}</span>
+            <span class="font-premium-sans text-2xl font-bold text-[#CC8033] tracking-wide">{{ formatVND(cart.total()) }}</span>
             <span class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center text-white border border-white/20">
               <ShoppingBag class="w-4 h-4" />
             </span>
@@ -184,83 +204,175 @@
       </div>
     </div>
 
-    <!-- Giỏ hàng Modal -->
-    <div v-if="open" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#1A1512]/60 backdrop-blur-md" @click.self="open = false">
-      <div class="w-full sm:max-w-lg bg-[#FDFBF7] rounded-t-3xl sm:rounded-lg flex flex-col h-[85vh] sm:h-[80vh] max-h-[85vh] overflow-hidden shadow-card border border-[#EAE3D9]">
-       
-        <!-- Modal Header -->
-        <div class="px-8 py-6 border-b border-[#EAE3D9] flex justify-between items-start bg-white">
-          <div>
-            <h2 class="font-premium-serif text-3xl font-bold text-[#2A231E]">Giỏ hàng</h2>
-            <p class="text-[10px] text-[#8A8178] uppercase tracking-[0.2em] mt-2 font-bold">Đơn hàng Bàn {{ tableId }}</p>
+    <!-- Slide-Over Giỏ Hàng (合一 DESIGN) -->
+    <Transition name="slide-right">
+      <div v-if="open" class="fixed inset-0 z-50 flex justify-end" @click.self="open = false">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-[#1A1512]/60 backdrop-blur-md" @click="open = false"></div>
+        
+        <!-- Slide-Over Content -->
+        <div class="relative w-full max-w-md bg-[#F5F2ED] h-full shadow-[-20px_0_60px_rgba(42,35,30,0.15)] flex flex-col border-l border-[#EAE3D9] z-10 animate-in slide-in-from-right duration-300">
+          
+          <!-- Slide-Over Header -->
+          <div class="px-6 py-5 border-b border-[#EAE3D9] bg-white flex flex-col gap-4">
+            <div class="flex justify-between items-start">
+              <h2 class="font-premium-serif text-2xl font-bold text-[#2A231E]">Giỏ hàng & Thanh toán <br/> <span class="text-sm font-sans text-[#8A8178] uppercase tracking-widest font-bold">Bàn {{ tableId }}</span></h2>
+              <button @click="open = false" class="w-9 h-9 rounded-full bg-[#F5F2ED] border border-[#EAE3D9] flex items-center justify-center text-[#8A8178] shadow-sm hover:text-[#2A231E]">
+                <X class="w-4 h-4" stroke-width="2.5" />
+              </button>
+            </div>
+            
+            <!-- Hạt Badge Thông tin Khách hàng & Loyalty (Hover to expand) -->
+            <div class="group relative bg-[#FDFBF7] border border-[#EAE3D9] rounded-xl p-3 shadow-sm cursor-pointer hover:border-[#CC8033]/30 transition-colors">
+              <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-full bg-[#CC8033]/15 text-[#CC8033] flex items-center justify-center">
+                    <User class="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div class="text-[10px] font-bold text-[#8A8178] uppercase tracking-wider">Thành viên thân thiết</div>
+                    <div class="text-sm font-bold text-[#2A231E]">Nguyễn Văn A 👋</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FFF9F2] border border-[#E8C5A5] text-[#CC8033] text-xs font-bold shadow-inner">
+                  <Coffee class="w-3 h-3" /> 150 điểm
+                </div>
+              </div>
+              
+              <!-- Collapsible Info Card -->
+              <div class="mt-3 pt-3 border-t border-dashed border-[#EAE3D9] text-[11px] font-medium text-[#5C544E] hidden group-hover:block animate-in fade-in slide-in-from-top-2">
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="flex items-center gap-1.5"><Gift class="w-3.5 h-3.5 text-[#CC8033]" /> Hạng thẻ hiện tại</span>
+                  <span class="text-xs font-bold text-[#CC8033]">Vàng (Gold)</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-[#8A8178]">Ưu đãi tháng sinh nhật:</span>
+                  <span class="font-bold text-success">Giảm 20% hóa đơn</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <button @click="open = false" class="w-10 h-10 rounded-lg bg-[#F5F2ED] border border-[#EAE3D9] flex items-center justify-center text-[#8A8178] shadow-xl">
-            <X class="w-5 h-5" stroke-width="2" />
-          </button>
-        </div>
 
-        <!-- Modal Body -->
-        <div class="flex-1 overflow-y-auto p-6 sm:p-8 space-y-4 bg-[#FDFBF7] custom-scrollbar">
-          <div v-if="cart.lines.length === 0" class="text-center py-20 flex flex-col items-center">
-            <div class="w-20 h-20 rounded-lg border border-dashed border-[#EAE3D9] flex items-center justify-center mb-6 bg-white shadow-xl">
-              <ShoppingBag class="w-8 h-8 text-[#D5CEC4]" stroke-width="1.5" />
+          <!-- Slide-Over Body -->
+          <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#F5F2ED] custom-scrollbar">
+            <!-- Items -->
+            <div v-if="cart.lines.length === 0" class="text-center py-20 flex flex-col items-center">
+              <div class="w-20 h-20 rounded-lg border border-dashed border-[#EAE3D9] flex items-center justify-center mb-6 bg-white shadow-xl">
+                <ShoppingBag class="w-8 h-8 text-[#D5CEC4]" stroke-width="1.5" />
+              </div>
+              <p class="font-premium-serif text-2xl font-bold text-[#2A231E]">Chưa có món nào</p>
+              <p class="text-xs text-[#8A8178] mt-2 font-medium">Vui lòng chọn món từ thực đơn để tiếp tục.</p>
             </div>
-            <p class="font-premium-serif text-2xl font-bold text-[#2A231E]">Chưa có món nào</p>
-            <p class="text-xs text-[#8A8178] mt-2 font-medium">Vui lòng chọn món từ thực đơn để tiếp tục.</p>
-          </div>
-          <div v-for="l in cart.lines" :key="l.item.id" class="flex gap-5 p-4 rounded-lg bg-white border border-[#EAE3D9] shadow-xl">
-            <div class="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-inner border border-[#EAE3D9]">
-              <img :src="l.item.image" :alt="l.item.name" class="w-full h-full object-cover" />
-            </div>
-            <div class="flex-1 min-w-0 flex flex-col justify-between py-1">
-              <div>
-                <div class="flex justify-between items-start gap-2">
-                  <h4 class="font-bold text-sm text-[#2A231E] truncate">{{ l.item.name }}</h4>
-                  <button @click="cart.remove(l.item.id)" class="text-[#D5CEC4]">
+            
+            <div v-for="l in cart.lines" :key="l.cartLineId" class="flex gap-4 p-3 rounded-2xl bg-white shadow-sm border border-[#EAE3D9] relative">
+              <!-- Product Image -->
+              <div class="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 shadow-inner">
+                <img :src="l.item.image" :alt="l.item.name" class="w-full h-full object-cover" />
+              </div>
+              <!-- Content -->
+              <div class="flex-1 min-w-0 flex flex-col justify-between">
+                <div class="flex justify-between items-start gap-2 pr-6">
+                  <div>
+                    <h4 class="font-bold text-sm text-[#2A231E] leading-tight">{{ l.item.name }}</h4>
+                    <!-- Display Options -->
+                    <div v-if="l.options" class="mt-1.5 space-y-0.5">
+                      <div class="text-[10px] text-[#8A8178] leading-tight" v-if="l.options.size !== 'M' || l.options.sugar !== '100%' || l.options.ice !== '100%'">
+                        <span class="font-bold text-[#5C544E]">Size:</span> {{ l.options.size }} 
+                        <span class="mx-1 text-[#EAE3D9]">|</span>
+                        <span class="font-bold text-[#5C544E]">Đá/Đường:</span> {{ l.options.ice }}, {{ l.options.sugar }}
+                      </div>
+                      <div v-for="t in l.options.toppings" :key="t.name" class="text-[10px] text-[#8A8178] leading-tight">
+                        <span class="font-bold text-[#CC8033]">+ {{ t.name }}</span> (x{{ t.qty }})
+                      </div>
+                      <div v-if="l.options.note" class="text-[10px] text-[#D97724] italic mt-1 break-words bg-[#FFF9F2] p-1.5 rounded-lg border border-[#CC8033]/20">
+                        "{{ l.options.note }}"
+                      </div>
+                    </div>
+                  </div>
+                  <button @click="cart.remove(l.cartLineId)" class="absolute top-2 right-2 text-[#D5CEC4] hover:text-red-400 p-1.5 transition-colors">
                     <Trash2 class="w-4 h-4" stroke-width="2" />
                   </button>
                 </div>
-                <p class="text-[#CC8033] font-bold text-xs mt-1">{{ formatVND(l.item.price) }}</p>
+                <p class="text-[#CC8033] font-bold text-xs mt-1">{{ formatVND(l.item.price + (l.options?.extraPrice || 0)) }}</p>
+                
+                <!-- Qty controls -->
+                <div class="flex items-center justify-between mt-2">
+                  <div class="flex items-center bg-[#FDFBF7] rounded-xl border border-[#EAE3D9] p-0.5">
+                    <button @click="cart.setQty(l.cartLineId, l.qty - 1)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm">
+                      <Minus class="w-3 h-3" stroke-width="2.5" />
+                    </button>
+                    <span class="w-8 text-center text-xs font-bold text-[#2A231E]">{{ l.qty }}</span>
+                    <button @click="cart.setQty(l.cartLineId, l.qty + 1)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm">
+                      <Plus class="w-3 h-3" stroke-width="2.5" />
+                    </button>
+                  </div>
+                  <span class="text-sm text-[#2A231E] font-bold">{{ formatVND((l.item.price + (l.options?.extraPrice || 0)) * l.qty) }}</span>
+                </div>
               </div>
-             
-              <!-- Qty controls -->
-              <div class="flex items-center justify-between mt-3">
-                <div class="flex items-center border border-[#EAE3D9] rounded-lg bg-[#F5F2ED] p-0.5 shadow-inner">
-                  <button @click="cart.setQty(l.item.id, l.qty - 1)" class="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[#5C544E] border border-[#EAE3D9]">
-                    <Minus class="w-3 h-3" stroke-width="2.5" />
-                  </button>
-                  <span class="w-8 text-center text-xs font-bold text-[#2A231E]">{{ l.qty }}</span>
-                  <button @click="cart.setQty(l.item.id, l.qty + 1)" class="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[#5C544E] border border-[#EAE3D9]">
-                    <Plus class="w-3 h-3" stroke-width="2.5" />
+            </div>
+
+            <!-- Tích điểm & Dùng điểm -->
+            <div v-if="cart.lines.length > 0" class="mt-6 bg-white p-4 rounded-2xl border border-[#EAE3D9] shadow-sm">
+              <div v-if="!customerPhone" class="space-y-3">
+                <label class="text-xs font-bold uppercase tracking-wider text-[#8A8178] flex items-center gap-2">
+                  <Phone class="w-3.5 h-3.5 text-[#CC8033]" /> Tích điểm thành viên
+                </label>
+                <div class="relative flex gap-2">
+                  <input type="tel" v-model="tempPhone" @keyup.enter="applyCustomerPhone" placeholder="📱 Nhập SĐT để tích điểm" class="w-full bg-[#F5F2ED] border border-[#EAE3D9] rounded-xl h-11 px-4 text-sm font-bold text-[#2A231E] focus:outline-none focus:border-[#CC8033] placeholder:font-medium placeholder:text-[#8A8178]" />
+                  <button @click="applyCustomerPhone" class="h-11 px-4 bg-[#CC8033] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[#B87029] shrink-0">
+                    Gửi
                   </button>
                 </div>
-                <span class="text-sm text-[#2A231E] font-bold tracking-wide">
-                  {{ formatVND(l.item.price * l.qty) }}
-                </span>
+              </div>
+              <div v-else class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-[#CC8033]/15 text-[#CC8033] flex items-center justify-center">
+                      <Phone class="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div class="text-[10px] font-bold text-[#8A8178] uppercase tracking-wider">Khách hàng</div>
+                      <div class="text-sm font-bold text-[#2A231E]">{{ customerPhone }}</div>
+                    </div>
+                  </div>
+                  <button @click="customerPhone = ''; usePoints = false" class="text-[10px] text-red-400 font-bold uppercase hover:underline">Hủy</button>
+                </div>
+                <div class="border-t border-dashed border-[#EAE3D9] pt-3 flex items-center gap-3">
+                  <input type="checkbox" v-model="usePoints" id="usePoints" class="w-5 h-5 rounded border-[#EAE3D9] text-[#CC8033] focus:ring-[#CC8033]" />
+                  <label for="usePoints" class="text-xs font-bold text-[#5C544E] cursor-pointer flex-1">
+                    Dùng 50 điểm <span class="text-[#CC8033]">(giảm 20.000đ)</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Modal Footer -->
-        <div v-if="cart.lines.length > 0" class="p-6 sm:p-8 bg-white border-t border-[#EAE3D9] shadow-card rounded-b-3xl">
-          <div class="flex justify-between items-end mb-6 bg-[#F5F2ED] p-4 rounded-lg border border-[#EAE3D9]">
-            <div>
-              <span class="block text-[11px] text-[#8A8178] uppercase tracking-[0.1em] font-bold mb-1">Tổng cộng</span>
-              <span class="text-xs font-bold text-[#5C544E]">{{ cart.count() }} sản phẩm</span>
+          <!-- Slide-Over Footer -->
+          <div v-if="cart.lines.length > 0" class="p-6 bg-[#FDFBF7] border-t border-[#EAE3D9] shadow-[0_-10px_30px_rgba(42,35,30,0.05)] rounded-bl-xl">
+            <div class="space-y-2 mb-5">
+              <div class="flex justify-between items-center text-sm">
+                <span class="text-[#8A8178] font-bold">Tổng tạm tính</span>
+                <span class="font-bold text-[#5C544E]">{{ formatVND(cart.total()) }}</span>
+              </div>
+              <div v-if="usePoints" class="flex justify-between items-center text-sm">
+                <span class="text-[#8A8178] font-bold flex items-center gap-1.5"><Gift class="w-3.5 h-3.5" /> Điểm thưởng</span>
+                <span class="font-bold text-[#E85D04]">- 20.000 ₫</span>
+              </div>
+              <div class="border-t border-dashed border-[#EAE3D9] pt-2 mt-2 flex justify-between items-end">
+                <span class="text-xs font-bold uppercase tracking-widest text-[#2A231E]">Tổng thanh toán</span>
+                <span class="font-sans text-3xl font-bold text-[#2A231E] leading-none">{{ formatVND(cart.total() - (usePoints ? 20000 : 0)) }}</span>
+              </div>
             </div>
-            <span class="font-premium-serif text-3xl font-bold text-[#CC8033] leading-none">{{ formatVND(cart.total()) }}</span>
+            <button
+              @click="handleOrder"
+              class="w-full h-14 bg-[#D97724] hover:bg-[#C2661B] text-white text-sm uppercase tracking-widest font-bold rounded-2xl shadow-xl transition-all"
+            >
+              THANH TOÁN (HOẶC GỬI YÊU CẦU)
+            </button>
           </div>
-         
-          <Button
-            @click="handleOrder"
-            class="w-full h-14 bg-[#CC8033] text-white text-xs uppercase tracking-[0.15em] font-bold rounded-lg shadow-card border border-[#CC8033]/30"
-          >
-            Gửi yêu cầu đặt món
-          </Button>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- Chatbot Widget -->
     <ChatbotWidget />
@@ -387,14 +499,193 @@
         </div>
       </div>
     </Transition>
+
+    <!-- Bottom Sheet / Modal Tùy Chỉnh Món (Topping, Size) -->
+    <Transition name="sheet-backdrop">
+      <div v-if="itemOptionsOpen" class="fixed inset-0 z-[60] bg-[#1A1512]/60 backdrop-blur-sm" @click.self="itemOptionsOpen = false"></div>
+    </Transition>
+    <Transition name="sheet-slide">
+      <div v-if="itemOptionsOpen" class="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 z-[61] w-full sm:max-w-[600px] bg-[#FDFBF7] rounded-t-[2rem] sm:rounded-[2rem] shadow-[0_20px_60px_rgba(42,35,30,0.2)] flex flex-col max-h-[90vh] overflow-hidden border border-[#EAE3D9]/50">
+        
+        <!-- Header Image -->
+        <div class="relative h-48 sm:h-56 shrink-0 bg-[#F5F2ED]">
+          <img :src="selectedItem?.image" class="w-full h-full object-cover" />
+          <div class="absolute inset-0 bg-gradient-to-t from-[#FDFBF7] via-black/10 to-transparent"></div>
+          <button @click="itemOptionsOpen = false" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/30 backdrop-blur-md border border-white/40 flex items-center justify-center text-white shadow-lg hover:bg-white/40 transition-colors">
+            <X class="w-4 h-4" stroke-width="2.5" />
+          </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 space-y-8">
+          <!-- Title & Price -->
+          <div class="text-center sm:text-left">
+            <h2 class="font-premium-serif text-3xl font-bold text-[#2A231E] mb-2">{{ selectedItem?.name }}</h2>
+            <p class="text-sm text-[#8A8178] font-medium leading-relaxed">{{ selectedItem?.description }}</p>
+            <div class="mt-3 font-bold text-2xl text-[#CC8033]">{{ formatVND(selectedItem?.price || 0) }}</div>
+          </div>
+
+          <!-- Kích cỡ (Size) -->
+          <div class="space-y-4">
+            <h3 class="text-[11px] uppercase tracking-[0.15em] font-bold text-[#8A8178] flex items-center gap-2"><Coffee class="w-4 h-4" /> Chọn Kích Cỡ</h3>
+            <div class="grid grid-cols-2 gap-3">
+              <label class="flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer shadow-sm relative overflow-hidden group transition-all" :class="selectedSize === 'M' ? 'border-[#CC8033] bg-[#FFF9F2]' : 'border-[#EAE3D9] bg-white hover:border-[#CC8033]/50'">
+                <input type="radio" v-model="selectedSize" value="M" class="sr-only" />
+                <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center" :class="selectedSize === 'M' ? 'border-[#CC8033]' : 'border-[#EAE3D9]'">
+                  <div class="w-2.5 h-2.5 rounded-full bg-[#CC8033] transition-transform" :class="selectedSize === 'M' ? 'scale-100' : 'scale-0'"></div>
+                </div>
+                <span class="text-sm font-bold text-[#2A231E]">Vừa (M) <span class="block text-[#8A8178] text-xs font-medium mt-0.5">+ 0đ</span></span>
+                <div v-if="selectedSize === 'M'" class="absolute right-0 bottom-0 w-12 h-12 bg-[#CC8033]/5 rounded-tl-full transition-transform group-hover:scale-110"></div>
+              </label>
+              
+              <label class="flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer shadow-sm relative overflow-hidden group transition-all" :class="selectedSize === 'L' ? 'border-[#CC8033] bg-[#FFF9F2]' : 'border-[#EAE3D9] bg-white hover:border-[#CC8033]/50'">
+                <input type="radio" v-model="selectedSize" value="L" class="sr-only" />
+                <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center" :class="selectedSize === 'L' ? 'border-[#CC8033]' : 'border-[#EAE3D9]'">
+                  <div class="w-2.5 h-2.5 rounded-full bg-[#CC8033] transition-transform" :class="selectedSize === 'L' ? 'scale-100' : 'scale-0'"></div>
+                </div>
+                <span class="text-sm font-bold text-[#2A231E]">Lớn (L) <span class="block text-[#CC8033] text-xs font-bold mt-0.5">+ 10.000đ</span></span>
+                <div v-if="selectedSize === 'L'" class="absolute right-0 bottom-0 w-12 h-12 bg-[#CC8033]/5 rounded-tl-full transition-transform group-hover:scale-110"></div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Topping -->
+          <div class="space-y-4">
+            <h3 class="text-[11px] uppercase tracking-[0.15em] font-bold text-[#8A8178] flex items-center gap-2"><Plus class="w-4 h-4" /> Thêm Topping</h3>
+            
+            <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div v-for="topping in availableToppings" :key="topping.id" class="relative flex flex-col p-2 rounded-2xl bg-white transition-all group" :class="(selectedToppings[topping.id] || 0) > 0 ? 'border-2 border-[#CC8033] shadow-md bg-[#FFF9F2]' : 'border-2 border-[#EAE3D9] shadow-sm hover:shadow-md'">
+                <div class="w-full aspect-[4/3] rounded-xl overflow-hidden bg-[#F5F2ED] mb-2.5 relative z-10 cursor-pointer" @click="updateTopping(topping.id, 1)">
+                  <img :src="topping.image" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <div class="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent transition-opacity" :class="(selectedToppings[topping.id] || 0) > 0 ? 'opacity-100' : 'opacity-0'"></div>
+                  
+                  <!-- Quantity Badge -->
+                  <div v-if="(selectedToppings[topping.id] || 0) > 0" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[#CC8033] border-2 border-white flex items-center justify-center shadow-md">
+                    <span class="text-white text-[10px] font-bold">x{{ selectedToppings[topping.id] }}</span>
+                  </div>
+                </div>
+                
+                <div class="text-center w-full px-1 z-10 pb-1 flex flex-col items-center flex-1 justify-between">
+                  <div>
+                    <div class="text-[11px] sm:text-xs font-bold text-[#2A231E] leading-tight line-clamp-1">{{ topping.name }}</div>
+                    <div class="text-[10px] font-bold text-[#CC8033] mt-0.5">+ {{ formatVND(topping.price) }}</div>
+                  </div>
+                  
+                  <!-- Quantity Controls -->
+                  <div v-if="(selectedToppings[topping.id] || 0) > 0" class="flex items-center justify-between w-full mt-2 px-1">
+                    <button @click.stop="updateTopping(topping.id, -1)" class="w-6 h-6 rounded-full bg-white border border-[#EAE3D9] flex items-center justify-center text-[#8A8178] hover:bg-[#F5F2ED] shadow-sm">
+                      <Minus class="w-3 h-3" stroke-width="3" />
+                    </button>
+                    <span class="text-xs font-bold text-[#CC8033]">{{ selectedToppings[topping.id] }}</span>
+                    <button @click.stop="updateTopping(topping.id, 1)" class="w-6 h-6 rounded-full bg-[#CC8033] flex items-center justify-center text-white hover:bg-[#B8722D] shadow-sm">
+                      <Plus class="w-3 h-3" stroke-width="3" />
+                    </button>
+                  </div>
+                  <button v-else @click.stop="updateTopping(topping.id, 1)" class="w-full mt-2 py-1.5 rounded-lg bg-[#F5F2ED] text-[#8A8178] text-[10px] font-bold uppercase tracking-wider hover:bg-[#EAE3D9] transition-colors border border-transparent">
+                    Thêm
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-6">
+            <!-- Tùy chỉnh khác -->
+            <div class="space-y-4">
+              <h3 class="text-[11px] uppercase tracking-[0.15em] font-bold text-[#8A8178]">Lượng đường</h3>
+              <div class="flex flex-wrap gap-2">
+                <label v-for="level in ['0%', '50%', '100%']" :key="level" class="cursor-pointer">
+                  <input type="radio" v-model="selectedSugar" :value="level" class="sr-only" />
+                  <span class="px-4 py-2.5 rounded-xl border text-xs font-bold shadow-sm transition-all inline-block" :class="selectedSugar === level ? 'bg-[#CC8033] border-[#CC8033] text-white' : 'bg-white border-[#EAE3D9] text-[#5C544E] hover:border-[#CC8033]'">{{ level }}</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="space-y-4">
+              <h3 class="text-[11px] uppercase tracking-[0.15em] font-bold text-[#8A8178]">Lượng đá</h3>
+              <div class="flex flex-wrap gap-2">
+                <label v-for="level in ['0%', '50%', '100%']" :key="level" class="cursor-pointer">
+                  <input type="radio" v-model="selectedIce" :value="level" class="sr-only" />
+                  <span class="px-4 py-2.5 rounded-xl border text-xs font-bold shadow-sm transition-all inline-block" :class="selectedIce === level ? 'bg-[#CC8033] border-[#CC8033] text-white' : 'bg-white border-[#EAE3D9] text-[#5C544E] hover:border-[#CC8033]'">{{ level }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ghi chú thêm -->
+          <div class="space-y-4 pt-2">
+            <h3 class="text-[11px] uppercase tracking-[0.15em] font-bold text-[#8A8178] flex items-center gap-2">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+              Ghi chú thêm
+            </h3>
+            <textarea
+              v-model="itemNote"
+              rows="2"
+              placeholder="Ví dụ: Ít béo, không lấy thìa, thêm ống hút..."
+              class="w-full p-4 rounded-2xl border border-[#EAE3D9] focus:border-[#CC8033] focus:ring-1 focus:ring-[#CC8033] bg-[#FAF6F0] outline-none text-sm font-medium text-[#2A231E] resize-none transition-colors shadow-inner"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Footer Add to cart -->
+        <div class="p-6 bg-white border-t border-[#EAE3D9] shadow-[0_-10px_30px_rgba(42,35,30,0.06)] shrink-0 flex items-center justify-center gap-4">
+          <div class="flex w-full items-center gap-4">
+            <div class="flex items-center bg-[#F5F2ED] rounded-2xl border border-[#EAE3D9] p-1.5 shadow-inner h-[60px]">
+              <button class="w-11 h-full rounded-xl flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-colors">
+                <Minus class="w-4 h-4" stroke-width="2.5" />
+              </button>
+              <span class="w-12 text-center text-lg font-bold text-[#2A231E]">1</span>
+              <button class="w-11 h-full rounded-xl flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-colors">
+                <Plus class="w-4 h-4" stroke-width="2.5" />
+              </button>
+            </div>
+            <button @click="submitOptions" class="flex-1 h-[60px] rounded-2xl bg-[#D97724] hover:bg-[#C2661B] text-white flex items-center justify-center gap-3 shadow-xl transition-colors">
+              <span class="text-sm font-bold uppercase tracking-widest">Thêm vào giỏ</span>
+              <span class="text-sm font-bold opacity-90">• {{ formatVND((selectedItem?.price || 0) + currentOptionsTotalExtra) }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Toast Notifications (合一 DESIGN) -->
+    <div class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-4 pointer-events-none w-full max-w-[420px] px-4">
+      <TransitionGroup name="toast">
+        <div 
+          v-for="t in toasts" 
+          :key="t.id"
+          class="flex items-start gap-4 p-5 rounded-3xl shadow-[0_20px_60px_rgba(42,35,30,0.25)] backdrop-blur-xl border pointer-events-auto relative overflow-hidden"
+          :class="t.type === 'success' ? 'bg-[#2A231E]/95 border-[#4A3F35] text-[#FDFBF7]' : 'bg-[#EF4444]/95 border-[#EF4444]/50 text-white'"
+        >
+          <!-- Gradient glow background -->
+          <div v-if="t.type === 'success'" class="absolute -top-10 -right-10 w-32 h-32 bg-[#CC8033] rounded-full blur-[50px] opacity-20 pointer-events-none"></div>
+
+          <!-- Icon -->
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner relative z-10" :class="t.type === 'success' ? 'bg-gradient-to-br from-[#E8973D] to-[#CC8033]' : 'bg-white/20'">
+            <Check v-if="t.type === 'success'" class="w-6 h-6 text-white" stroke-width="3" />
+            <AlertCircle v-else class="w-6 h-6 text-white" stroke-width="3" />
+          </div>
+
+          <!-- Text -->
+          <div class="flex-1 pt-0.5 relative z-10 pr-6">
+            <h4 class="text-[15px] font-bold text-white tracking-wide mb-1">{{ t.title }}</h4>
+            <p v-if="t.message" class="text-[13px] font-medium text-[#D5CEC4] leading-relaxed">{{ t.message }}</p>
+          </div>
+
+          <!-- Close -->
+          <button @click="toasts = toasts.filter(x => x.id !== t.id)" class="absolute top-4 right-4 text-white/40 hover:text-white hover:bg-white/10 transition-colors p-1.5 rounded-full z-10">
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+      </TransitionGroup>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ShoppingBag, Plus, Minus, Trash2, Coffee, X, ChevronLeft, ChevronRight, Gift } from 'lucide-vue-next'
-import { menuItems, categories, formatVND, Category } from '@/data/menu'
+import { ShoppingBag, Plus, Minus, Trash2, Coffee, X, ChevronLeft, ChevronRight, Gift, CheckCircle2, User, Phone, Check, AlertCircle } from 'lucide-vue-next'
+import { menuItems, categories, formatVND, type Category } from '@/data/menu'
 import { useCartStore } from '@/stores/cart'
 import Button from '@/components/ui/Button.vue'
 import ChatbotWidget from '@/components/ChatbotWidget.vue'
@@ -408,7 +699,109 @@ const openLoginSheet = ref(false)
 const phoneNumber = ref('')
 const otpSent = ref(false)
 const cart = useCartStore()
-const toast = { success: (msg: string) => alert('Thành công: ' + msg) }
+
+const toasts = ref<{ id: number, title?: string, message: string, type: 'success' | 'error' }[]>([])
+let toastId = 0
+const toast = {
+  success: (title: string, message: string = '') => {
+    const id = toastId++
+    toasts.value.push({ id, title, message, type: 'success' })
+    setTimeout(() => {
+      toasts.value = toasts.value.filter(t => t.id !== id)
+    }, 4000)
+  },
+  error: (title: string, message: string = '') => {
+    const id = toastId++
+    toasts.value.push({ id, title, message, type: 'error' })
+    setTimeout(() => {
+      toasts.value = toasts.value.filter(t => t.id !== id)
+    }, 4000)
+  }
+}
+
+const customerPhone = ref('')
+const tempPhone = ref('')
+const usePoints = ref(false)
+
+const selectedItem = ref<any>(null)
+const itemOptionsOpen = ref(false)
+
+const availableToppings = [
+  { id: 'tran_chau_den', name: 'Trân châu đen', price: 10000, image: '/toppings/tran_chau_den.png' },
+  { id: 'tran_chau_trang', name: 'Trân châu trắng', price: 15000, image: '/toppings/tran_chau_trang.png' },
+  { id: 'thach_pho_mai', name: 'Thạch phô mai', price: 15000, image: '/toppings/thach_pho_mai.png' },
+  { id: 'pudding', name: 'Pudding', price: 15000, image: '/toppings/pudding.png' },
+  { id: 'thach_suong_sao', name: 'Thạch sương sáo', price: 10000, image: '/toppings/thach_suong_sao.png' },
+]
+
+const selectedToppings = ref<Record<string, number>>({})
+const itemNote = ref('')
+const selectedSize = ref('M')
+const selectedSugar = ref('100%')
+const selectedIce = ref('100%')
+
+const currentOptionsTotalExtra = computed(() => {
+  let extra = selectedSize.value === 'L' ? 10000 : 0
+  for (const t of availableToppings) {
+    if (selectedToppings.value[t.id]) {
+      extra += selectedToppings.value[t.id] * t.price
+    }
+  }
+  return extra
+})
+
+const updateTopping = (id: string, delta: number) => {
+  if (!selectedToppings.value[id]) selectedToppings.value[id] = 0
+  if (selectedToppings.value[id] + delta >= 0) {
+    selectedToppings.value[id] += delta
+  }
+}
+
+const openItemOptions = (m: any) => {
+  selectedItem.value = m
+  selectedToppings.value = {} // reset toppings when opening
+  itemNote.value = '' // reset note
+  selectedSize.value = 'M'
+  selectedSugar.value = '100%'
+  selectedIce.value = '100%'
+  itemOptionsOpen.value = true
+}
+
+const submitOptions = () => {
+  const toppingsArr = []
+  for (const t of availableToppings) {
+    const qty = selectedToppings.value[t.id] || 0
+    if (qty > 0) {
+      toppingsArr.push({ name: t.name, price: t.price, qty })
+    }
+  }
+
+  const options = {
+    size: selectedSize.value,
+    sugar: selectedSugar.value,
+    ice: selectedIce.value,
+    toppings: toppingsArr,
+    note: itemNote.value,
+    extraPrice: currentOptionsTotalExtra.value
+  }
+
+  cart.add(selectedItem.value, options)
+  
+  const customNames = options.toppings.map(t => t.name).join(', ')
+  const details = `Size ${options.size}${customNames ? ' • Thêm ' + customNames : ''}`
+  toast.success('Đã thêm vào giỏ', `${selectedItem.value.name} (${details})`)
+  
+  itemOptionsOpen.value = false
+}
+
+const applyCustomerPhone = () => {
+  if (tempPhone.value.trim().length >= 9) {
+    customerPhone.value = tempPhone.value
+    tempPhone.value = ''
+  } else {
+    alert('Vui lòng nhập SĐT hợp lệ')
+  }
+}
 
 const loginBenefits = [
   { emoji: '🎁', label: 'Voucher 10%' },
@@ -463,16 +856,16 @@ const goToPage = (page: number) => {
 
 const addToCart = (m: any) => {
   cart.add(m)
-  toast.success(`Đã thêm ${m.name}`)
+  toast.success('Đã thêm vào giỏ', m.name)
 }
 
 const handleOrder = () => {
   if (cart.lines.length === 0) return
   const orderId = Math.floor(1000 + Math.random() * 9000)
-  toast.success(`Đã gửi đơn cho Bàn ${tableId}! Chuyển sang thanh toán...`)
+  toast.success('Gửi đơn thành công', `Món đang được pha chế cho Bàn ${tableId}`)
   cart.clear()
   open.value = false
-  setTimeout(() => router.push(`/payment/${orderId}`), 800)
+  setTimeout(() => router.push(`/payment/${orderId}`), 1000)
 }
 </script>
 
@@ -515,5 +908,19 @@ const handleOrder = () => {
 .sheet-slide-enter-from,
 .sheet-slide-leave-to {
   transform: translateY(100%);
+}
+
+/* Toast transitions */
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.toast-enter-from {
+  opacity: 0;
+  transform: translateY(-20px) scale(0.9);
+}
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(-20px) scale(0.9);
 }
 </style>

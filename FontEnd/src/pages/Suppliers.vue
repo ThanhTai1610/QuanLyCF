@@ -41,7 +41,7 @@
         <div class="bg-white border border-[#EAE3D9] p-4 rounded-xl shadow-sm flex-1 flex items-center justify-between">
           <div>
             <p class="text-xs font-bold text-[#8A8178] uppercase tracking-wider mb-1">Tổng nợ phải trả</p>
-            <h3 class="text-2xl font-display font-bold text-red-500">24,500,000 ₫</h3>
+            <h3 class="text-2xl font-sans font-bold text-red-500">24,500,000 ₫</h3>
           </div>
           <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500">
             <TrendingDown class="w-6 h-6" />

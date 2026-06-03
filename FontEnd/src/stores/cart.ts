@@ -1,36 +1,56 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+export interface CartOption {
+  size: string
+  toppings: Array<{ name: string, price: number, qty: number }>
+  sugar: string
+  ice: string
+  note: string
+  extraPrice: number
+}
+
 export interface CartItem {
+  cartLineId: string
   item: any // using any for now, but should be the type of menuItems element
   qty: number
+  options?: CartOption
 }
 
 export const useCartStore = defineStore('cart', () => {
   const lines = ref<CartItem[]>([])
 
-  function add(item: any) {
-    const existing = lines.value.find((l) => l.item.id === item.id)
-    if (existing) {
-      existing.qty += 1
+  function add(item: any, options?: CartOption) {
+    if (!options) {
+      const existing = lines.value.find((l) => l.cartLineId === item.id)
+      if (existing) {
+        existing.qty += 1
+        return
+      }
+      lines.value.push({ cartLineId: item.id, item, qty: 1 })
     } else {
-      lines.value.push({ item, qty: 1 })
+      lines.value.push({ 
+        cartLineId: Math.random().toString(36).substring(2, 9), 
+        item, 
+        qty: 1, 
+        options 
+      })
     }
   }
 
-  function setQty(id: string, qty: number) {
+  function setQty(cartLineId: string, qty: number) {
     if (qty <= 0) {
-      remove(id)
+      remove(cartLineId)
       return
     }
-    const existing = lines.value.find((l) => l.item.id === id)
+    const existing = lines.value.find((l) => l.cartLineId === cartLineId)
     if (existing) {
       existing.qty = qty
     }
   }
 
-  function remove(id: string) {
-    lines.value = lines.value.filter((l) => l.item.id !== id)
+  function remove(cartLineId: string) {
+    lines.value = lines.value.filter((l) => l.cartLineId !== cartLineId)
   }
 
   function clear() {
@@ -38,7 +58,10 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   function total() {
-    return lines.value.reduce((s, l) => s + l.item.price * l.qty, 0)
+    return lines.value.reduce((s, l) => {
+      const itemPrice = l.item.price + (l.options?.extraPrice || 0)
+      return s + itemPrice * l.qty
+    }, 0)
   }
 
   function count() {
