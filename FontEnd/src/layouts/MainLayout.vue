@@ -138,7 +138,7 @@ import { useAuthStore } from '../stores/auth'
 import {
   LayoutDashboard, ShoppingBag, Coffee, Users, Settings, LogOut, Search,
   QrCode, FileText, FolderTree, Package, ClipboardCheck, CalendarDays, BookOpen, ChefHat, Bell, ShieldCheck,
-  ChevronDown, Wallet
+  ChevronDown, Wallet, Heart, Star, Gift
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -197,6 +197,13 @@ const navItems = [
       { to: "/inventory", label: "Kho nguyên liệu", badge: "Cấp 1" },
       { to: "/suppliers", label: "Nhà cung cấp & Nhập", badge: "Cấp 1" },
       { to: "/stocktake", label: "Kiểm kê", badge: "Cấp 2" },
+    ]
+  },
+  {
+    label: "Khách hàng",
+    icon: Heart,
+    children: [
+      { to: "/loyalty", label: "Khách hàng thân thiết", badge: "Cấp 1" },
     ]
   },
   {
