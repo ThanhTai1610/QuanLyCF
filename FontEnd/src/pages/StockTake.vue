@@ -1,228 +1,245 @@
 <template>
-  <div class="space-y-5 p-6">
+  <div class="space-y-6 font-premium-sans text-[#2A231E] p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto min-h-screen">
+
+    <!-- ===== FLOW STEPPER ===== -->
+    <div class="bg-white rounded-2xl border border-[#EAE3D9] shadow-sm p-4 flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-wider">
+      <span class="text-[10px] text-[#8A8178]">Luồng nhập kho:</span>
+      <router-link to="/suppliers" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FDFBF7] border border-[#EAE3D9] text-[#8A8178] hover:text-[#CC8033] hover:border-[#CC8033]/40 transition-colors"><Truck class="w-3.5 h-3.5" /> Nguồn cung</router-link>
+      <ChevronRight class="w-3.5 h-3.5 text-[#D5C9B3]" />
+      <router-link to="/suppliers" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FDFBF7] border border-[#EAE3D9] text-[#8A8178] hover:text-[#CC8033] hover:border-[#CC8033]/40 transition-colors"><ClipboardList class="w-3.5 h-3.5" /> Phiếu nhập</router-link>
+      <ChevronRight class="w-3.5 h-3.5 text-[#D5C9B3]" />
+      <router-link to="/inventory" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FDFBF7] border border-[#EAE3D9] text-[#8A8178] hover:text-[#CC8033] hover:border-[#CC8033]/40 transition-colors"><Package class="w-3.5 h-3.5" /> Kho</router-link>
+      <ChevronRight class="w-3.5 h-3.5 text-[#D5C9B3]" />
+      <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#CC8033] text-white"><ClipboardCheck class="w-3.5 h-3.5" /> Kiểm kê</span>
+    </div>
+
     <!-- Tabs -->
-    <div class="flex space-x-2 border-b-2 border-cream-deep pb-px">
-      <button
-        @click="activeTab = 'create'"
-        :class="[
-          'px-5 py-3 font-medium text-sm rounded-lg border shadow-card whitespace-nowrap',
-          activeTab === 'create'
-            ? 'bg-espresso text-cream border-espresso'
-            : 'bg-card text-espresso border-cream-deep'
-        ]"
-      >
-        Tạo phiếu kiểm kê
-      </button>
-      <button
-        @click="activeTab = 'approval'"
-        :class="[
-          'px-5 py-3 font-medium text-sm rounded-lg border shadow-card whitespace-nowrap',
-          activeTab === 'approval'
-            ? 'bg-espresso text-cream border-espresso'
-            : 'bg-card text-espresso border-cream-deep'
-        ]"
-      >
-        Chờ duyệt / Lịch sử
-      </button>
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div class="flex bg-white rounded-lg p-1 border border-[#EAE3D9] shadow-sm">
+        <button @click="activeTab = 'create'" :class="['px-5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2', activeTab === 'create' ? 'bg-[#CC8033] text-white shadow-md' : 'text-[#8A8178] hover:text-[#2A231E] hover:bg-[#FDFBF7]']">
+          <ClipboardCheck class="w-4 h-4" /> Tạo phiếu kiểm kê
+        </button>
+        <button @click="activeTab = 'history'" :class="['px-5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2', activeTab === 'history' ? 'bg-[#CC8033] text-white shadow-md' : 'text-[#8A8178] hover:text-[#2A231E] hover:bg-[#FDFBF7]']">
+          <History class="w-4 h-4" /> Chờ duyệt & Lịch sử
+          <span v-if="pendingCount > 0" class="px-1.5 py-0.5 rounded text-[10px]" :class="activeTab === 'history' ? 'bg-white/20' : 'bg-red-100 text-red-500'">{{ pendingCount }}</span>
+        </button>
+      </div>
     </div>
 
-    <!-- TẠO PHIẾU KIỂM KÊ -->
-    <div v-if="activeTab === 'create'" class="space-y-4">
-      <!-- Form header -->
-      <div class="bg-card rounded-lg border border-cream-deep shadow-card p-5">
-        <div class="grid sm:grid-cols-3 gap-3">
-          <!-- Ngày kiểm kê -->
-          <div class="space-y-1.5">
-            <Label class="text-espresso">Ngày kiểm kê</Label>
-            <Input type="date" class="bg-background border border-cream-deep rounded-lg shadow-card h-9" />
-          </div>
-          
-          <!-- Người kiểm kê - selectable -->
-          <div class="space-y-1.5">
-            <Label class="text-espresso">Người kiểm kê</Label>
-            <select v-model="checker" class="bg-background border border-cream-deep rounded-lg shadow-card h-9 w-full px-3 text-sm">
-              <option value="Lan Trần">Lan Trần</option>
-              <option value="Khoa Phạm">Khoa Phạm</option>
-              <option value="Vy Hoàng">Vy Hoàng</option>
-              <option value="Nam Lê">Nam Lê</option>
-              <option value="Thảo Vũ">Thảo Vũ</option>
-            </select>
-          </div>
+    <!-- ===================================================================== -->
+    <!-- TAB 1: Tạo phiếu kiểm kê -->
+    <!-- ===================================================================== -->
+    <div v-show="activeTab === 'create'" class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-5">
 
-          <!-- Khu vực / ca - selectable -->
-          <div class="space-y-1.5">
-            <Label class="text-espresso">Khu vực / ca</Label>
-            <select v-model="area" class="bg-background border border-cream-deep rounded-lg shadow-card h-9 w-full px-3 text-sm">
-              <option value="Pha chế / Sáng">Pha chế / Sáng</option>
-              <option value="Pha chế / Chiều">Pha chế / Chiều</option>
-              <option value="Pha chế / Tối">Pha chế / Tối</option>
-              <option value="Bếp nóng / Sáng">Bếp nóng / Sáng</option>
-              <option value="Bếp lạnh / Chiều">Bếp lạnh / Chiều</option>
-              <option value="Quầy thu ngân / Toàn ca">Quầy thu ngân / Toàn ca</option>
-              <option value="Toàn quán / Sáng">Toàn quán / Sáng</option>
-              <option value="Toàn quán / Chiều">Toàn quán / Chiều</option>
-            </select>
-          </div>
+      <!-- Header form -->
+      <div class="bg-white rounded-xl border border-[#EAE3D9] shadow-sm p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178]">Ngày kiểm kê</label>
+          <input type="date" v-model="takeDate" class="w-full bg-[#FDFBF7] border border-[#EAE3D9] h-10 rounded-lg px-3 text-sm font-medium focus:outline-none focus:border-[#CC8033]" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178]">Người kiểm kê</label>
+          <select v-model="takeBy" class="w-full bg-white border border-[#EAE3D9] h-10 rounded-lg px-3 text-sm font-medium focus:outline-none">
+            <option v-for="p in staff" :key="p">{{ p }}</option>
+          </select>
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178]">Khu vực / Ca</label>
+          <select v-model="takeZone" class="w-full bg-white border border-[#EAE3D9] h-10 rounded-lg px-3 text-sm font-medium focus:outline-none">
+            <option>Toàn bộ kho</option>
+            <option>Quầy pha chế</option>
+            <option>Bếp bánh / lạnh</option>
+            <option>Kho vật tư</option>
+          </select>
         </div>
       </div>
 
-      <!-- Bảng kiểm kê -->
-      <div class="bg-card rounded-lg border border-cream-deep shadow-card overflow-hidden">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="bg-cream/50 text-left text-muted-foreground text-xs uppercase border-b-2 border-cream-deep">
-              <th class="px-4 py-3 font-medium">Tên NL</th>
-              <th class="px-4 py-3 font-medium">ĐV</th>
-              <th class="px-4 py-3 font-medium">Tồn hệ thống</th>
-              <th class="px-4 py-3 font-medium">Tồn thực tế</th>
-              <th class="px-4 py-3 font-medium">Chênh lệch</th>
-              <th class="px-4 py-3 font-medium">Ghi chú</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(r, i) in rows" :key="r.id" class="border-t-2 border-cream-deep/60">
-              <td class="px-4 py-3 font-medium text-espresso">{{ r.name }}</td>
-              <td class="px-4 py-3 text-muted-foreground">{{ r.unit }}</td>
-              <td class="px-4 py-3 text-espresso">{{ r.system }}</td>
-              <td class="px-4 py-3">
-                <Input
-                  type="number"
-                  step="0.1"
-                  v-model.number="r.actual"
-                  class="bg-background border border-cream-deep rounded-lg shadow-card h-8 w-24"
-                />
-              </td>
-              <td class="px-4 py-3">
-                <span v-if="getDiff(r) !== null" :class="['font-semibold', getDiffColor(r)]">
-                  {{ getDiffText(r) }}
-                </span>
-              </td>
-              <td class="px-4 py-3">
-                <Input
-                  v-model="r.note"
-                  placeholder="Tùy chọn"
-                  class="bg-background border border-cream-deep rounded-lg shadow-card h-8"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="flex justify-end gap-3">
-        <Button variant="outline" class="border border-cream-deep rounded-lg shadow-card">Lưu nháp</Button>
-        <Button @click="submitRequest" class="bg-caramel text-cream rounded-lg border border-caramel/30 shadow-card">Gửi yêu cầu điều chỉnh</Button>
-      </div>
-    </div>
-
-    <!-- CHỜ DUYỆT / LỊCH SỬ -->
-    <div v-if="activeTab === 'approval'" class="space-y-3">
-      <div v-for="r in requestsList" :key="r.id" class="bg-card rounded-lg border border-cream-deep shadow-card p-5">
-        <div class="flex items-start justify-between">
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="font-display text-lg text-espresso font-semibold">{{ r.id }}</span>
-              <span :class="['px-3 py-1 rounded-lg text-xs font-medium border', statusBadge[r.status].cls]">
-                {{ statusBadge[r.status].label }}
-              </span>
-            </div>
-            <p class="text-sm text-muted-foreground mt-1">{{ r.by }} • {{ r.time }} • {{ r.count }} mặt hàng điều chỉnh</p>
-            <div class="flex gap-2 mt-3 flex-wrap">
-              <span v-for="(it, i) in r.items" :key="i" class="text-xs px-3 py-1 rounded-lg bg-cream border border-cream-deep">
-                {{ it.name }}: <strong :class="it.diff > 0 ? 'text-success' : 'text-destructive'">{{ it.diff > 0 ? "+" : "" }}{{ it.diff }}</strong>
-              </span>
-            </div>
+      <!-- Count table -->
+      <div class="bg-white rounded-xl border border-[#EAE3D9] shadow-sm overflow-hidden">
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-sm text-left">
+            <thead>
+              <tr class="bg-[#FDFBF7] text-[#8A8178] text-[10px] uppercase tracking-[0.1em] border-b border-[#EAE3D9]">
+                <th class="px-5 py-4 font-bold">Tên nguyên liệu</th>
+                <th class="px-5 py-4 font-bold text-center w-24">Đơn vị</th>
+                <th class="px-5 py-4 font-bold text-right w-36">Tồn hệ thống</th>
+                <th class="px-5 py-4 font-bold text-right w-44">Tồn thực tế</th>
+                <th class="px-5 py-4 font-bold text-right w-36">Chênh lệch</th>
+                <th class="px-5 py-4 font-bold w-56">Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#EAE3D9]/60">
+              <tr v-for="row in rows" :key="row.id" class="hover:bg-[#FDFBF7] transition-colors">
+                <td class="px-5 py-3 font-bold text-[#2A231E]">{{ row.name }}</td>
+                <td class="px-5 py-3 text-center text-xs font-medium text-[#5C544E] uppercase">{{ row.unit }}</td>
+                <td class="px-5 py-3 text-right font-medium text-[#5C544E]">{{ formatNumber(row.system) }}</td>
+                <td class="px-5 py-3">
+                  <input type="number" min="0" v-model.number="row.actual" placeholder="—" class="w-full text-right bg-[#FFF9F2] border border-[#E8C5A5] h-9 rounded-md px-3 text-sm font-bold text-[#CC8033] focus:outline-none focus:ring-2 focus:ring-[#CC8033]/20" />
+                </td>
+                <td class="px-5 py-3 text-right">
+                  <span class="font-bold px-2.5 py-1 rounded-md text-xs" :class="diffClass(row)">
+                    {{ row.actual === undefined ? '—' : (diff(row) > 0 ? '+' : '') + formatNumber(diff(row)) }}
+                  </span>
+                </td>
+                <td class="px-5 py-3">
+                  <input v-model="row.note" placeholder="Lý do chênh lệch..." class="w-full bg-white border border-[#EAE3D9] h-9 rounded-md px-3 text-xs font-medium focus:outline-none focus:border-[#CC8033]" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="px-5 py-4 border-t border-[#EAE3D9] bg-[#FDFBF7] flex flex-wrap items-center justify-between gap-3">
+          <div class="text-xs font-medium text-[#5C544E]">
+            Đã đếm <span class="font-bold text-[#2A231E]">{{ countedRows }}</span>/{{ rows.length }} mặt hàng •
+            <span class="font-bold" :class="diffRows > 0 ? 'text-[#CC8033]' : 'text-[#4A7C59]'">{{ diffRows }}</span> mặt hàng có chênh lệch
           </div>
-          <div v-if="r.status === 'pending'" class="flex gap-2">
-            <Button @click="approve(r.id)" size="sm" class="bg-success text-cream rounded-lg border border-success/30 shadow-card">
-              <CheckCircle class="w-3.5 h-3.5 mr-1" /> Duyệt
-            </Button>
-            <Button @click="reject(r.id)" size="sm" variant="outline" class="border border-destructive/40 text-destructive rounded-lg shadow-card">
-              <XCircle class="w-3.5 h-3.5 mr-1" /> Từ chối
-            </Button>
+          <div class="flex gap-2">
+            <button @click="saveDraft" class="px-5 py-2.5 rounded-lg border border-[#EAE3D9] text-[#5C544E] text-xs font-bold uppercase tracking-wider hover:bg-[#EAE3D9]/50 transition-colors bg-white shadow-sm">Lưu nháp</button>
+            <button @click="submitRequest" class="px-5 py-2.5 rounded-lg bg-[#CC8033] hover:bg-[#B87029] text-white text-xs font-bold uppercase tracking-wider shadow-md transition-colors">Gửi yêu cầu điều chỉnh</button>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- ===================================================================== -->
+    <!-- TAB 2: Chờ duyệt & Lịch sử -->
+    <!-- ===================================================================== -->
+    <div v-show="activeTab === 'history'" class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
+      <div v-if="requests.length === 0" class="bg-white rounded-xl border border-[#EAE3D9] shadow-sm py-16 text-center text-[#8A8178] text-sm font-medium">
+        Chưa có yêu cầu kiểm kê nào.
+      </div>
+
+      <div v-for="req in requests" :key="req.id" class="bg-white rounded-xl border border-[#EAE3D9] shadow-sm overflow-hidden">
+        <div class="px-5 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-[#EAE3D9] bg-[#FDFBF7]">
+          <div class="flex items-center gap-4">
+            <span class="font-mono text-xs font-bold text-[#2A231E]">{{ req.id }}</span>
+            <span class="text-xs text-[#5C544E]">{{ req.by }} • {{ req.time }}</span>
+            <span class="px-2.5 py-1 rounded-full bg-[#EAE3D9]/60 text-[#5C544E] text-[10px] font-bold uppercase tracking-wider">{{ req.items.length }} mặt hàng</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span :class="['inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wider', statusBadge[req.status].cls]">
+              <component :is="statusBadge[req.status].icon" class="w-3 h-3" /> {{ statusBadge[req.status].label }}
+            </span>
+            <template v-if="req.status === 'pending'">
+              <button @click="approve(req)" class="px-3 py-1.5 rounded-md bg-[#4A7C59] text-white text-[10px] font-bold uppercase tracking-wider hover:bg-[#3B6347] transition-colors shadow-sm">Duyệt</button>
+              <button @click="reject(req)" class="px-3 py-1.5 rounded-md bg-white border border-red-200 text-red-500 text-[10px] font-bold uppercase tracking-wider hover:bg-red-50 transition-colors">Từ chối</button>
+            </template>
+          </div>
+        </div>
+        <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          <div v-for="(it, i) in req.items" :key="i" class="flex items-center justify-between bg-[#FDFBF7] border border-[#EAE3D9] rounded-lg px-3 py-2">
+            <span class="text-xs font-bold text-[#2A231E]">{{ it.name }}</span>
+            <span class="text-xs font-bold" :class="it.diff > 0 ? 'text-[#4A7C59]' : 'text-red-500'">{{ it.diff > 0 ? '+' : '' }}{{ formatNumber(it.diff) }} {{ it.unit }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <Transition name="toast">
+      <div v-if="toastMsg" class="fixed bottom-6 right-6 z-[60] bg-[#2A231E] text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-[#CC8033]/30">
+        <CheckCircle2 class="w-5 h-5 text-[#4A7C59]" />
+        <span class="text-sm font-medium">{{ toastMsg }}</span>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { CheckCircle, XCircle } from 'lucide-vue-next'
-import Button from '@/components/ui/Button.vue'
-import Input from '@/components/ui/Input.vue'
-import Label from '@/components/ui/Label.vue'
+import { ref, computed } from 'vue'
+import {
+  Truck, ClipboardList, ChevronRight, Package, ClipboardCheck, History,
+  CheckCircle2, Clock, XCircle
+} from 'lucide-vue-next'
 
-interface Row {
-  id: string
-  name: string
-  unit: string
-  system: number
-  actual: number | null
-  note: string
-}
+// ── Types ───────────────────────────────────────────────
+interface Row { id: string; name: string; unit: string; system: number; actual: number | undefined; note: string }
+interface ReqItem { name: string; unit: string; diff: number }
+interface Request { id: string; by: string; time: string; status: 'pending' | 'approved' | 'rejected'; items: ReqItem[] }
 
-interface Request {
-  id: string
-  by: string
-  time: string
-  count: number
-  status: "pending" | "approved" | "rejected"
-  items: { name: string; diff: number }[]
-}
-
-const toast = { success: (msg: string) => alert('Thành công: ' + msg) }
-
-const initial: Row[] = [
-  { id: "1", name: "Hạt cà phê Arabica", unit: "kg", system: 12, actual: 12, note: "" },
-  { id: "2", name: "Sữa tươi", unit: "lít", system: 0.5, actual: 0.3, note: "" },
-  { id: "3", name: "Đường nâu", unit: "kg", system: 8, actual: 8, note: "" },
-  { id: "4", name: "Bột matcha", unit: "kg", system: 1.2, actual: 1.0, note: "" },
-  { id: "5", name: "Trân châu nâu", unit: "kg", system: 6, actual: 5, note: "" },
+// ── Master rows (tồn hệ thống lấy từ kho) ───────────────
+const baseRows: Omit<Row, 'actual' | 'note'>[] = [
+  { id: 'RAW-CF-001', name: 'Hạt cà phê Robusta', unit: 'g', system: 10450 },
+  { id: 'SEM-TC-012', name: 'Trân châu đen nấu sẵn', unit: 'g', system: 4200 },
+  { id: 'RAW-MK-005', name: 'Sữa đặc Ngôi sao', unit: 'Lon', system: 293 },
+  { id: 'RAW-MK-002', name: 'Sữa tươi thanh trùng', unit: 'Hộp', system: 48 },
+  { id: 'SUP-CUP-01', name: 'Ly giấy Takeaway 450ml', unit: 'Chiếc', system: 0 },
 ]
 
-const requests: Request[] = [
-  { id: "KK-024", by: "Lan Trần", time: "Hôm nay 09:30", count: 3, status: "pending", items: [{ name: "Sữa tươi", diff: -0.3 }, { name: "Đường", diff: 1 }, { name: "Cacao", diff: -0.5 }] },
-  { id: "KK-023", by: "Khoa Phạm", time: "Hôm qua 18:20", count: 5, status: "approved", items: [{ name: "Hạt cà phê", diff: -0.5 }] },
-  { id: "KK-022", by: "Vy Hoàng", time: "20/04 14:00", count: 2, status: "rejected", items: [{ name: "Trân châu", diff: -2 }] },
-]
+const staff = ['Lan Trần', 'Khoa Phạm', 'Minh Nguyễn', 'Vy Hoàng']
+
+const activeTab = ref<'create' | 'history'>('create')
+const takeDate = ref(new Date().toISOString().slice(0, 10))
+const takeBy = ref(staff[0]!)
+const takeZone = ref('Toàn bộ kho')
+
+const rows = ref<Row[]>(baseRows.map(r => ({ ...r, actual: undefined, note: '' })))
+
+// ── Diff helpers ────────────────────────────────────────
+const formatNumber = (n: number) => (n || 0).toLocaleString('vi-VN')
+const diff = (row: Row) => row.actual === undefined ? 0 : row.actual - row.system
+const diffClass = (row: Row) => {
+  if (row.actual === undefined) return 'text-[#8A8178] bg-[#FDFBF7] border border-[#EAE3D9]'
+  const d = diff(row)
+  if (d > 0) return 'text-[#4A7C59] bg-green-50 border border-green-100'
+  if (d < 0) return 'text-red-500 bg-red-50 border border-red-100'
+  return 'text-[#8A8178] bg-[#FDFBF7] border border-[#EAE3D9]'
+}
+const countedRows = computed(() => rows.value.filter(r => r.actual !== undefined).length)
+const diffRows = computed(() => rows.value.filter(r => r.actual !== undefined && diff(r) !== 0).length)
+
+// ── Requests ────────────────────────────────────────────
+const requests = ref<Request[]>([
+  { id: 'KK-023', by: 'Khoa Phạm', time: '08/06/2026 17:40', status: 'approved', items: [{ name: 'Hạt cà phê Robusta', unit: 'g', diff: -150 }, { name: 'Sữa đặc Ngôi sao', unit: 'Lon', diff: 2 }] },
+  { id: 'KK-022', by: 'Lan Trần', time: '07/06/2026 21:10', status: 'rejected', items: [{ name: 'Ly giấy Takeaway 450ml', unit: 'Chiếc', diff: -50 }] },
+])
+let reqCounter = 24
+const pendingCount = computed(() => requests.value.filter(r => r.status === 'pending').length)
 
 const statusBadge = {
-  pending: { label: "Chờ duyệt", cls: "bg-warning/15 text-warning border-warning/30" },
-  approved: { label: "Đã duyệt", cls: "bg-success/15 text-success border-success/30" },
-  rejected: { label: "Từ chối", cls: "bg-destructive/15 text-destructive border-destructive/30" },
+  pending: { label: 'Chờ duyệt', cls: 'bg-orange-50 text-orange-600 border-orange-100', icon: Clock },
+  approved: { label: 'Đã duyệt', cls: 'bg-green-50 text-green-600 border-green-100', icon: CheckCircle2 },
+  rejected: { label: 'Từ chối', cls: 'bg-red-50 text-red-500 border-red-100', icon: XCircle },
+} as const
+
+// ── Toast ───────────────────────────────────────────────
+const toastMsg = ref('')
+let toastTimer: ReturnType<typeof setTimeout>
+const toast = (msg: string) => {
+  toastMsg.value = msg
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => (toastMsg.value = ''), 3000)
 }
 
-const activeTab = ref<'create' | 'approval'>('create')
-const rows = ref<Row[]>([...initial])
-const requestsList = ref<Request[]>([...requests])
-
-// Người kiểm kê
-const checker = ref("Lan Trần")
-
-// Khu vực / ca
-const area = ref("Pha chế / Sáng")
-
-const getDiff = (r: Row) => r.actual !== null && r.actual !== undefined ? Number(r.actual) - r.system : null
-
-const getDiffColor = (r: Row) => {
-  const diff = getDiff(r)
-  if (diff === null) return "text-muted-foreground"
-  return diff > 0 ? "text-success" : diff < 0 ? "text-destructive" : "text-muted-foreground"
-}
-
-const getDiffText = (r: Row) => {
-  const diff = getDiff(r)
-  if (diff === null) return ""
-  return `${diff > 0 ? "+" : ""}${diff.toFixed(1)}`
-}
+// ── Actions ─────────────────────────────────────────────
+const saveDraft = () => toast('Đã lưu nháp phiếu kiểm kê')
 
 const submitRequest = () => {
-  toast.success("Đã gửi yêu cầu điều chỉnh kho")
-  activeTab.value = 'approval'
+  const changed = rows.value.filter(r => r.actual !== undefined && diff(r) !== 0)
+  if (changed.length === 0) { toast('Chưa có chênh lệch nào để gửi'); return }
+  const id = `KK-${String(reqCounter++).padStart(3, '0')}`
+  const d = new Date(takeDate.value)
+  requests.value.unshift({
+    id, by: takeBy.value,
+    time: d.toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+    status: 'pending',
+    items: changed.map(r => ({ name: r.name, unit: r.unit, diff: diff(r) })),
+  })
+  rows.value = baseRows.map(r => ({ ...r, actual: undefined, note: '' }))
+  activeTab.value = 'history'
+  toast(`Đã gửi yêu cầu ${id} (${changed.length} mặt hàng)`)
 }
 
-const approve = (id: string) => toast.success(`Đã duyệt ${id}`)
-const reject = (id: string) => toast.success(`Đã từ chối ${id}`)
+const approve = (req: Request) => { req.status = 'approved'; toast(`Đã duyệt ${req.id} — kho được cập nhật`) }
+const reject = (req: Request) => { req.status = 'rejected'; toast(`Đã từ chối ${req.id}`) }
 </script>
+
+<style scoped>
+.font-premium-sans { font-family: 'Be Vietnam Pro', system-ui, sans-serif; }
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #EAE3D9; border-radius: 10px; }
+.custom-scrollbar:hover::-webkit-scrollbar-thumb { background-color: #D5C9B3; }
+.toast-enter-active, .toast-leave-active { transition: all .3s cubic-bezier(.34,1.56,.64,1); }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(20px); }
+</style>

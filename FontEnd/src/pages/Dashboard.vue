@@ -176,8 +176,8 @@ const lineChartOptions = {
       backgroundColor: '#2A231E',
       titleColor: '#FDFBF7',
       bodyColor: '#FDFBF7',
-      titleFont: { family: 'Montserrat', size: 13, weight: 'bold' },
-      bodyFont: { family: 'Montserrat', size: 14, weight: 'bold' },
+      titleFont: { family: 'Be Vietnam Pro', size: 13, weight: 'bold' },
+      bodyFont: { family: 'Be Vietnam Pro', size: 14, weight: 'bold' },
       padding: 12,
       cornerRadius: 8,
       displayColors: false,
@@ -189,13 +189,13 @@ const lineChartOptions = {
   scales: {
     x: { 
       grid: { display: false },
-      ticks: { font: { family: 'Montserrat', weight: 'bold' }, color: '#8A8178' }
+      ticks: { font: { family: 'Be Vietnam Pro', weight: 'bold' }, color: '#8A8178' }
     },
     y: { 
       grid: { color: '#EAE3D9', borderDash: [4, 4] },
       border: { display: false },
       ticks: {
-        font: { family: 'Montserrat', weight: 'bold' },
+        font: { family: 'Be Vietnam Pro', weight: 'bold' },
         color: '#8A8178',
         callback: (value: any) => `${value / 1000000}M`
       }
@@ -226,8 +226,8 @@ const barChartOptions = {
       backgroundColor: '#2A231E',
       titleColor: '#FDFBF7',
       bodyColor: '#FDFBF7',
-      titleFont: { family: 'Montserrat', size: 13, weight: 'bold' },
-      bodyFont: { family: 'Montserrat', size: 14, weight: 'bold' },
+      titleFont: { family: 'Be Vietnam Pro', size: 13, weight: 'bold' },
+      bodyFont: { family: 'Be Vietnam Pro', size: 14, weight: 'bold' },
       padding: 12,
       cornerRadius: 8,
       displayColors: false,
@@ -241,7 +241,7 @@ const barChartOptions = {
     y: { 
       grid: { display: false },
       border: { display: false },
-      ticks: { font: { family: 'Montserrat', weight: 'bold' }, color: '#5C544E' }
+      ticks: { font: { family: 'Be Vietnam Pro', weight: 'bold' }, color: '#5C544E' }
     }
   }
 }
@@ -249,14 +249,9 @@ const barChartOptions = {
 
 <style scoped>
 /* Nhúng font chữ sang trọng chuẩn nhà hàng 5 sao */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@400;500;600;700&display=swap');
-
-/* Định nghĩa class sử dụng font */
-.font-premium-serif {
-  font-family: 'Cormorant Garamond', Georgia, serif;
-}
-
+/* Phông thống nhất toàn web */
+.font-premium-serif,
 .font-premium-sans {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
 }
 </style>

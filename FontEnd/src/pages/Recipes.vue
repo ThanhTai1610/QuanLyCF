@@ -409,10 +409,8 @@ const toggleOption = (id: number) => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
-
 .font-premium-sans {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
 }
 
 .custom-scrollbar::-webkit-scrollbar {

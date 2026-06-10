@@ -304,8 +304,8 @@ const barChartOptions = {
       intersect: false,
       backgroundColor: '#2A231E',
       padding: 12,
-      titleFont: { size: 13, family: 'Montserrat' },
-      bodyFont: { size: 12, family: 'Montserrat' },
+      titleFont: { size: 13, family: 'Be Vietnam Pro' },
+      bodyFont: { size: 12, family: 'Be Vietnam Pro' },
       cornerRadius: 8
     }
   },
@@ -313,11 +313,11 @@ const barChartOptions = {
     y: {
       beginAtZero: true,
       grid: { color: '#EAE3D9', drawBorder: false },
-      ticks: { color: '#8A8178', font: { family: 'Montserrat', size: 10, weight: 'bold' } }
+      ticks: { color: '#8A8178', font: { family: 'Be Vietnam Pro', size: 10, weight: 'bold' } }
     },
     x: {
       grid: { display: false },
-      ticks: { color: '#8A8178', font: { family: 'Montserrat', size: 10, weight: 'bold' } }
+      ticks: { color: '#8A8178', font: { family: 'Be Vietnam Pro', size: 10, weight: 'bold' } }
     }
   }
 }
@@ -342,7 +342,7 @@ const doughnutOptions = {
     tooltip: {
       backgroundColor: '#2A231E',
       padding: 12,
-      bodyFont: { size: 13, family: 'Montserrat', weight: 'bold' },
+      bodyFont: { size: 13, family: 'Be Vietnam Pro', weight: 'bold' },
       cornerRadius: 8,
       displayColors: true
     }

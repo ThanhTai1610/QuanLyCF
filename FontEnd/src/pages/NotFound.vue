@@ -36,12 +36,8 @@ import Button from '@/components/ui/Button.vue'
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600;700;900&display=swap');
-
-.font-premium-serif {
-  font-family: 'Cormorant Garamond', Georgia, serif;
-}
+.font-premium-serif,
 .font-premium-sans {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
 }
 </style>

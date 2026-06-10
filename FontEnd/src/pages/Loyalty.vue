@@ -18,6 +18,43 @@
       </div>
     </div>
 
+    <!-- TIER BENEFITS -->
+    <div class="bg-white rounded-xl border border-cream-deep shadow-sm overflow-hidden">
+      <button
+        @click="showBenefits = !showBenefits"
+        class="w-full flex items-center justify-between px-5 py-3.5 hover:bg-background/50 transition-colors"
+      >
+        <span class="flex items-center gap-2 text-sm font-bold text-espresso">
+          <Gift class="w-4 h-4 text-[#CC8033]" /> Quyền lợi theo hạng thành viên
+        </span>
+        <ChevronDown class="w-4 h-4 text-muted-foreground transition-transform" :class="{ 'rotate-180': showBenefits }" />
+      </button>
+      <div v-if="showBenefits" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 pt-0">
+        <div
+          v-for="tier in tiers"
+          :key="tier.name"
+          class="rounded-xl border p-4"
+          :style="{ borderColor: tier.color + '40', backgroundColor: tier.color + '0A' }"
+        >
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" :style="{ backgroundColor: tier.color + '22' }">
+              <component :is="tier.icon" class="w-4 h-4" :style="{ color: tier.color }" />
+            </div>
+            <div>
+              <div class="text-sm font-bold text-espresso">{{ tier.name }}</div>
+              <div class="text-[10px] text-muted-foreground">Từ {{ tier.min.toLocaleString() }} điểm</div>
+            </div>
+          </div>
+          <ul class="space-y-1.5">
+            <li v-for="b in tier.benefits" :key="b" class="flex items-start gap-1.5 text-xs text-espresso/80">
+              <Check class="w-3 h-3 mt-0.5 flex-shrink-0" :style="{ color: tier.color }" />
+              {{ b }}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <!-- FILTER & SEARCH -->
     <div class="bg-white rounded-xl border border-cream-deep shadow-sm p-4 flex flex-wrap items-center gap-3">
       <div class="relative flex-1 min-w-[200px]">
@@ -44,7 +81,7 @@
       </div>
 
       <button
-        @click="showAddModal = true"
+        @click="openAdd"
         class="ml-auto flex items-center gap-2 px-4 h-9 rounded-lg bg-[#CC8033] text-white text-xs font-bold hover:bg-brown transition-colors shadow-md shadow-[#CC8033]/20"
       >
         <UserPlus class="w-4 h-4" />
@@ -52,111 +89,118 @@
       </button>
     </div>
 
-    <!-- TABLE -->
-    <div class="bg-white rounded-xl border border-cream-deep shadow-sm overflow-hidden">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="border-b border-cream-deep bg-background">
-            <th class="text-left px-5 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Khách hàng</th>
-            <th class="text-left px-5 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Hạng thành viên</th>
-            <th class="text-left px-5 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Điểm tích lũy</th>
-            <th class="text-left px-5 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Tổng chi tiêu</th>
-            <th class="text-left px-5 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Lần ghé gần nhất</th>
-            <th class="text-left px-5 py-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">Hành động</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-cream-deep">
-          <tr
-            v-for="customer in filteredCustomers"
-            :key="customer.id"
-            class="hover:bg-background/50 transition-colors group"
-          >
-            <td class="px-5 py-3.5">
-              <div class="flex items-center gap-3">
-                <div
-                  class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                  :style="{ backgroundColor: avatarColor(customer.name) }"
-                >
-                  {{ customer.name.charAt(0) }}
-                </div>
-                <div>
-                  <div class="font-semibold text-espresso">{{ customer.name }}</div>
-                  <div class="text-xs text-muted-foreground">{{ customer.phone }}</div>
-                </div>
-              </div>
-            </td>
-            <td class="px-5 py-3.5">
-              <span
-                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
-                :class="tierClass(customer.tier)"
+    <!-- CUSTOMER CARD GRID -->
+    <div v-if="filteredCustomers.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <article
+        v-for="customer in filteredCustomers"
+        :key="customer.id"
+        class="bg-white rounded-2xl border border-cream-deep shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-shadow"
+      >
+        <!-- Tier strip -->
+        <div class="h-1.5" :style="{ backgroundColor: tierColor(customer.tier) }" />
+
+        <div class="p-5 flex-1 flex flex-col">
+          <!-- Identity -->
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-3">
+              <div
+                class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0"
+                :style="{ backgroundColor: avatarColor(customer.name) }"
               >
-                <component :is="tierIcon(customer.tier)" class="w-3 h-3" />
-                {{ customer.tier }}
+                {{ customer.name.charAt(0) }}
+              </div>
+              <div>
+                <div class="font-bold text-espresso leading-tight">{{ customer.name }}</div>
+                <div class="text-xs text-muted-foreground">{{ customer.phone }}</div>
+              </div>
+            </div>
+            <span
+              class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold flex-shrink-0"
+              :class="tierClass(customer.tier)"
+            >
+              <component :is="tierIcon(customer.tier)" class="w-3 h-3" />
+              {{ customer.tier }}
+            </span>
+          </div>
+
+          <!-- Points progress -->
+          <div class="mt-4">
+            <div class="flex justify-between text-[11px] mb-1.5">
+              <span class="font-bold text-espresso">{{ customer.points.toLocaleString() }} điểm</span>
+              <span class="text-muted-foreground">
+                {{ customer.tier === 'Kim cương' ? 'Hạng cao nhất' : `/ ${nextTierPoints(customer.tier).toLocaleString()}` }}
               </span>
-            </td>
-            <td class="px-5 py-3.5">
-              <div class="flex items-center gap-2">
-                <div class="flex-1 max-w-[100px]">
-                  <div class="flex justify-between text-[10px] mb-1">
-                    <span class="font-bold text-espresso">{{ customer.points.toLocaleString() }}</span>
-                    <span class="text-muted-foreground">/ {{ nextTierPoints(customer.tier).toLocaleString() }}</span>
-                  </div>
-                  <div class="h-1.5 rounded-full bg-cream-deep overflow-hidden">
-                    <div
-                      class="h-full rounded-full transition-all duration-500"
-                      :style="{
-                        width: `${Math.min(100, (customer.points / nextTierPoints(customer.tier)) * 100)}%`,
-                        backgroundColor: tierColor(customer.tier)
-                      }"
-                    />
-                  </div>
-                </div>
-              </div>
-            </td>
-            <td class="px-5 py-3.5">
-              <span class="font-semibold text-espresso">{{ customer.totalSpend.toLocaleString() }}đ</span>
-            </td>
-            <td class="px-5 py-3.5">
-              <span class="text-muted-foreground text-xs">{{ customer.lastVisit }}</span>
-            </td>
-            <td class="px-5 py-3.5">
-              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  @click="openDetail(customer)"
-                  class="p-1.5 rounded-lg hover:bg-caramel/10 text-muted-foreground hover:text-[#CC8033] transition-colors"
-                  title="Xem chi tiết"
-                >
-                  <Eye class="w-4 h-4" />
-                </button>
-                <button
-                  @click="addPoints(customer)"
-                  class="p-1.5 rounded-lg hover:bg-green-50 text-muted-foreground hover:text-green-600 transition-colors"
-                  title="Cộng điểm"
-                >
-                  <Plus class="w-4 h-4" />
-                </button>
-              </div>
-            </td>
-          </tr>
-          <tr v-if="filteredCustomers.length === 0">
-            <td colspan="6" class="px-5 py-12 text-center text-muted-foreground text-sm">
-              <Users class="w-10 h-10 mx-auto mb-2 opacity-30" />
-              Không tìm thấy khách hàng nào.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+            <div class="h-2 rounded-full bg-cream-deep overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-500"
+                :style="{
+                  width: `${Math.min(100, (customer.points / nextTierPoints(customer.tier)) * 100)}%`,
+                  backgroundColor: tierColor(customer.tier)
+                }"
+              />
+            </div>
+          </div>
+
+          <!-- Mini stats -->
+          <div class="grid grid-cols-2 gap-2 mt-4">
+            <div class="bg-background rounded-lg p-2.5 text-center">
+              <div class="text-sm font-bold text-espresso">{{ formatVnd(customer.totalSpend) }}</div>
+              <div class="text-[10px] text-muted-foreground mt-0.5">Tổng chi tiêu</div>
+            </div>
+            <div class="bg-background rounded-lg p-2.5 text-center">
+              <div class="text-sm font-bold text-[#CC8033]">{{ customer.visits }}</div>
+              <div class="text-[10px] text-muted-foreground mt-0.5">Lần ghé thăm</div>
+            </div>
+          </div>
+
+          <div class="text-[10px] text-muted-foreground mt-3 flex items-center gap-1">
+            <Clock class="w-3 h-3" /> Ghé gần nhất: {{ customer.lastVisit }}
+          </div>
+
+          <!-- Actions -->
+          <div class="grid grid-cols-3 gap-1.5 mt-4 pt-4 border-t border-cream-deep">
+            <button
+              @click="openDetail(customer)"
+              class="flex items-center justify-center h-8 rounded-lg bg-background hover:bg-caramel/10 text-muted-foreground hover:text-[#CC8033] transition-colors"
+              title="Xem chi tiết"
+            >
+              <Eye class="w-4 h-4" />
+            </button>
+            <button
+              @click="openEdit(customer)"
+              class="flex items-center justify-center h-8 rounded-lg bg-background hover:bg-blue-50 text-muted-foreground hover:text-blue-600 transition-colors"
+              title="Chỉnh sửa"
+            >
+              <Pencil class="w-4 h-4" />
+            </button>
+            <button
+              @click="deleteCustomer(customer)"
+              class="flex items-center justify-center h-8 rounded-lg bg-background hover:bg-red-50 text-muted-foreground hover:text-destructive transition-colors"
+              title="Xóa khách hàng"
+            >
+              <Trash2 class="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- Empty state -->
+    <div v-else class="bg-white rounded-xl border border-cream-deep shadow-sm py-16 text-center text-muted-foreground text-sm">
+      <Users class="w-10 h-10 mx-auto mb-2 opacity-30" />
+      Không tìm thấy khách hàng nào.
     </div>
 
     <!-- DETAIL MODAL -->
     <div
       v-if="selectedCustomer"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-espresso/40 backdrop-blur-sm"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-espresso/40 backdrop-blur-sm p-4"
       @click.self="selectedCustomer = null"
     >
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar">
         <!-- Modal header -->
-        <div class="bg-gradient-to-r from-[#CC8033] to-[#E09048] p-6 text-white relative">
+        <div class="bg-gradient-to-r from-[#CC8033] to-[#E09048] p-6 text-white relative sticky top-0">
           <button
             @click="selectedCustomer = null"
             class="absolute top-4 right-4 p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
@@ -173,9 +217,7 @@
             <div>
               <h3 class="text-lg font-bold">{{ selectedCustomer.name }}</h3>
               <p class="text-sm text-white/80">{{ selectedCustomer.phone }}</p>
-              <span
-                class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/25"
-              >
+              <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/25">
                 <component :is="tierIcon(selectedCustomer.tier)" class="w-3 h-3" />
                 {{ selectedCustomer.tier }}
               </span>
@@ -184,7 +226,7 @@
         </div>
 
         <!-- Modal body -->
-        <div class="p-6 space-y-4">
+        <div class="p-6 space-y-5">
           <div class="grid grid-cols-2 gap-3">
             <div class="bg-background rounded-xl p-4 text-center">
               <div class="text-2xl font-bold text-espresso">{{ selectedCustomer.points.toLocaleString() }}</div>
@@ -212,21 +254,56 @@
             </div>
           </div>
 
-          <div class="space-y-2">
+          <!-- Redeem rewards -->
+          <div>
+            <div class="text-sm font-semibold text-espresso mb-2 flex items-center gap-1.5">
+              <Ticket class="w-4 h-4 text-[#CC8033]" /> Đổi điểm lấy ưu đãi
+            </div>
+            <div class="space-y-2">
+              <div
+                v-for="reward in rewards"
+                :key="reward.id"
+                class="flex items-center justify-between gap-3 p-3 rounded-xl border border-cream-deep"
+              >
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-8 h-8 rounded-lg bg-caramel/10 flex items-center justify-center flex-shrink-0">
+                    <component :is="reward.icon" class="w-4 h-4 text-[#CC8033]" />
+                  </div>
+                  <div class="min-w-0">
+                    <div class="text-xs font-semibold text-espresso truncate">{{ reward.name }}</div>
+                    <div class="text-[10px] text-muted-foreground">{{ reward.cost.toLocaleString() }} điểm</div>
+                  </div>
+                </div>
+                <button
+                  @click="redeemReward(selectedCustomer, reward)"
+                  :disabled="selectedCustomer.points < reward.cost"
+                  class="px-3 h-8 rounded-lg text-xs font-bold transition-colors flex-shrink-0"
+                  :class="selectedCustomer.points >= reward.cost
+                    ? 'bg-[#CC8033] text-white hover:bg-brown'
+                    : 'bg-cream-deep text-muted-foreground cursor-not-allowed'"
+                >
+                  Đổi
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- History -->
+          <div>
             <div class="text-sm font-semibold text-espresso mb-2">Lịch sử giao dịch gần đây</div>
+            <div v-if="selectedCustomer.history.length === 0" class="text-xs text-muted-foreground py-3 text-center">
+              Chưa có giao dịch nào.
+            </div>
             <div
-              v-for="tx in selectedCustomer.history"
-              :key="tx.date"
+              v-for="(tx, i) in selectedCustomer.history"
+              :key="i"
               class="flex items-center justify-between py-2 border-b border-cream-deep last:border-0"
             >
               <div>
                 <div class="text-xs font-medium text-espresso">{{ tx.note }}</div>
                 <div class="text-[10px] text-muted-foreground">{{ tx.date }}</div>
               </div>
-              <span
-                class="text-xs font-bold"
-                :class="tx.points > 0 ? 'text-green-600' : 'text-destructive'"
-              >
+              <span class="text-xs font-bold" :class="tx.points > 0 ? 'text-green-600' : 'text-destructive'">
                 {{ tx.points > 0 ? '+' : '' }}{{ tx.points }} điểm
               </span>
             </div>
@@ -235,16 +312,18 @@
       </div>
     </div>
 
-    <!-- ADD CUSTOMER MODAL -->
+    <!-- ADD / EDIT CUSTOMER MODAL -->
     <div
-      v-if="showAddModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-espresso/40 backdrop-blur-sm"
-      @click.self="showAddModal = false"
+      v-if="showFormModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-espresso/40 backdrop-blur-sm p-4"
+      @click.self="showFormModal = false"
     >
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
         <div class="flex items-center justify-between mb-5">
-          <h3 class="text-base font-bold text-espresso">Thêm khách hàng mới</h3>
-          <button @click="showAddModal = false" class="p-1.5 rounded-lg hover:bg-background transition-colors">
+          <h3 class="text-base font-bold text-espresso">
+            {{ formMode === 'edit' ? 'Chỉnh sửa khách hàng' : 'Thêm khách hàng mới' }}
+          </h3>
+          <button @click="showFormModal = false" class="p-1.5 rounded-lg hover:bg-background transition-colors">
             <X class="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
@@ -253,7 +332,7 @@
           <div>
             <label class="text-xs font-semibold text-espresso mb-1.5 block">Họ và tên</label>
             <input
-              v-model="newCustomer.name"
+              v-model="form.name"
               placeholder="Nguyễn Văn A"
               class="w-full h-10 px-3 bg-background border border-cream-deep rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-caramel/20 focus:border-caramel transition-all"
             />
@@ -261,7 +340,7 @@
           <div>
             <label class="text-xs font-semibold text-espresso mb-1.5 block">Số điện thoại</label>
             <input
-              v-model="newCustomer.phone"
+              v-model="form.phone"
               placeholder="0912345678"
               class="w-full h-10 px-3 bg-background border border-cream-deep rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-caramel/20 focus:border-caramel transition-all"
             />
@@ -269,7 +348,7 @@
           <div>
             <label class="text-xs font-semibold text-espresso mb-1.5 block">Ghi chú</label>
             <input
-              v-model="newCustomer.note"
+              v-model="form.note"
               placeholder="VD: Khách quen, thích đồ ngọt nhẹ..."
               class="w-full h-10 px-3 bg-background border border-cream-deep rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-caramel/20 focus:border-caramel transition-all"
             />
@@ -278,16 +357,16 @@
 
         <div class="flex gap-2 mt-5">
           <button
-            @click="showAddModal = false"
+            @click="showFormModal = false"
             class="flex-1 h-10 rounded-lg border border-cream-deep text-sm font-semibold text-espresso hover:bg-background transition-colors"
           >
             Hủy
           </button>
           <button
-            @click="handleAddCustomer"
+            @click="handleSaveCustomer"
             class="flex-1 h-10 rounded-lg bg-[#CC8033] text-white text-sm font-bold hover:bg-brown transition-colors shadow-md shadow-[#CC8033]/20"
           >
-            Thêm mới
+            {{ formMode === 'edit' ? 'Lưu thay đổi' : 'Thêm mới' }}
           </button>
         </div>
       </div>
@@ -299,8 +378,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import {
-  Search, Users, UserPlus, Eye, Plus, X,
-  Star, Award, Trophy, Gem, Crown
+  Search, Users, UserPlus, Eye, X, Clock,
+  Star, Award, Gem, Crown, Pencil, Trash2,
+  Gift, Ticket, Percent, Coffee, Cookie, ChevronDown, Check
 } from 'lucide-vue-next'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -314,6 +394,7 @@ interface Customer {
   id: number
   name: string
   phone: string
+  note?: string
   tier: string
   points: number
   totalSpend: number
@@ -322,12 +403,50 @@ interface Customer {
   history: Transaction[]
 }
 
+interface Reward {
+  id: number
+  name: string
+  cost: number
+  icon: any
+}
+
 // ─── State ───────────────────────────────────────────────────────────────────
 const searchQuery = ref('')
 const selectedTier = ref('Tất cả')
 const selectedCustomer = ref<Customer | null>(null)
-const showAddModal = ref(false)
-const newCustomer = ref({ name: '', phone: '', note: '' })
+const showBenefits = ref(true)
+const showFormModal = ref(false)
+const formMode = ref<'add' | 'edit'>('add')
+const editingId = ref<number | null>(null)
+const form = ref({ name: '', phone: '', note: '' })
+
+// ─── Tier benefits ─────────────────────────────────────────────────────────────
+const tiers = [
+  {
+    name: 'Đồng', icon: Award, color: '#fb923c', min: 0,
+    benefits: ['Tích 1 điểm / 1.000đ', 'Ưu đãi ngày sinh nhật'],
+  },
+  {
+    name: 'Bạc', icon: Star, color: '#94a3b8', min: 500,
+    benefits: ['Tích 1.2 điểm / 1.000đ', 'Giảm 5% đồ uống', 'Ưu đãi sinh nhật'],
+  },
+  {
+    name: 'Vàng', icon: Crown, color: '#fbbf24', min: 1500,
+    benefits: ['Tích 1.5 điểm / 1.000đ', 'Giảm 10% hóa đơn', 'Tặng 1 topping', 'Ưu tiên đặt bàn'],
+  },
+  {
+    name: 'Kim cương', icon: Gem, color: '#60a5fa', min: 3000,
+    benefits: ['Tích 2 điểm / 1.000đ', 'Giảm 15% hóa đơn', 'Đồ uống tặng hàng tháng', 'Quà tặng đặc biệt'],
+  },
+]
+
+// ─── Rewards catalog ───────────────────────────────────────────────────────────
+const rewards: Reward[] = [
+  { id: 1, name: 'Free 1 topping', cost: 100, icon: Cookie },
+  { id: 2, name: 'Giảm 10% hóa đơn', cost: 200, icon: Percent },
+  { id: 3, name: 'Tặng 1 ly cà phê', cost: 350, icon: Coffee },
+  { id: 4, name: 'Voucher 50.000đ', cost: 500, icon: Ticket },
+]
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 const customers = ref<Customer[]>([
@@ -392,39 +511,18 @@ const filteredCustomers = computed(() => {
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
 const stats = computed(() => [
-  {
-    label: 'Tổng khách hàng',
-    value: customers.value.length,
-    icon: Users,
-    color: '#CC8033',
-    bg: '#CC803320',
-  },
-  {
-    label: 'Kim cương',
-    value: customers.value.filter(c => c.tier === 'Kim cương').length,
-    icon: Gem,
-    color: '#60a5fa',
-    bg: '#60a5fa20',
-  },
-  {
-    label: 'Vàng',
-    value: customers.value.filter(c => c.tier === 'Vàng').length,
-    icon: Crown,
-    color: '#fbbf24',
-    bg: '#fbbf2420',
-  },
-  {
-    label: 'Bạc & Đồng',
-    value: customers.value.filter(c => ['Bạc', 'Đồng'].includes(c.tier)).length,
-    icon: Award,
-    color: '#94a3b8',
-    bg: '#94a3b820',
-  },
+  { label: 'Tổng khách hàng', value: customers.value.length, icon: Users, color: '#CC8033', bg: '#CC803320' },
+  { label: 'Kim cương', value: customers.value.filter(c => c.tier === 'Kim cương').length, icon: Gem, color: '#60a5fa', bg: '#60a5fa20' },
+  { label: 'Vàng', value: customers.value.filter(c => c.tier === 'Vàng').length, icon: Crown, color: '#fbbf24', bg: '#fbbf2420' },
+  { label: 'Bạc & Đồng', value: customers.value.filter(c => ['Bạc', 'Đồng'].includes(c.tier)).length, icon: Award, color: '#94a3b8', bg: '#94a3b820' },
 ])
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const avatarColors = ['#CC8033', '#60a5fa', '#34d399', '#a78bfa', '#f87171', '#fb923c']
 const avatarColor = (name: string) => avatarColors[name.charCodeAt(0) % avatarColors.length]
+
+const formatVnd = (n: number) =>
+  n >= 1000000 ? (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + 'tr' : n.toLocaleString() + 'đ'
 
 const tierClass = (tier: string) => ({
   'Kim cương': 'bg-blue-50 text-blue-600',
@@ -454,37 +552,74 @@ const nextTierPoints = (tier: string) => ({
   'Kim cương': 9999,
 }[tier] ?? 9999)
 
+const tierForPoints = (points: number) => {
+  if (points >= 3000) return 'Kim cương'
+  if (points >= 1500) return 'Vàng'
+  if (points >= 500) return 'Bạc'
+  return 'Đồng'
+}
+
+const today = () => new Date().toLocaleDateString('vi-VN')
+
 // ─── Actions ──────────────────────────────────────────────────────────────────
 const openDetail = (customer: Customer) => {
   selectedCustomer.value = customer
 }
 
-const addPoints = (customer: Customer) => {
-  const pts = parseInt(prompt(`Nhập số điểm muốn cộng cho ${customer.name}:`) ?? '0')
-  if (!isNaN(pts) && pts > 0) {
-    customer.points += pts
-    customer.history.unshift({
-      date: new Date().toLocaleDateString('vi-VN'),
-      note: 'Cộng điểm thủ công',
-      points: pts,
-    })
-  }
+const redeemReward = (customer: Customer, reward: Reward) => {
+  if (customer.points < reward.cost) return
+  if (!confirm(`Đổi ${reward.cost} điểm lấy "${reward.name}" cho ${customer.name}?`)) return
+  customer.points -= reward.cost
+  customer.tier = tierForPoints(customer.points)
+  customer.history.unshift({ date: today(), note: `Đổi thưởng: ${reward.name}`, points: -reward.cost })
 }
 
-const handleAddCustomer = () => {
-  if (!newCustomer.value.name.trim() || !newCustomer.value.phone.trim()) return
-  customers.value.push({
-    id: Date.now(),
-    name: newCustomer.value.name.trim(),
-    phone: newCustomer.value.phone.trim(),
-    tier: 'Đồng',
-    points: 0,
-    totalSpend: 0,
-    lastVisit: 'Hôm nay',
-    visits: 0,
-    history: [],
-  })
-  showAddModal.value = false
-  newCustomer.value = { name: '', phone: '', note: '' }
+const openAdd = () => {
+  formMode.value = 'add'
+  editingId.value = null
+  form.value = { name: '', phone: '', note: '' }
+  showFormModal.value = true
+}
+
+const openEdit = (customer: Customer) => {
+  formMode.value = 'edit'
+  editingId.value = customer.id
+  form.value = { name: customer.name, phone: customer.phone, note: customer.note ?? '' }
+  showFormModal.value = true
+}
+
+const handleSaveCustomer = () => {
+  const name = form.value.name.trim()
+  const phone = form.value.phone.trim()
+  if (!name || !phone) return
+
+  if (formMode.value === 'edit' && editingId.value !== null) {
+    const target = customers.value.find(c => c.id === editingId.value)
+    if (target) {
+      target.name = name
+      target.phone = phone
+      target.note = form.value.note.trim()
+    }
+  } else {
+    customers.value.push({
+      id: Date.now(),
+      name, phone, note: form.value.note.trim(),
+      tier: 'Đồng', points: 0, totalSpend: 0,
+      lastVisit: 'Hôm nay', visits: 0, history: [],
+    })
+  }
+  showFormModal.value = false
+  form.value = { name: '', phone: '', note: '' }
+}
+
+const deleteCustomer = (customer: Customer) => {
+  if (!confirm(`Xóa khách hàng "${customer.name}"? Hành động này không thể hoàn tác.`)) return
+  customers.value = customers.value.filter(c => c.id !== customer.id)
+  if (selectedCustomer.value?.id === customer.id) selectedCustomer.value = null
 }
 </script>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #E0D5C7; border-radius: 3px; }
+</style>

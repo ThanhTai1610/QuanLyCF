@@ -210,16 +210,15 @@
             <div class="space-y-3">
               <h3 class="text-[10px] uppercase tracking-widest font-bold text-[#8A8178]">Kích cỡ</h3>
               <div class="grid grid-cols-2 gap-3">
-                <label v-for="s in sizes" :key="s.value"
+                <button v-for="s in sizes" :key="s.value" type="button" @click="selSize = s.value"
                   :class="selSize===s.value ? 'border-[#CC8033] bg-[#FFF9F2]' : 'border-[#EAE3D9] bg-white'"
-                  class="flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all">
-                  <input type="radio" v-model="selSize" :value="s.value" class="sr-only" />
+                  class="flex items-center gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all text-left">
                   <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0"
                     :class="selSize===s.value ? 'border-[#CC8033]' : 'border-[#EAE3D9]'">
                     <div class="w-2 h-2 rounded-full bg-[#CC8033] transition-transform" :class="selSize===s.value ? 'scale-100' : 'scale-0'"></div>
                   </div>
                   <span class="text-sm font-bold text-[#2A231E]">{{ s.label }} <span class="text-xs font-medium" :class="s.extra>0?'text-[#CC8033]':'text-[#8A8178]'">{{ s.extra>0 ? '+'+formatVND(s.extra) : 'Tiêu chuẩn' }}</span></span>
-                </label>
+                </button>
               </div>
             </div>
 
@@ -250,21 +249,17 @@
               <div class="space-y-2">
                 <h3 class="text-[10px] uppercase tracking-widest font-bold text-[#8A8178]">Lượng đường</h3>
                 <div class="flex flex-wrap gap-1.5">
-                  <label v-for="l in ['0%','50%','100%']" :key="l" class="cursor-pointer">
-                    <input type="radio" v-model="selSugar" :value="l" class="sr-only" />
-                    <span :class="selSugar===l ? 'bg-[#CC8033] border-[#CC8033] text-white' : 'bg-white border-[#EAE3D9] text-[#5C544E]'"
-                      class="px-3 py-1.5 rounded-lg border text-xs font-bold transition-all inline-block">{{ l }}</span>
-                  </label>
+                  <button v-for="l in ['0%','50%','100%']" :key="l" type="button" @click="selSugar = l"
+                    :class="selSugar===l ? 'bg-[#CC8033] border-[#CC8033] text-white' : 'bg-white border-[#EAE3D9] text-[#5C544E]'"
+                    class="px-3 py-1.5 rounded-lg border text-xs font-bold transition-all">{{ l }}</button>
                 </div>
               </div>
               <div class="space-y-2">
                 <h3 class="text-[10px] uppercase tracking-widest font-bold text-[#8A8178]">Lượng đá</h3>
                 <div class="flex flex-wrap gap-1.5">
-                  <label v-for="l in ['0%','50%','100%']" :key="l" class="cursor-pointer">
-                    <input type="radio" v-model="selIce" :value="l" class="sr-only" />
-                    <span :class="selIce===l ? 'bg-[#CC8033] border-[#CC8033] text-white' : 'bg-white border-[#EAE3D9] text-[#5C544E]'"
-                      class="px-3 py-1.5 rounded-lg border text-xs font-bold transition-all inline-block">{{ l }}</span>
-                  </label>
+                  <button v-for="l in ['0%','50%','100%']" :key="l" type="button" @click="selIce = l"
+                    :class="selIce===l ? 'bg-[#CC8033] border-[#CC8033] text-white' : 'bg-white border-[#EAE3D9] text-[#5C544E]'"
+                    class="px-3 py-1.5 rounded-lg border text-xs font-bold transition-all">{{ l }}</button>
                 </div>
               </div>
             </div>

@@ -139,6 +139,32 @@
         </h2>
       </template>
       <div v-if="editing" class="space-y-6">
+        <!-- Hình ảnh -->
+        <div class="space-y-1.5">
+          <Label class="text-espresso">Hình ảnh</Label>
+          <div class="flex gap-4">
+            <!-- Preview -->
+            <div class="w-28 h-28 rounded-lg border border-cream-deep bg-cream overflow-hidden shrink-0 flex items-center justify-center">
+              <img v-if="editing.image" :src="editing.image" alt="preview" class="w-full h-full object-cover" />
+              <ImageIcon v-else class="w-8 h-8 text-muted-foreground/40" />
+            </div>
+            <!-- Controls -->
+            <div class="flex-1 space-y-2 min-w-0">
+              <Input v-model="editing.image" placeholder="Dán link ảnh (https://...)" class="bg-background border border-cream-deep rounded-lg shadow-inner" />
+              <div class="flex items-center gap-3">
+                <Button type="button" variant="outline" @click="triggerUpload" class="border border-cream-deep rounded-lg text-sm">
+                  <Upload class="w-4 h-4 mr-1.5" /> Tải ảnh lên
+                </Button>
+                <button v-if="editing.image" type="button" @click="editing.image = ''" class="text-xs text-destructive font-medium hover:underline">
+                  Xóa ảnh
+                </button>
+              </div>
+              <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onFileChange" />
+              <p class="text-[11px] text-muted-foreground">Dán link ảnh hoặc tải lên từ máy (PNG, JPG).</p>
+            </div>
+          </div>
+        </div>
+
         <div class="space-y-1.5">
           <Label class="text-espresso">Tên món</Label>
           <Input v-model="editing.name" class="bg-background border border-cream-deep rounded-lg shadow-inner" placeholder="Vd: Cappuccino" />
@@ -177,7 +203,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Plus, Search, Edit3, Trash2, Flame, Coffee, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Plus, Search, Edit3, Trash2, Flame, Coffee, ChevronLeft, ChevronRight, Upload, Image as ImageIcon } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Label from '@/components/ui/Label.vue'
@@ -196,6 +222,25 @@ const search = ref("")
 const filter = ref<Category | "all">("all")
 const editing = ref<MenuItem | null>(null)
 const isOpen = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+
+const triggerUpload = () => fileInput.value?.click()
+
+const onFileChange = (e: Event) => {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file || !editing.value) return
+  if (!file.type.startsWith('image/')) {
+    toast.error('Vui lòng chọn một tệp ảnh hợp lệ')
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = () => {
+    if (editing.value) editing.value.image = reader.result as string
+  }
+  reader.readAsDataURL(file)
+  // reset để chọn lại cùng 1 file vẫn kích hoạt change
+  ;(e.target as HTMLInputElement).value = ''
+}
 
 const currentPage = ref(1)
 const itemsPerPage = ref(8)
@@ -225,7 +270,7 @@ const openNew = () => {
     description: "",
     price: 0,
     category: "coffee",
-    image: items.value.length > 0 ? items.value[0].image : "",
+    image: "",
     popular: false,
   }
   isOpen.value = true
