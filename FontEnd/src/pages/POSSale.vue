@@ -322,6 +322,9 @@
 import { ref, computed } from 'vue'
 import { Search, ShoppingCart, Trash2, X, MessageSquare, CheckCircle, Banknote, CreditCard, Smartphone, Plus } from 'lucide-vue-next'
 import { menuItems, categories, formatVND } from '../data/menu'
+import { useOrderStore } from '@/stores/orders'
+
+const orderStore = useOrderStore()
 
 interface Topping { name: string; price: number; qty: number }
 interface CartItem { cartId: number; id: string; name: string; price: number; image: string; qty: number; unitPrice: number; size: string; sugar: string; ice: string; iceStyle: string; toppings: Topping[] }
@@ -421,6 +424,22 @@ const removeItem = (cartId: number) => { cart.value = cart.value.filter(i => i.c
 const clearCart  = () => { cart.value = []; note.value = ''; cashReceived.value = 0 }
 const checkout   = () => {
   if (!cart.value.length) return
+  // Tạo đơn đã hoàn tất + đã thanh toán vào store chung (hiện ở trang Đơn hàng / Hoá đơn)
+  orderStore.createOrder({
+    table: orderType.value === 'dine-in' && selectedTable.value ? `Bàn ${selectedTable.value}` : 'Mang về',
+    items: cart.value.map(i => ({
+      name: i.name,
+      qty: i.qty,
+      price: i.unitPrice,
+      note: [
+        i.size && `Size ${i.size}`,
+        i.toppings.length && i.toppings.map(t => `${t.name}${t.qty > 1 ? ' x' + t.qty : ''}`).join(', '),
+      ].filter(Boolean).join(' · ') || undefined,
+    })),
+    status: 'done',
+    paid: true,
+    paymentMethod: payMethod.value,
+  })
   showToast.value = true; clearCart()
   setTimeout(() => showToast.value = false, 3000)
 }

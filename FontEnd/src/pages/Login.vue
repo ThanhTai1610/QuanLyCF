@@ -184,6 +184,15 @@
               </svg>
               <span>Đăng nhập với Google</span>
             </button>
+
+            <!-- Cổng đăng nhập ca làm cho nhân viên (PIN) -->
+            <router-link
+              to="/staff-login"
+              class="w-full h-11 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.15em] font-bold text-[#8A8178] hover:text-[#CC8033] transition-colors"
+            >
+              <Users class="w-3.5 h-3.5" stroke-width="2" />
+              <span>Đăng nhập ca làm (nhân viên)</span>
+            </router-link>
           </div>
         </form>
 

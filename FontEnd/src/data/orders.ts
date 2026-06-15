@@ -4,6 +4,13 @@ export interface OrderItem {
   name: string;
   qty: number;
   price: number;
+  note?: string;
+  /** Trạng thái pha chế tại bếp */
+  done?: boolean;
+  /** Nhân viên được phân công làm món */
+  assignee?: string;
+  /** Báo hết nguyên liệu */
+  outOfStock?: boolean;
 }
 
 export interface Order {
@@ -12,9 +19,20 @@ export interface Order {
   items: OrderItem[];
   total: number;
   status: OrderStatus;
+  /** Giờ tạo dạng hiển thị "HH:MM" */
   createdAt: string;
+  /** Mốc thời gian (ms) để tính bộ đếm tại bếp */
+  createdTs: number;
   customer?: string;
+  /** Đã thanh toán chưa */
+  paid?: boolean;
+  /** Phương thức thanh toán */
+  paymentMethod?: string;
 }
+
+/** Mốc thời gian gốc để seed dữ liệu mẫu (cố định theo lúc khởi tạo app) */
+const seedNow = Date.now();
+const minsAgo = (m: number) => seedNow - m * 60 * 1000;
 
 export const mockOrders: Order[] = [
   {
@@ -27,27 +45,30 @@ export const mockOrders: Order[] = [
     total: 122000,
     status: "pending",
     createdAt: "10:24",
+    createdTs: minsAgo(8),
   },
   {
     id: "DH-2040",
     table: "Bàn 12",
     items: [
-      { name: "Matcha đá xay", qty: 1, price: 55000 },
-      { name: "Bánh Tiramisu", qty: 1, price: 48000 },
+      { name: "Matcha đá xay", qty: 1, price: 55000, assignee: "Lan", done: true },
+      { name: "Bánh Tiramisu", qty: 1, price: 48000, assignee: "Huy" },
     ],
     total: 103000,
     status: "preparing",
     createdAt: "10:18",
+    createdTs: minsAgo(14),
   },
   {
     id: "DH-2039",
     table: "Bàn 3",
     items: [
-      { name: "Cà phê sữa đá", qty: 3, price: 35000 },
+      { name: "Cà phê sữa đá", qty: 3, price: 35000, assignee: "Minh" },
     ],
     total: 105000,
     status: "preparing",
     createdAt: "10:12",
+    createdTs: minsAgo(20),
   },
   {
     id: "DH-2038",
@@ -59,6 +80,7 @@ export const mockOrders: Order[] = [
     total: 135000,
     status: "done",
     createdAt: "10:05",
+    createdTs: minsAgo(27),
   },
   {
     id: "DH-2037",
@@ -69,6 +91,7 @@ export const mockOrders: Order[] = [
     total: 35000,
     status: "done",
     createdAt: "09:58",
+    createdTs: minsAgo(34),
   },
   {
     id: "DH-2036",
@@ -79,6 +102,7 @@ export const mockOrders: Order[] = [
     total: 110000,
     status: "cancelled",
     createdAt: "09:42",
+    createdTs: minsAgo(50),
   },
   {
     id: "DH-2035",
@@ -90,6 +114,7 @@ export const mockOrders: Order[] = [
     total: 113000,
     status: "done",
     createdAt: "09:30",
+    createdTs: minsAgo(62),
   },
 ];
 

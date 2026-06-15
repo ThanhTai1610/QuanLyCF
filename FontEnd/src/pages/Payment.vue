@@ -45,7 +45,7 @@
       <div class="p-6 space-y-6">
         <!-- Order Summary -->
         <div class="bg-[#F5F2ED] rounded-lg border border-[#EAE3D9] p-5">
-          <h2 class="font-display text-lg text-espresso font-semibold">Đơn #{{ orderId }} — Bàn 5</h2>
+          <h2 class="font-display text-lg text-espresso font-semibold">Đơn #{{ orderId }} — {{ tableLabel }}</h2>
           <div class="mt-4 space-y-3">
             <div v-for="(it, i) in items" :key="i" class="flex justify-between text-sm">
               <span class="text-espresso">{{ it.name }} × {{ it.qty }}</span>
@@ -113,14 +113,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { ArrowLeft, Banknote, QrCode, CheckCircle, Download, Coffee } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import { formatVND } from '@/data/menu'
+import { useOrderStore } from '@/stores/orders'
 
 const route = useRoute()
-const orderId = route.params.orderId || "1042"
+const orderStore = useOrderStore()
+const orderId = String(route.params.orderId || '')
+
+// Lấy đúng đơn mà khách vừa gửi từ store
+const order = computed(() => orderStore.getById(orderId))
+const items = computed(() => order.value?.items ?? [])
+const tableLabel = computed(() => order.value?.table ?? '—')
 
 const methods = [
   { id: "cash", label: "Tiền mặt", sub: "Thanh toán tại quầy" },
@@ -130,24 +137,19 @@ const methods = [
   { id: "zalopay", label: "ZaloPay", sub: "Ví ZaloPay" },
 ]
 
-const items = [
-  { name: "Cappuccino", qty: 2, price: 45000 },
-  { name: "Bánh Tiramisu", qty: 1, price: 48000 },
-  { name: "Croissant bơ", qty: 2, price: 32000 },
-]
-
 const method = ref("qr")
 const paid = ref(false)
 const countdown = ref(298)
 
-const subtotal = items.reduce((s, i) => s + i.qty * i.price, 0)
-const vat = Math.round(subtotal * 0.08)
-const service = 10000
-const total = subtotal + vat + service
+const subtotal = computed(() => items.value.reduce((s, i) => s + i.qty * i.price, 0))
+const vat = computed(() => Math.round(subtotal.value * 0.08))
+const service = computed(() => (items.value.length ? 10000 : 0))
+const total = computed(() => subtotal.value + vat.value + service.value)
 
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
 
 const handlePay = () => {
+  orderStore.markPaid(orderId, method.value)
   paid.value = true
 }
 </script>

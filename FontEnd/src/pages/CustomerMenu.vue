@@ -685,6 +685,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ShoppingBag, Plus, Minus, Trash2, Coffee, X, ChevronLeft, ChevronRight, Gift, CheckCircle2, User, Check, AlertCircle, Search, Star, Settings2, Sparkles } from 'lucide-vue-next'
 import { menuItems, categories, formatVND, type Category } from '@/data/menu'
 import { useCartStore } from '@/stores/cart'
+import { useOrderStore } from '@/stores/orders'
 import Button from '@/components/ui/Button.vue'
 import ChatbotWidget from '@/components/ChatbotWidget.vue'
 
@@ -698,6 +699,7 @@ const openLoginSheet = ref(false)
 const phoneNumber = ref('')
 const customerName = ref('')
 const cart = useCartStore()
+const orderStore = useOrderStore()
 
 const toasts = ref<{ id: number, title?: string, message: string, type: 'success' | 'error' }[]>([])
 let toastId = 0
@@ -866,11 +868,35 @@ const addToCart = (m: any) => {
 
 const handleOrder = () => {
   if (cart.lines.length === 0) return
-  const orderId = Math.floor(1000 + Math.random() * 9000)
-  toast.success('Gửi đơn thành công', `Món đang được pha chế cho Bàn ${tableId}`)
+
+  // Chuyển giỏ hàng thành các dòng món của đơn (gộp topping/size vào ghi chú)
+  const items = cart.lines.map(l => {
+    const opt = l.options
+    const noteParts: string[] = []
+    if (opt?.size) noteParts.push(`Size ${opt.size}`)
+    if (opt?.sugar) noteParts.push(`Đường ${opt.sugar}`)
+    if (opt?.ice) noteParts.push(`Đá ${opt.ice}`)
+    if (opt?.toppings?.length) noteParts.push(opt.toppings.map(t => `${t.name}${t.qty > 1 ? ' x' + t.qty : ''}`).join(', '))
+    if (opt?.note) noteParts.push(opt.note)
+    return {
+      name: l.item.name,
+      qty: l.qty,
+      price: l.item.price + (opt?.extraPrice || 0),
+      note: noteParts.join(' · ') || undefined,
+    }
+  })
+
+  // Tạo đơn thật trong store → đơn này sẽ xuất hiện ở Bếp và trang Đơn hàng
+  const order = orderStore.createOrder({
+    table: `Bàn ${tableId}`,
+    items,
+    customer: customerName.value || undefined,
+  })
+
+  toast.success('Gửi đơn thành công', `Đơn ${order.id} đang được pha chế cho Bàn ${tableId}`)
   cart.clear()
   open.value = false
-  setTimeout(() => router.push(`/payment/${orderId}`), 1000)
+  setTimeout(() => router.push(`/payment/${order.id}`), 1000)
 }
 </script>
 

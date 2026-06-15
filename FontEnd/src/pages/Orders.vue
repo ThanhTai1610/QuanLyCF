@@ -182,9 +182,11 @@ import { ref, computed, watch } from 'vue'
 import { Search, Filter, CheckCircle, X, Coffee, Clock, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
-import { mockOrders, statusMeta, type Order, type OrderStatus } from '@/data/orders'
+import { statusMeta, type Order, type OrderStatus } from '@/data/orders'
 import { formatVND } from '@/data/menu'
+import { useOrderStore } from '@/stores/orders'
 
+const orderStore = useOrderStore()
 const toast = { success: (msg: string) => alert('Thành công: ' + msg) }
 
 const filters: { id: OrderStatus | "all"; label: string }[] = [
@@ -195,7 +197,7 @@ const filters: { id: OrderStatus | "all"; label: string }[] = [
   { id: "cancelled", label: "Đã hủy" },
 ]
 
-const orders = ref<Order[]>([...mockOrders])
+const orders = computed(() => orderStore.orders)
 const filter = ref<OrderStatus | "all">("all")
 const search = ref("")
 const selected = ref<Order | null>(orders.value[0] || null)
@@ -232,13 +234,7 @@ const counts = computed(() => ({
 }))
 
 const updateStatus = (id: string, status: OrderStatus) => {
-  const index = orders.value.findIndex(o => o.id === id)
-  if (index !== -1) {
-    orders.value[index].status = status
-    if (selected.value?.id === id) {
-      selected.value.status = status
-    }
-    toast.success(`Đơn ${id} → ${statusMeta[status].label}`)
-  }
+  orderStore.updateStatus(id, status)
+  toast.success(`Đơn ${id} → ${statusMeta[status].label}`)
 }
 </script>

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen text-[#FDFBF7] font-premium-sans bg-[#0F0A07] flex flex-col">
+  <div class="min-h-screen text-[#FDFBF7] font-premium-sans bg-[#0F0A07] flex flex-col" @click="openAssign = null">
 
     <!-- ===== HEADER ===== -->
     <header class="h-16 px-6 flex items-center justify-between border-b-2 border-white/10 bg-[#1A1512] shadow-card shrink-0">
@@ -81,36 +81,80 @@
           <!-- Card Header -->
           <div class="p-4 border-b-2 border-white/10 flex justify-between items-start bg-black/30">
             <div>
-              <div class="font-premium-sans text-3xl font-bold tracking-tight">Bàn {{ o.table }}</div>
+              <div class="font-premium-sans text-3xl font-bold tracking-tight">{{ o.table }}</div>
               <div class="text-[9px] uppercase tracking-widest text-[#8A8178] font-bold mt-0.5">Order #{{ o.id }}</div>
             </div>
             <!-- Timer badge -->
-            <div :class="['flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold tabular-nums', colorByMin(o.startedAt)]">
+            <div :class="['flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold tabular-nums', colorByMin(o.createdTs)]">
               <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
-              {{ fmtElapsed(o.startedAt) }}
+              {{ fmtElapsed(o.createdTs) }}
             </div>
           </div>
 
           <!-- Items List -->
           <div class="flex-1 p-4 space-y-3">
-            <div v-for="(it, i) in o.items" :key="i">
-              <button @click="toggle(o.id, i)" class="w-full flex items-start gap-3 text-left group">
+            <div v-for="(it, i) in o.items" :key="i"
+              :class="['rounded-lg transition-all duration-200', it.outOfStock ? 'bg-red-500/5 border border-red-500/20 p-2 -mx-1' : '']">
+              <button @click="toggle(o.id, i)" :disabled="it.outOfStock" class="w-full flex items-start gap-3 text-left group disabled:cursor-not-allowed">
                 <!-- Checkbox -->
                 <div :class="['mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all duration-200',
-                  it.done ? 'bg-[#CC8033] border-[#CC8033]' : 'border-white/20 group-hover:border-white/40']"
+                  it.outOfStock ? 'border-red-500/40 bg-red-500/10' : it.done ? 'bg-[#CC8033] border-[#CC8033]' : 'border-white/20 group-hover:border-white/40']"
                 >
-                  <Check v-if="it.done" class="w-3 h-3 text-white" stroke-width="3" />
+                  <Check v-if="it.done && !it.outOfStock" class="w-3 h-3 text-white" stroke-width="3" />
+                  <X v-if="it.outOfStock" class="w-3 h-3 text-red-400" stroke-width="3" />
                 </div>
                 <div class="flex-1">
-                  <span :class="['text-sm font-bold tracking-tight block transition-colors duration-200', it.done ? 'line-through text-white/30' : 'text-white']">
+                  <span :class="['text-sm font-bold tracking-tight block transition-colors duration-200', it.outOfStock ? 'text-red-400/70 line-through' : it.done ? 'line-through text-white/30' : 'text-white']">
                     {{ it.name }}
-                    <span :class="it.done ? 'text-white/20' : 'text-[#CC8033]'" class="ml-1">× {{ it.qty }}</span>
+                    <span :class="it.done || it.outOfStock ? 'text-white/20' : 'text-[#CC8033]'" class="ml-1">× {{ it.qty }}</span>
                   </span>
                   <div v-if="it.note" class="mt-1.5 text-[9px] uppercase tracking-wider font-bold text-[#CC8033] bg-[#CC8033]/10 border border-[#CC8033]/20 px-2 py-0.5 rounded inline-block">
                     {{ it.note }}
                   </div>
                 </div>
               </button>
+
+              <!-- Người làm + Báo hết nguyên liệu -->
+              <div class="flex items-center gap-2 mt-2 pl-8">
+                <!-- Assignee chip + dropdown -->
+                <div class="relative">
+                  <button
+                    @click.stop="toggleAssign(o.id, i)"
+                    :class="['flex items-center gap-1.5 px-2 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wide transition-colors',
+                      it.assignee ? 'bg-[#CC8033]/10 border-[#CC8033]/30 text-[#CC8033]' : 'bg-white/5 border-white/10 text-[#8A8178] hover:text-white']"
+                  >
+                    <User class="w-3 h-3" stroke-width="2.5" />
+                    {{ it.assignee || 'Chưa gán' }}
+                    <ChevronDown class="w-3 h-3 opacity-60" />
+                  </button>
+                  <!-- Dropdown menu -->
+                  <div v-if="openAssign === o.id + '-' + i"
+                    class="absolute z-20 left-0 mt-1 w-32 rounded-lg border border-white/10 bg-[#1A1512] shadow-card py-1">
+                    <button v-for="s in staffList" :key="s"
+                      @click.stop="assign(o.id, i, s)"
+                      :class="['w-full text-left px-3 py-1.5 text-xs font-medium transition-colors hover:bg-white/5',
+                        it.assignee === s ? 'text-[#CC8033]' : 'text-white/80']">
+                      {{ s }}
+                    </button>
+                    <div class="h-px bg-white/10 my-1"></div>
+                    <button @click.stop="assign(o.id, i, '')"
+                      class="w-full text-left px-3 py-1.5 text-xs font-medium text-[#8A8178] hover:bg-white/5">
+                      Bỏ gán
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Báo hết nguyên liệu -->
+                <button
+                  @click.stop="reportOutOfStock(o.id, i)"
+                  :class="['ml-auto flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wide transition-colors',
+                    it.outOfStock ? 'bg-red-500/15 border-red-500/40 text-red-400' : 'bg-white/5 border-white/10 text-[#8A8178] hover:text-red-400 hover:border-red-500/30']"
+                  :title="it.outOfStock ? 'Bỏ báo hết nguyên liệu' : 'Báo hết nguyên liệu'"
+                >
+                  <AlertTriangle class="w-3 h-3" stroke-width="2.5" />
+                  {{ it.outOfStock ? 'Hết NL' : 'Báo hết' }}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -230,7 +274,7 @@
                 <CheckCircle2 class="w-4 h-4 text-emerald-400" stroke-width="2" />
               </div>
               <div>
-                <span class="font-premium-sans text-lg font-bold">Bàn {{ o.table }}</span>
+                <span class="font-premium-sans text-lg font-bold">{{ o.table }}</span>
                 <span class="ml-2 text-[#8A8178] text-xs font-medium">#{{ o.id }}</span>
               </div>
               <!-- Items count pill -->
@@ -290,38 +334,28 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Volume2, VolumeX, Coffee, ChevronLeft, ChevronRight, ChevronDown,
-  Check, CheckCircle2, Search, Clock, Trash2, History, ClipboardList
+  Check, CheckCircle2, Search, Clock, Trash2, History, ClipboardList,
+  User, X, AlertTriangle
 } from 'lucide-vue-next'
+import { useOrderStore } from '@/stores/orders'
+import type { Order } from '@/data/orders'
 
 // ── Types ──────────────────────────────────────────────────────
-interface KItem    { name: string; qty: number; note?: string; done: boolean }
-interface KOrder   { id: string; table: string; startedAt: number; items: KItem[] }
+interface KItem    { name: string; qty: number; done: boolean }
 interface KDone    { id: string; table: string; items: KItem[]; duration: number; completedAt: string }
 
-// ── Seed data ──────────────────────────────────────────────────
-const initial: KOrder[] = [
-  { id: '1042', table: '5',  startedAt: Date.now() - 8  * 60 * 1000, items: [
-    { name: 'Cà phê sữa đá', qty: 2, done: false },
-    { name: 'Matcha latte',   qty: 1, done: false },
-    { name: 'Bánh croissant', qty: 1, done: true  },
-  ]},
-  { id: '1043', table: '12', startedAt: Date.now() - 3  * 60 * 1000, items: [
-    { name: 'Cappuccino',  qty: 1, done: false },
-    { name: 'Tiramisu Ý',  qty: 1, note: 'Ít đường, không đá', done: false },
-  ]},
-  { id: '1044', table: '3',  startedAt: Date.now() - 14 * 60 * 1000, items: [
-    { name: 'Trà đào cam sả', qty: 2, note: 'Thêm đá', done: true },
-    { name: 'Espresso',        qty: 1, done: true  },
-    { name: 'Croissant bơ',    qty: 2, done: false },
-  ]},
-  { id: '1045', table: '8',  startedAt: Date.now() - 1  * 60 * 1000, items: [
-    { name: 'Cookies & Cream', qty: 2, done: false },
-    { name: 'Cheesecake dâu',  qty: 1, done: false },
-  ]},
-]
+// ── Danh sách nhân viên bếp ─────────────────────────────────────
+const staffList = ['Minh', 'Lan', 'Huy', 'Trang', 'Phúc']
+
+// ── Store đơn hàng (nguồn dữ liệu chung) ────────────────────────
+const orderStore = useOrderStore()
+
+// Đơn đang làm = các đơn ở trạng thái chờ xác nhận / đang pha chế
+const activeOrders = computed(() =>
+  orderStore.orders.filter(o => o.status === 'pending' || o.status === 'preparing')
+)
 
 // ── State ──────────────────────────────────────────────────────
-const activeOrders     = ref<KOrder[]>(JSON.parse(JSON.stringify(initial)))
 const completedOrders  = ref<KDone[]>([])
 const now              = ref(Date.now())
 const muted            = ref(false)
@@ -330,13 +364,14 @@ const currentPage      = ref(1)
 const itemsPerPage     = 8
 const historySearch    = ref('')
 const expandedHistory  = ref<Set<string>>(new Set())
+const openAssign       = ref<string | null>(null)
 
 // Pre-seed a few history entries for demo
 completedOrders.value = [
-  { id: '1038', table: '2',  duration: 7  * 60 * 1000, completedAt: '09:14', items: [{ name: 'Espresso đôi', qty: 2, done: true }, { name: 'Bánh mì bơ tỏi', qty: 1, done: true }] },
-  { id: '1039', table: '9',  duration: 12 * 60 * 1000, completedAt: '09:32', items: [{ name: 'Trà sữa trân châu', qty: 3, done: true }] },
-  { id: '1040', table: '4',  duration: 5  * 60 * 1000, completedAt: '09:58', items: [{ name: 'Cappuccino', qty: 1, done: true }, { name: 'Cheesecake dâu', qty: 2, done: true }] },
-  { id: '1041', table: '11', duration: 18 * 60 * 1000, completedAt: '10:25', items: [{ name: 'Matcha đá xay', qty: 2, done: true }, { name: 'Croissant bơ', qty: 2, done: true }, { name: 'Nước cam ép', qty: 1, done: true }] },
+  { id: '1038', table: 'Bàn 2',  duration: 7  * 60 * 1000, completedAt: '09:14', items: [{ name: 'Espresso đôi', qty: 2, done: true }, { name: 'Bánh mì bơ tỏi', qty: 1, done: true }] },
+  { id: '1039', table: 'Bàn 9',  duration: 12 * 60 * 1000, completedAt: '09:32', items: [{ name: 'Trà sữa trân châu', qty: 3, done: true }] },
+  { id: '1040', table: 'Bàn 4',  duration: 5  * 60 * 1000, completedAt: '09:58', items: [{ name: 'Cappuccino', qty: 1, done: true }, { name: 'Cheesecake dâu', qty: 2, done: true }] },
+  { id: '1041', table: 'Bàn 11', duration: 18 * 60 * 1000, completedAt: '10:25', items: [{ name: 'Matcha đá xay', qty: 2, done: true }, { name: 'Croissant bơ', qty: 2, done: true }, { name: 'Nước cam ép', qty: 1, done: true }] },
 ]
 
 // ── Timer ──────────────────────────────────────────────────────
@@ -355,8 +390,8 @@ const timeString = computed(() =>
   new Date(now.value).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 )
 
-const inProgress  = computed(() => activeOrders.value.filter(o => o.items.some(i => !i.done)).length)
-const readyCount  = computed(() => activeOrders.value.filter(o => o.items.every(i => i.done)).length)
+const inProgress  = computed(() => activeOrders.value.filter(o => !isAllDone(o)).length)
+const readyCount  = computed(() => activeOrders.value.filter(o => isAllDone(o)).length)
 
 const totalPages  = computed(() => Math.ceil(activeOrders.value.length / itemsPerPage) || 1)
 const paginatedActive = computed(() => {
@@ -383,7 +418,7 @@ const avgDuration = computed(() => {
 })
 
 // ── Helpers ────────────────────────────────────────────────────
-const isAllDone = (o: KOrder) => o.items.every(i => i.done)
+const isAllDone = (o: Order) => o.items.every(i => i.done || i.outOfStock)
 
 const fmtElapsed = (started: number) => {
   const s = Math.floor((now.value - started) / 1000)
@@ -410,18 +445,34 @@ const durationColor = (ms: number) => {
   return 'text-red-400'
 }
 
-// ── Actions ────────────────────────────────────────────────────
-const toggle = (oid: string, idx: number) => {
-  const o = activeOrders.value.find(o => o.id === oid)
-  if (o) o.items[idx].done = !o.items[idx].done
+// ── Actions (uỷ thác cho store đơn hàng chung) ──────────────────
+const toggle = (oid: string, idx: number) => orderStore.toggleItemDone(oid, idx)
+
+const toggleAssign = (oid: string, idx: number) => {
+  const key = oid + '-' + idx
+  openAssign.value = openAssign.value === key ? null : key
 }
 
-const complete = (o: KOrder) => {
+const assign = (oid: string, idx: number, name: string) => {
+  orderStore.setAssignee(oid, idx, name)
+  openAssign.value = null
+}
+
+const reportOutOfStock = (oid: string, idx: number) => orderStore.toggleOutOfStock(oid, idx)
+
+const complete = (o: Order) => {
   if (!isAllDone(o)) return
-  const duration = Date.now() - o.startedAt
+  const duration = Date.now() - o.createdTs
   const completedAt = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-  completedOrders.value.unshift({ id: o.id, table: o.table, items: [...o.items], duration, completedAt })
-  activeOrders.value = activeOrders.value.filter(a => a.id !== o.id)
+  completedOrders.value.unshift({
+    id: o.id,
+    table: o.table,
+    items: o.items.map(i => ({ name: i.name, qty: i.qty, done: true })),
+    duration,
+    completedAt,
+  })
+  // Đẩy đơn sang trạng thái hoàn thành → biến mất khỏi danh sách bếp, cập nhật ở trang Đơn hàng
+  orderStore.updateStatus(o.id, 'done')
   if (currentPage.value > totalPages.value && currentPage.value > 1) currentPage.value--
 }
 
