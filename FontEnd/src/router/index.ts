@@ -48,7 +48,6 @@ const router = createRouter({
         { path: 'inventory', name: 'inventory', component: () => import('../pages/Inventory.vue') },
         { path: 'suppliers', name: 'suppliers', component: () => import('../pages/Suppliers.vue') },
         { path: 'stocktake', name: 'stocktake', component: () => import('../pages/StockTake.vue') },
-        { path: 'recipes', name: 'recipes', component: () => import('../pages/Recipes.vue') },
         { path: 'shifts', name: 'shifts', component: () => import('../pages/Shifts.vue') },
         { path: 'staff', name: 'staff', component: () => import('../pages/Staff.vue') },
         {

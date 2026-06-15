@@ -162,7 +162,6 @@ const navItems = [
       { to: "/menu-admin", label: "Thực đơn", badge: "Cấp 1" },
       { to: "/combos", label: "Quản lý Combo", badge: "Cấp 1" },
       { to: "/categories", label: "Danh mục", badge: "Cấp 2" },
-      { to: "/recipes", label: "Công thức", badge: "Cấp 1" },
     ]
   },
   {
