@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Edit(/.claude/skills/quanlycf-conventions/**)",
-      "PowerShell(cd e:\\\\Quanly_cafe\\\\BackEnd\\\\BackEnd; $env:Path += \";$env:USERPROFILE\\\\.dotnet\\\\tools\"; dotnet ef migrations add AddTables 2>&1 | Select-Object -Last 4; dotnet ef database update 2>&1 | Select-Object -Last 4)"
+      "PowerShell(cd e:\\\\Quanly_cafe\\\\BackEnd\\\\BackEnd; $env:Path += \";$env:USERPROFILE\\\\.dotnet\\\\tools\"; dotnet ef migrations add AddTables 2>&1 | Select-Object -Last 4; dotnet ef database update 2>&1 | Select-Object -Last 4)",
+      "PowerShell(\"stopped\")",
+      "Bash(python /tmp/docx2md.py)",
+      "PowerShell($p = \\(Get-Command py -ErrorAction SilentlyContinue\\); if\\($p\\){ \"py: $\\($p.Source\\)\" }; $p2=\\(Get-Command python -ErrorAction SilentlyContinue\\); if\\($p2\\){ \"python: $\\($p2.Source\\)\" }; py --version 2>&1; python --version 2>&1)",
+      "PowerShell(sqlcmd -S . -E -W -Q $q 2>&1)",
+      "PowerShell(sqlcmd -S . -E -W -Q \"SELECT MigrationId FROM QuanLyCF.dbo.__EFMigrationsHistory ORDER BY MigrationId;\" 2>&1)",
+      "PowerShell($q = \"SELECT name FROM QuanLyCF.sys.tables WHERE name <> '__EFMigrationsHistory' ORDER BY name;\")",
+      "PowerShell(\"--- Migrations da ap ---\")",
+      "PowerShell(cd e:\\\\Quanly_cafe\\\\BackEnd\\\\BackEnd; $env:Path += \";$env:USERPROFILE\\\\.dotnet\\\\tools\"; dotnet ef migrations add AddAllModules 2>&1 | Select-Object -Last 5; dotnet ef database update 2>&1 | Select-Object -Last 4)",
+      "PowerShell(sqlcmd -S . -E -W -Q \"SELECT name FROM QuanLyCF.sys.tables WHERE name NOT IN \\('__EFMigrationsHistory','sysdiagrams'\\) ORDER BY name;\" 2>&1)",
+      "PowerShell(\"--- Danh sach bang ---\")"
     ]
   }
 }

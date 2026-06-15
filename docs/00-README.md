@@ -9,6 +9,7 @@ Toàn bộ tài liệu dự án gom tại thư mục `docs/` này.
 | 03 | [Cơ sở dữ liệu](03-CO-SO-DU-LIEU.md) | Schema SQL đầy đủ cho tất cả module |
 | 04 | [Lộ trình](04-LO-TRINH.md) | Tiến độ theo phase + quy tắc nghiệp vụ đã chốt |
 | 05 | [Hướng dẫn Dev](05-HUONG-DAN-DEV.md) | Cài đặt, chạy FE/BE, vòng đời migration |
+| 06 | [Mô tả & Nghiệp vụ](06-MO-TA-NGHIEP-VU.md) | Mô hình SaaS, actors, 22 module & nghiệp vụ bắt buộc |
 
 ## Công nghệ
 - **Backend**: ASP.NET Core 8 Web API · EF Core (Code First) · SQL Server · JWT + RBAC.

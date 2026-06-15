@@ -30,6 +30,34 @@ public class QuanLyCFDbContext : DbContext
     public DbSet<KhuVucBan> KhuVucBans => Set<KhuVucBan>();
     public DbSet<Ban> Bans => Set<Ban>();
 
+    // Sales - Đơn hàng / Hoá đơn / Khuyến mãi
+    public DbSet<KhuyenMai> KhuyenMais => Set<KhuyenMai>();
+    public DbSet<DonHang> DonHangs => Set<DonHang>();
+    public DbSet<ChiTietDonHang> ChiTietDonHangs => Set<ChiTietDonHang>();
+    public DbSet<HoaDon> HoaDons => Set<HoaDon>();
+    public DbSet<ThanhToanChiTiet> ThanhToanChiTiets => Set<ThanhToanChiTiet>();
+
+    // Customers
+    public DbSet<KhachHang> KhachHangs => Set<KhachHang>();
+    public DbSet<PhanThuong> PhanThuongs => Set<PhanThuong>();
+    public DbSet<LichSuDiem> LichSuDiems => Set<LichSuDiem>();
+    public DbSet<DanhGia> DanhGias => Set<DanhGia>();
+    public DbSet<LichSuChatbot> LichSuChatbots => Set<LichSuChatbot>();
+
+    // HR
+    public DbSet<CaLamViec> CaLamViecs => Set<CaLamViec>();
+    public DbSet<PhanCaLamViec> PhanCaLamViecs => Set<PhanCaLamViec>();
+    public DbSet<ChamCong> ChamCongs => Set<ChamCong>();
+    public DbSet<DonTuNhanVien> DonTuNhanViens => Set<DonTuNhanVien>();
+    public DbSet<BangLuong> BangLuongs => Set<BangLuong>();
+
+    // Finance
+    public DbSet<DongTien> DongTiens => Set<DongTien>();
+
+    // System
+    public DbSet<NhatKyHeThong> NhatKyHeThongs => Set<NhatKyHeThong>();
+    public DbSet<CaiDatHeThong> CaiDatHeThongs => Set<CaiDatHeThong>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -100,9 +128,228 @@ public class QuanLyCFDbContext : DbContext
         ConfigCatalog(mb);
         ConfigInventory(mb);
         ConfigSales(mb);
+        ConfigOrdering(mb);
+        ConfigCustomers(mb);
+        ConfigHr(mb);
+        ConfigFinanceSystem(mb);
 
         SeedRbac(mb);
         SeedCatalog(mb);
+        SeedSettings(mb);
+    }
+
+    private static void ConfigOrdering(ModelBuilder mb)
+    {
+        mb.Entity<KhuyenMai>(e =>
+        {
+            e.ToTable("KhuyenMai");
+            e.HasKey(x => x.MaKhuyenMai);
+            e.Property(x => x.MaGiamGia).HasMaxLength(50);
+            e.Property(x => x.TenChuongTrinh).HasMaxLength(150).IsRequired();
+            e.Property(x => x.LoaiGiamGia).HasMaxLength(50).IsRequired();
+            e.Property(x => x.GiaTriGiam).HasColumnType("decimal(10,2)");
+            e.Property(x => x.GiamToiDa).HasColumnType("decimal(10,2)");
+            e.Property(x => x.DonToiThieu).HasColumnType("decimal(10,2)");
+            e.HasIndex(x => x.MaGiamGia).IsUnique().HasFilter("[MaGiamGia] IS NOT NULL");
+        });
+
+        mb.Entity<DonHang>(e =>
+        {
+            e.ToTable("DonHang");
+            e.HasKey(x => x.MaDonHang);
+            e.Property(x => x.LoaiDonHang).HasMaxLength(50).IsRequired();
+            e.Property(x => x.TrangThaiDon).HasMaxLength(50).IsRequired();
+            foreach (var p in new[] { "TongTienHang", "TienGiamGia", "PhiDichVu", "ThueVAT", "ThanhTien" })
+                e.Property(p).HasColumnType("decimal(10,2)");
+            e.HasOne(x => x.Ban).WithMany().HasForeignKey(x => x.MaBan).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.KhachHang).WithMany().HasForeignKey(x => x.MaKhachHang).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.NhanVien).WithMany().HasForeignKey(x => x.MaNhanVien).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.KhuyenMai).WithMany().HasForeignKey(x => x.MaKhuyenMai).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        mb.Entity<ChiTietDonHang>(e =>
+        {
+            e.ToTable("ChiTietDonHang");
+            e.HasKey(x => x.MaChiTiet);
+            e.Property(x => x.TrangThaiBep).HasMaxLength(50).IsRequired();
+            e.Property(x => x.DonGia).HasColumnType("decimal(10,2)");
+            e.Property(x => x.TienGiamGia).HasColumnType("decimal(10,2)");
+            e.Property(x => x.ThanhTien).HasColumnType("decimal(10,2)");
+            e.HasOne(x => x.DonHang).WithMany(d => d.ChiTiets).HasForeignKey(x => x.MaDonHang).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.SanPham).WithMany().HasForeignKey(x => x.MaSanPham).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.KichCo).WithMany().HasForeignKey(x => x.MaKichCo).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Combo).WithMany().HasForeignKey(x => x.MaCombo).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.NhanVienPhaChe).WithMany().HasForeignKey(x => x.MaNhanVienPhaChe).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        mb.Entity<HoaDon>(e =>
+        {
+            e.ToTable("HoaDon");
+            e.HasKey(x => x.MaHoaDon);
+            e.Property(x => x.TrangThai).HasMaxLength(50).IsRequired();
+            e.Property(x => x.MaSoThueXuatHD).HasMaxLength(50);
+            e.Property(x => x.TongThanhTien).HasColumnType("decimal(10,2)");
+            e.Property(x => x.SoTienKhachTra).HasColumnType("decimal(10,2)");
+            e.Property(x => x.TienThoiLai).HasColumnType("decimal(10,2)");
+            e.HasIndex(x => x.MaDonHang).IsUnique();
+            e.HasOne(x => x.DonHang).WithOne().HasForeignKey<HoaDon>(x => x.MaDonHang).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.NhanVienThuNgan).WithMany().HasForeignKey(x => x.MaNhanVienThuNgan).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        mb.Entity<ThanhToanChiTiet>(e =>
+        {
+            e.ToTable("ThanhToanChiTiet");
+            e.HasKey(x => x.MaThanhToan);
+            e.Property(x => x.PhuongThuc).HasMaxLength(50).IsRequired();
+            e.Property(x => x.SoTien).HasColumnType("decimal(10,2)");
+            e.Property(x => x.MaGiaoDichCong).HasMaxLength(100);
+            e.HasOne(x => x.HoaDon).WithMany(h => h.ChiTietThanhToans).HasForeignKey(x => x.MaHoaDon).OnDelete(DeleteBehavior.Cascade);
+        });
+    }
+
+    private static void ConfigCustomers(ModelBuilder mb)
+    {
+        mb.Entity<KhachHang>(e =>
+        {
+            e.ToTable("KhachHang");
+            e.HasKey(x => x.MaKhachHang);
+            e.Property(x => x.Email).HasMaxLength(100);
+            e.Property(x => x.HoTen).HasMaxLength(100);
+            e.Property(x => x.SoDienThoai).HasMaxLength(20);
+            e.Property(x => x.GioiTinh).HasMaxLength(10);
+            e.Property(x => x.HangThanhVien).HasMaxLength(50).IsRequired();
+            e.Property(x => x.TongTienDaTieu).HasColumnType("decimal(15,2)");
+            e.HasIndex(x => x.Email).IsUnique().HasFilter("[Email] IS NOT NULL");
+        });
+
+        mb.Entity<PhanThuong>(e =>
+        {
+            e.ToTable("PhanThuong");
+            e.HasKey(x => x.MaPhanThuong);
+            e.Property(x => x.TenPhanThuong).HasMaxLength(150).IsRequired();
+        });
+
+        mb.Entity<LichSuDiem>(e =>
+        {
+            e.ToTable("LichSuDiem");
+            e.HasKey(x => x.MaLichSuDiem);
+            e.Property(x => x.LoaiBienDong).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.KhachHang).WithMany().HasForeignKey(x => x.MaKhachHang).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.DonHang).WithMany().HasForeignKey(x => x.MaDonHang).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        mb.Entity<DanhGia>(e =>
+        {
+            e.ToTable("DanhGia", t => t.HasCheckConstraint("CK_DanhGia_DiemSo", "[DiemSo] BETWEEN 1 AND 5"));
+            e.HasKey(x => x.MaDanhGia);
+            e.HasOne(x => x.KhachHang).WithMany().HasForeignKey(x => x.MaKhachHang).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.DonHang).WithMany().HasForeignKey(x => x.MaDonHang).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        mb.Entity<LichSuChatbot>(e =>
+        {
+            e.ToTable("LichSuChatbot");
+            e.HasKey(x => x.MaLichSu);
+            e.Property(x => x.PhienChat).HasMaxLength(100);
+            e.Property(x => x.IntentContext).HasMaxLength(100);
+            e.HasOne(x => x.KhachHang).WithMany().HasForeignKey(x => x.MaKhachHang).OnDelete(DeleteBehavior.SetNull);
+        });
+    }
+
+    private static void ConfigHr(ModelBuilder mb)
+    {
+        mb.Entity<CaLamViec>(e =>
+        {
+            e.ToTable("CaLamViec");
+            e.HasKey(x => x.MaCa);
+            e.Property(x => x.TenCa).HasMaxLength(50).IsRequired();
+        });
+
+        mb.Entity<PhanCaLamViec>(e =>
+        {
+            e.ToTable("PhanCaLamViec");
+            e.HasKey(x => x.MaPhanCa);
+            e.HasOne(x => x.NhanVien).WithMany().HasForeignKey(x => x.MaNhanVien).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Ca).WithMany().HasForeignKey(x => x.MaCa).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        mb.Entity<ChamCong>(e =>
+        {
+            e.ToTable("ChamCong");
+            e.HasKey(x => x.MaChamCong);
+            e.Property(x => x.TrangThai).HasMaxLength(50);
+            e.HasOne(x => x.NhanVien).WithMany().HasForeignKey(x => x.MaNhanVien).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Ca).WithMany().HasForeignKey(x => x.MaCa).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        mb.Entity<DonTuNhanVien>(e =>
+        {
+            e.ToTable("DonTuNhanVien");
+            e.HasKey(x => x.MaDon);
+            e.Property(x => x.LoaiDon).HasMaxLength(50).IsRequired();
+            e.Property(x => x.TrangThai).HasMaxLength(50).IsRequired();
+            e.HasOne(x => x.NhanVien).WithMany().HasForeignKey(x => x.MaNhanVien).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<NhanVien>().WithMany().HasForeignKey(x => x.MaNguoiDuyet).OnDelete(DeleteBehavior.NoAction);
+        });
+
+        mb.Entity<BangLuong>(e =>
+        {
+            e.ToTable("BangLuong");
+            e.HasKey(x => x.MaBangLuong);
+            e.Property(x => x.Ky).HasMaxLength(7).IsRequired();
+            e.Property(x => x.TrangThai).HasMaxLength(50).IsRequired();
+            e.Property(x => x.LuongTheoGio).HasColumnType("decimal(12,2)");
+            foreach (var p in new[] { "SoGioThuong", "SoGioOT" }) e.Property(p).HasColumnType("decimal(8,2)");
+            e.Property(x => x.SoNgayPhep).HasColumnType("decimal(5,1)");
+            foreach (var p in new[] { "PhuCap", "Thuong", "Phat", "ThucLanh" }) e.Property(p).HasColumnType("decimal(12,2)");
+            e.HasOne(x => x.NhanVien).WithMany().HasForeignKey(x => x.MaNhanVien).OnDelete(DeleteBehavior.Cascade);
+        });
+    }
+
+    private static void ConfigFinanceSystem(ModelBuilder mb)
+    {
+        mb.Entity<DongTien>(e =>
+        {
+            e.ToTable("DongTien");
+            e.HasKey(x => x.MaDongTien);
+            e.Property(x => x.LoaiGiaoDich).HasMaxLength(20).IsRequired();
+            e.Property(x => x.NhomGiaoDich).HasMaxLength(100).IsRequired();
+            e.Property(x => x.PhuongThucThanhToan).HasMaxLength(50).IsRequired();
+            e.Property(x => x.SoTien).HasColumnType("decimal(12,2)");
+            e.Property(x => x.ChungTuDinhKem).HasMaxLength(500);
+            e.HasOne(x => x.NhanVienGhiNhan).WithMany().HasForeignKey(x => x.MaNhanVienGhiNhan).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        mb.Entity<NhatKyHeThong>(e =>
+        {
+            e.ToTable("NhatKyHeThong");
+            e.HasKey(x => x.MaNhatKy);
+            e.Property(x => x.HanhDong).HasMaxLength(255).IsRequired();
+            e.Property(x => x.Module).HasMaxLength(100).IsRequired();
+            e.Property(x => x.DiaChiIP).HasMaxLength(50);
+            e.Property(x => x.ThietBi).HasMaxLength(255);
+            e.HasOne(x => x.NhanVien).WithMany().HasForeignKey(x => x.MaNhanVien).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        mb.Entity<CaiDatHeThong>(e =>
+        {
+            e.ToTable("CaiDatHeThong");
+            e.HasKey(x => x.MaCaiDat);
+            e.Property(x => x.NhomCaiDat).HasMaxLength(50).IsRequired();
+            e.Property(x => x.KhoaCaiDat).HasMaxLength(100).IsRequired();
+            e.HasIndex(x => x.KhoaCaiDat).IsUnique();
+        });
+    }
+
+    private static void SeedSettings(ModelBuilder mb)
+    {
+        mb.Entity<CaiDatHeThong>().HasData(
+            new CaiDatHeThong { MaCaiDat = 1, NhomCaiDat = "CHUNG", KhoaCaiDat = "TEN_QUAN", GiaTriCaiDat = "BrewManager Coffee", MoTa = "Tên quán" },
+            new CaiDatHeThong { MaCaiDat = 2, NhomCaiDat = "CHUNG", KhoaCaiDat = "DIA_CHI", GiaTriCaiDat = "", MoTa = "Địa chỉ quán" },
+            new CaiDatHeThong { MaCaiDat = 3, NhomCaiDat = "THANH_TOAN", KhoaCaiDat = "THUE_VAT_MAC_DINH", GiaTriCaiDat = "8", MoTa = "Thuế VAT mặc định (%)" },
+            new CaiDatHeThong { MaCaiDat = 4, NhomCaiDat = "THANH_TOAN", KhoaCaiDat = "PHI_DICH_VU", GiaTriCaiDat = "0", MoTa = "Phí dịch vụ mặc định (đ)" },
+            new CaiDatHeThong { MaCaiDat = 5, NhomCaiDat = "TICH_DIEM", KhoaCaiDat = "TY_LE_TICH_DIEM", GiaTriCaiDat = "1", MoTa = "Số điểm cho mỗi 1.000đ" }
+        );
     }
 
     private static void ConfigSales(ModelBuilder mb)
