@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Edit(/.claude/skills/quanlycf-conventions/**)"
+      "Edit(/.claude/skills/quanlycf-conventions/**)",
+      "PowerShell(cd e:\\\\Quanly_cafe\\\\BackEnd\\\\BackEnd; $env:Path += \";$env:USERPROFILE\\\\.dotnet\\\\tools\"; dotnet ef migrations add AddTables 2>&1 | Select-Object -Last 4; dotnet ef database update 2>&1 | Select-Object -Last 4)"
     ]
   }
 }

@@ -19,12 +19,14 @@ public static class Quyens
     public const string NhanSuQuanLy     = "NHANSU_QUANLY";
     public const string BaoCaoXem        = "BAOCAO_XEM";
     public const string CaiDatQuanLy     = "CAIDAT_QUANLY";
+    public const string BanXem           = "BAN_XEM";
+    public const string BanQuanLy        = "BAN_QUANLY";
 
     /// <summary>Toàn bộ mã quyền — dùng để cấp full quyền cho vai trò Quản lý.</summary>
     public static readonly string[] TatCa =
     {
         TaiKhoanXem, TaiKhoanQuanLy, SanPhamXem, SanPhamQuanLy, KhoXem, KhoQuanLy,
         DonHangXem, DonHangXuLy, BepXem, ThanhToan, KhachHangXem, KhachHangQuanLy,
-        NhanSuXem, NhanSuQuanLy, BaoCaoXem, CaiDatQuanLy
+        NhanSuXem, NhanSuQuanLy, BaoCaoXem, CaiDatQuanLy, BanXem, BanQuanLy
     };
 }

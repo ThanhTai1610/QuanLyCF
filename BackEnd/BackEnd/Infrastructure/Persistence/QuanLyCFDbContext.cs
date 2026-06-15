@@ -26,6 +26,10 @@ public class QuanLyCFDbContext : DbContext
     public DbSet<PhieuKho> PhieuKhos => Set<PhieuKho>();
     public DbSet<ChiTietPhieuKho> ChiTietPhieuKhos => Set<ChiTietPhieuKho>();
 
+    // Sales - Bàn
+    public DbSet<KhuVucBan> KhuVucBans => Set<KhuVucBan>();
+    public DbSet<Ban> Bans => Set<Ban>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -95,9 +99,34 @@ public class QuanLyCFDbContext : DbContext
 
         ConfigCatalog(mb);
         ConfigInventory(mb);
+        ConfigSales(mb);
 
         SeedRbac(mb);
         SeedCatalog(mb);
+    }
+
+    private static void ConfigSales(ModelBuilder mb)
+    {
+        mb.Entity<KhuVucBan>(e =>
+        {
+            e.ToTable("KhuVucBan");
+            e.HasKey(x => x.MaKhuVuc);
+            e.Property(x => x.TenKhuVuc).HasMaxLength(100).IsRequired();
+            e.Property(x => x.PhuThu).HasColumnType("decimal(10,2)");
+        });
+
+        mb.Entity<Ban>(e =>
+        {
+            e.ToTable("Ban");
+            e.HasKey(x => x.MaBan);
+            e.Property(x => x.TenBan).HasMaxLength(20).IsRequired();
+            e.Property(x => x.MaQRHash).HasMaxLength(255).IsRequired();
+            e.Property(x => x.TrangThai).HasMaxLength(50).IsRequired();
+            e.HasIndex(x => x.TenBan).IsUnique();
+            e.HasIndex(x => x.MaQRHash).IsUnique();
+            e.HasOne(x => x.KhuVuc).WithMany(k => k.Bans)
+                .HasForeignKey(x => x.MaKhuVuc).OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     private static void ConfigInventory(ModelBuilder mb)
@@ -257,6 +286,8 @@ public class QuanLyCFDbContext : DbContext
             ("NHANSU_QUANLY", "Quản lý nhân sự", "NhanSu"),
             ("BAOCAO_XEM", "Xem báo cáo", "BaoCao"),
             ("CAIDAT_QUANLY", "Quản lý cài đặt", "CaiDat"),
+            ("BAN_XEM", "Xem bàn", "Ban"),
+            ("BAN_QUANLY", "Quản lý bàn", "Ban"),
         };
         var quyens = quyenMeta.Select((q, i) => new Quyen { MaQuyen = i + 1, MaCode = q.Code, TenQuyen = q.Ten, Nhom = q.Nhom }).ToArray();
         mb.Entity<Quyen>().HasData(quyens);
@@ -267,10 +298,10 @@ public class QuanLyCFDbContext : DbContext
         var map = new Dictionary<int, string[]>
         {
             [1] = quyenMeta.Select(q => q.Code).ToArray(), // Quản lý: full
-            [2] = new[] { "SANPHAM_XEM", "KHO_XEM", "DONHANG_XEM", "DONHANG_XULY", "BEP_XEM" },           // Pha chế
-            [3] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY", "THANHTOAN", "KHACHHANG_XEM" },   // Thu ngân
-            [4] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY" },                                  // Phục vụ
-            [5] = new[] { "BEP_XEM", "DONHANG_XEM" },                                                       // Bếp
+            [2] = new[] { "SANPHAM_XEM", "KHO_XEM", "DONHANG_XEM", "DONHANG_XULY", "BEP_XEM" },                        // Pha chế
+            [3] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY", "THANHTOAN", "KHACHHANG_XEM", "BAN_XEM" },     // Thu ngân
+            [4] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY", "BAN_XEM" },                                   // Phục vụ
+            [5] = new[] { "BEP_XEM", "DONHANG_XEM" },                                                                  // Bếp
         };
 
         var vtq = new List<VaiTroQuyen>();
