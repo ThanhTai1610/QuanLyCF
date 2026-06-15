@@ -150,7 +150,7 @@ const navItems = [
     label: "Nhân sự & Ca làm",
     icon: Users,
     children: [
-      { to: "/staff", label: "Phân quyền", badge: "Cấp 1" },
+      { to: "/staff", label: "Quản lý tài khoản", badge: "Cấp 1" },
       { to: "/check-in", label: "Chấm công & Yêu cầu" },
       { to: "/shifts", label: "Ca làm & Bảng lương" },
     ]
