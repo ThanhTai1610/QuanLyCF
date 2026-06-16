@@ -30,6 +30,9 @@ namespace BackEnd.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaBan"));
 
+                    b.Property<int?>("MaBanChinh")
+                        .HasColumnType("int");
+
                     b.Property<int>("MaKhuVuc")
                         .HasColumnType("int");
 
@@ -52,6 +55,8 @@ namespace BackEnd.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("MaBan");
+
+                    b.HasIndex("MaBanChinh");
 
                     b.HasIndex("MaKhuVuc");
 
@@ -1902,11 +1907,18 @@ namespace BackEnd.Migrations
 
             modelBuilder.Entity("BackEnd.Domain.Entities.Ban", b =>
                 {
+                    b.HasOne("BackEnd.Domain.Entities.Ban", "BanChinh")
+                        .WithMany()
+                        .HasForeignKey("MaBanChinh")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("BackEnd.Domain.Entities.KhuVucBan", "KhuVuc")
                         .WithMany("Bans")
                         .HasForeignKey("MaKhuVuc")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("BanChinh");
 
                     b.Navigation("KhuVuc");
                 });

@@ -373,6 +373,9 @@ public class QuanLyCFDbContext : DbContext
             e.HasIndex(x => x.MaQRHash).IsUnique();
             e.HasOne(x => x.KhuVuc).WithMany(k => k.Bans)
                 .HasForeignKey(x => x.MaKhuVuc).OnDelete(DeleteBehavior.Restrict);
+            // Ghép bàn: tự tham chiếu tới bàn chính
+            e.HasOne(x => x.BanChinh).WithMany()
+                .HasForeignKey(x => x.MaBanChinh).OnDelete(DeleteBehavior.NoAction);
         });
     }
 

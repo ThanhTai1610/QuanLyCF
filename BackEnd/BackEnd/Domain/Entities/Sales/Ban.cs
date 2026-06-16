@@ -12,4 +12,8 @@ public class Ban
     public int? SucChua { get; set; }                  // số ghế
     public string MaQRHash { get; set; } = null!;      // token QR (unique) → URL đặt món
     public string TrangThai { get; set; } = "Trong";   // Trong, CoKhach, BaoTri
+
+    // Ghép bàn: bàn chính của nhóm. null = bàn đứng riêng hoặc chính là bàn chính của nhóm.
+    public int? MaBanChinh { get; set; }
+    public Ban? BanChinh { get; set; }
 }

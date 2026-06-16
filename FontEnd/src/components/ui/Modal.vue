@@ -1,16 +1,16 @@
 <template>
   <Teleport to="body">
     <Transition name="modal">
-      <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div v-if="modelValue" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <!-- Backdrop -->
-        <div 
+        <div
           class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
           @click="$emit('update:modelValue', false)"
         ></div>
-        
+
         <!-- Modal Content -->
-        <div 
-          class="relative z-50 w-full max-w-lg rounded-md border border-border bg-background p-6 shadow-lg sm:rounded-lg transition-all"
+        <div
+          class="relative z-50 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-md border border-border bg-background p-6 shadow-lg sm:rounded-lg transition-all"
           role="dialog"
           aria-modal="true"
         >

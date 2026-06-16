@@ -1,11 +1,20 @@
 # Cấu trúc Backend theo Features (Vertical Slice + Layered trong từng feature)
 
-Quy ước mỗi feature: `Controllers / Services / Repositories / DTOs / Models / Validators`.
+Quy ước mỗi feature: `Controllers / Services / Repositories / DTOs / Validators`.
+**Entity (Code First) KHÔNG nằm trong Features** mà đặt tập trung ở `Domain/Entities/<Nhóm>/`
+(namespace luôn là `BackEnd.Domain.Entities`) — xem [01-QUY-TAC-CODE.md](01-QUY-TAC-CODE.md) mục 1.
 Phần dùng chung đặt ngoài `Features` (Infrastructure, Shared, Program).
 
-> Ghi chú: code Phase 1 (Authentication) và Phase 2 (Catalog) hiện đang dùng bản gọn
-> (Controller + Service/DbContext, chưa tách Repository/Validator). Cấu trúc dưới đây là
-> đích đến đầy đủ — sẽ bổ sung Repository + Validator dần theo từng phase (hoặc refactor lại nếu muốn).
+> **Hiện trạng (cập nhật 2026-06):** code đang ở **bản gọn** — file để phẳng trong từng feature
+> (vd `CategoriesController.cs` + `CategoryDtos.cs` cùng cấp), CHƯA tách thư mục con
+> `Controllers/ Services/ DTOs/`, CHƯA có tầng `Repositories/` và `Validators/`.
+> Một số feature (Catalog, Tables) hiện inject thẳng `DbContext` vào Controller, chưa có Service —
+> **cần refactor đưa logic về Service** để đạt Definition of Done (Controller phải mỏng).
+> Cấu trúc cây dưới đây là **đích đến đầy đủ** — bổ sung dần theo từng phase.
+>
+> Khác biệt tên nhóm so với code thực tế: `Authentication` (doc) được tách thành 2 feature
+> `Auth/` + `Accounts/`; `Ordering` (doc) thực tế là `Sales/`. Feature `Weather/` là template
+> mặc định còn sót, nên xoá.
 
 ```
 BackEnd/BackEnd/                         # thư mục project (src)
@@ -35,8 +44,7 @@ BackEnd/BackEnd/                         # thư mục project (src)
 │   │   │   ├── CreateAccountRequest.cs, UpdateAccountRequest.cs
 │   │   │   ├── ResetPasswordRequest.cs, SetPinRequest.cs
 │   │   │   └── RoleItem.cs, AssignPermissionsRequest.cs
-│   │   ├── Models/                       # entity Code First
-│   │   │   ├── NhanVien.cs, VaiTro.cs, Quyen.cs, VaiTroQuyen.cs, RefreshToken.cs
+│   │   │   # Entity → Domain/Entities/Identity/ (NhanVien, VaiTro, Quyen, VaiTroQuyen, RefreshToken)
 │   │   └── Validators/
 │   │       ├── LoginRequestValidator.cs
 │   │       ├── CreateAccountRequestValidator.cs
@@ -57,8 +65,7 @@ BackEnd/BackEnd/                         # thư mục project (src)
 │   │   │   ├── Category*.cs (List/Create/Update)
 │   │   │   ├── Product*.cs (List/Detail/Create/Update + SizeDto)
 │   │   │   └── Combo*.cs (List/Detail/Save + ComboLineDto)
-│   │   ├── Models/
-│   │   │   ├── DanhMuc.cs, SanPham.cs, KichCoSanPham.cs, Combo.cs, ChiTietCombo.cs
+│   │   │   # Entity → Domain/Entities/Catalog/ (DanhMuc, SanPham, KichCoSanPham, Combo, ChiTietCombo)
 │   │   └── Validators/
 │   │       ├── CreateProductRequestValidator.cs
 │   │       ├── CreateCategoryRequestValidator.cs
@@ -80,8 +87,7 @@ BackEnd/BackEnd/                         # thư mục project (src)
 │   │   │   └── IStockDocumentRepository.cs / StockDocumentRepository.cs
 │   │   ├── DTOs/
 │   │   │   ├── Material*.cs, Supplier*.cs, StockReceipt*.cs, StockTake*.cs
-│   │   ├── Models/
-│   │   │   ├── NguyenLieu.cs, NhaCungCap.cs, PhieuKho.cs, ChiTietPhieuKho.cs
+│   │   │   # Entity → Domain/Entities/Inventory/ (NguyenLieu, NhaCungCap, PhieuKho, ChiTietPhieuKho)
 │   │   └── Validators/
 │   │       ├── StockReceiptRequestValidator.cs
 │   │       └── StockTakeRequestValidator.cs
@@ -106,9 +112,7 @@ BackEnd/BackEnd/                         # thư mục project (src)
 │   │   ├── DTOs/
 │   │   │   ├── Order*.cs, Pos*.cs, Payment*.cs, Invoice*.cs
 │   │   │   ├── Kitchen*.cs, Table*.cs, Promotion*.cs
-│   │   ├── Models/
-│   │   │   ├── DonHang.cs, ChiTietDonHang.cs, HoaDon.cs
-│   │   │   ├── Ban.cs, KhuVucBan.cs, KhuyenMai.cs
+│   │   │   # Entity → Domain/Entities/Sales/ (DonHang, ChiTietDonHang, HoaDon, Ban, KhuVucBan, KhuyenMai)
 │   │   └── Validators/
 │   │       ├── CreateOrderRequestValidator.cs
 │   │       └── PaymentRequestValidator.cs
@@ -123,7 +127,7 @@ BackEnd/BackEnd/                         # thư mục project (src)
 │   │   │   ├── PublicMenuDto.cs, PlaceOrderRequest.cs
 │   │   └── Validators/
 │   │       └── PlaceOrderRequestValidator.cs
-│   │   # (dùng lại Models của Catalog & Ordering)
+│   │   # (dùng lại Entity của Catalog & Sales trong Domain/Entities/)
 │   │
 │   ├── Customers/                       # Khách thân thiết, đánh giá, chatbot
 │   │   ├── Controllers/
@@ -138,8 +142,7 @@ BackEnd/BackEnd/                         # thư mục project (src)
 │   │   │   └── IChatbotRepository.cs / ChatbotRepository.cs
 │   │   ├── DTOs/
 │   │   │   ├── Customer*.cs, Review*.cs, Chatbot*.cs
-│   │   ├── Models/
-│   │   │   ├── KhachHang.cs, DanhGia.cs, LichSuChatbot.cs
+│   │   │   # Entity → Domain/Entities/Customers/ (KhachHang, DanhGia, LichSuChatbot)
 │   │   └── Validators/
 │   │       └── CreateCustomerRequestValidator.cs
 │   │
@@ -155,8 +158,7 @@ BackEnd/BackEnd/                         # thư mục project (src)
 │   │   │   └── IShiftRepository.cs / ShiftRepository.cs
 │   │   ├── DTOs/
 │   │   │   ├── Attendance*.cs, Shift*.cs, Payroll*.cs
-│   │   ├── Models/
-│   │   │   ├── ChamCong.cs, CaLamViec.cs
+│   │   │   # Entity → Domain/Entities/Hr/ (ChamCong, CaLamViec)
 │   │   └── Validators/
 │   │       └── CheckInRequestValidator.cs
 │   │
@@ -170,8 +172,7 @@ BackEnd/BackEnd/                         # thư mục project (src)
 │   │   │   └── ICashFlowRepository.cs / CashFlowRepository.cs
 │   │   ├── DTOs/
 │   │   │   ├── CashFlow*.cs, Report*.cs (RevenueReport, ProfitReport, ...)
-│   │   ├── Models/
-│   │   │   └── DongTien.cs
+│   │   │   # Entity → Domain/Entities/Finance/ (DongTien)
 │   │   └── Validators/
 │   │       └── CashFlowEntryValidator.cs
 │   │
@@ -184,20 +185,28 @@ BackEnd/BackEnd/                         # thư mục project (src)
 │       ├── Repositories/
 │       │   ├── ISettingRepository.cs / SettingRepository.cs
 │       │   └── IAuditLogRepository.cs / AuditLogRepository.cs
-│       ├── DTOs/
-│       │   ├── Setting*.cs, AuditLog*.cs
-│       └── Models/
-│           ├── CaiDatHeThong.cs, NhatKyHeThong.cs
+│       └── DTOs/
+│           ├── Setting*.cs, AuditLog*.cs
+│       # Entity → Domain/Entities/System/ (CaiDatHeThong, NhatKyHeThong)
+│
+├── Domain/                              # Tầng miền — KHÔNG phụ thuộc Infrastructure/Features
+│   └── Entities/                        # Entity Code First (namespace BackEnd.Domain.Entities)  ✅
+│       ├── Identity/   NhanVien, VaiTro, Quyen, VaiTroQuyen, RefreshToken
+│       ├── Catalog/    DanhMuc, SanPham, KichCoSanPham, Combo, ChiTietCombo
+│       ├── Inventory/  NguyenLieu, NhaCungCap, PhieuKho, ChiTietPhieuKho
+│       ├── Sales/      Ban, KhuVucBan (+ DonHang, HoaDon, KhuyenMai... khi tới phase)
+│       ├── Customers/  KhachHang, DanhGia, LichSuChatbot
+│       ├── Hr/         ChamCong, CaLamViec
+│       ├── Finance/    DongTien
+│       └── System/     CaiDatHeThong, NhatKyHeThong
 │
 ├── Infrastructure/                      # Hạ tầng dùng chung
 │   └── Persistence/
 │       ├── QuanLyCFDbContext.cs          ✅
-│       ├── Configurations/               # IEntityTypeConfiguration<T> cho từng entity
-│       │   ├── NhanVienConfiguration.cs, SanPhamConfiguration.cs, ...
-│       ├── Seed/
-│       │   ├── DbSeeder.cs               ✅  (admin)
-│       │   └── RbacSeed.cs               (vai trò/quyền)
-│       └── Migrations/                   ✅  (InitPhase1, AddCatalog, ...)
+│       ├── DbSeeder.cs                   ✅  (admin)  — Configurations/Seed gộp trong file này (bản gọn)
+│       └── (Configurations/ tách riêng khi cần — đích đến)
+│
+├── Migrations/                          ✅  (nằm ở gốc project, không trong Infrastructure)
 │
 └── Shared/                              # Cross-cutting
     ├── Quyens.cs                         ✅  (mã quyền RBAC)
@@ -220,29 +229,30 @@ BackEnd/BackEnd/                         # thư mục project (src)
 
 ## Đối chiếu 22 module ↔ Feature/Controller
 
-| Module (trang) | Feature | Controller |
-|---|---|---|
-| Quản lý tài khoản (Admin) | Authentication | AccountController |
-| Tài khoản (hồ sơ cá nhân) | Authentication | AuthController (`/me`) |
-| (RBAC vai trò→quyền) | Authentication | RoleController |
-| Danh Mục (Admin) | Catalog | CategoryController |
-| Quản lý thực đơn | Catalog | ProductController |
-| Quản lý combo (Admin) | Catalog | ComboController |
-| Quản lý Kho nguyên liệu (Admin) | Inventory | MaterialController |
-| Nhà cung cấp & Nhập kho (Admin) | Inventory | SupplierController + StockReceiptController |
-| Kiểm kê (Nhân viên) | Inventory | StockTakeController |
-| Quản lý Đơn hàng (Nhân viên) | Ordering | OrderController |
-| Bán hàng tại quầy (Nhân viên) | Ordering | PosController |
-| Thanh toán (Khách/Nhân viên) | Ordering | PaymentController |
-| Hoá đơn (Nhân viên) | Ordering | InvoiceController |
-| Màn hình bếp (Nhân viên) | Ordering | KitchenController |
-| Quản lý Bàn QR (Admin) | Ordering | TableController |
-| Trang chủ (Khách hàng) | Storefront | HomeController |
-| Khách hàng & QR Đặt món (Khách) | Storefront | CustomerMenuController |
-| Khách hàng thân thiết (Nhân viên) | Customers | CustomerController |
-| Chatbot (Khách hàng) | Customers | ChatbotController |
-| Chấm công (Nhân viên) | HumanResource | AttendanceController |
-| Dòng tiền & Chi phí (Admin) | Finance | CashFlowController |
-| Báo cáo (Admin) | Finance | ReportController |
-| Cài đặt hệ thống (Admin) | System | SettingController |
-```
+Cột **TT** (Tình trạng): ✅ đã có code · ⏳ chưa làm. Cột **Feature** ghi tên thư mục thực tế.
+
+| Module (trang) | Feature (thư mục) | Controller | TT |
+|---|---|---|---|
+| Quản lý tài khoản (Admin) | Accounts | AccountsController | ✅ |
+| Tài khoản (hồ sơ cá nhân) | Auth | AuthController (`/me`) | ✅ |
+| (RBAC vai trò→quyền) | Auth | (đang gộp, chưa tách RoleController) | ⏳ |
+| Danh Mục (Admin) | Catalog/Categories | CategoriesController | ✅ |
+| Quản lý thực đơn | Catalog/Products | ProductsController | ✅ |
+| Quản lý combo (Admin) | Catalog/Combos | CombosController | ✅ |
+| Quản lý Kho nguyên liệu (Admin) | Inventory/Materials | MaterialsController | ✅ |
+| Nhà cung cấp & Nhập kho (Admin) | Inventory/Suppliers + /StockReceipts | SuppliersController + StockReceiptsController | ✅ |
+| Kiểm kê (Nhân viên) | Inventory/StockTakes | StockTakesController | ✅ |
+| Quản lý Bàn QR (Admin) | Sales/Tables | TablesController + ZonesController | ✅ |
+| Quản lý Đơn hàng (Nhân viên) | Sales (Ordering) | OrderController | ⏳ |
+| Bán hàng tại quầy (Nhân viên) | Sales (Ordering) | PosController | ⏳ |
+| Thanh toán (Khách/Nhân viên) | Sales (Ordering) | PaymentController | ⏳ |
+| Hoá đơn (Nhân viên) | Sales (Ordering) | InvoiceController | ⏳ |
+| Màn hình bếp (Nhân viên) | Sales (Ordering) | KitchenController | ⏳ |
+| Trang chủ (Khách hàng) | Storefront | HomeController | ⏳ |
+| Khách hàng & QR Đặt món (Khách) | Storefront | CustomerMenuController | ⏳ |
+| Khách hàng thân thiết (Nhân viên) | Customers | CustomerController | ⏳ |
+| Chatbot (Khách hàng) | Customers | ChatbotController | ⏳ |
+| Chấm công (Nhân viên) | HumanResource | AttendanceController | ⏳ |
+| Dòng tiền & Chi phí (Admin) | Finance | CashFlowController | ⏳ |
+| Báo cáo (Admin) | Finance | ReportController | ⏳ |
+| Cài đặt hệ thống (Admin) | System | SettingController | ⏳ |

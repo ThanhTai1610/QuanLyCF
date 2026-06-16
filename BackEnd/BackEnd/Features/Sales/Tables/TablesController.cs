@@ -25,7 +25,7 @@ public class TablesController : ControllerBase
     [Authorize(Policy = Quyens.BanXem)]
     public async Task<IActionResult> List([FromQuery] int? maKhuVuc, [FromQuery] string? trangThai)
     {
-        var query = _db.Bans.Include(x => x.KhuVuc).AsQueryable();
+        var query = _db.Bans.Include(x => x.KhuVuc).Include(x => x.BanChinh).AsQueryable();
         if (maKhuVuc is { } k) query = query.Where(x => x.MaKhuVuc == k);
         if (!string.IsNullOrWhiteSpace(trangThai)) query = query.Where(x => x.TrangThai == trangThai);
 
@@ -106,12 +106,61 @@ public class TablesController : ControllerBase
     {
         var ban = await _db.Bans.FindAsync(id);
         if (ban is null) return NotFound();
+        // Gỡ các bàn thành viên đang ghép vào bàn này trước khi xoá
+        var thanhVien = await _db.Bans.Where(x => x.MaBanChinh == id).ToListAsync();
+        foreach (var tv in thanhVien) tv.MaBanChinh = null;
         _db.Bans.Remove(ban);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    /// <summary>Ghép nhiều bàn về 1 bàn chính (phục vụ chung 1 đoàn khách).</summary>
+    [HttpPost("merge")]
+    [Authorize(Policy = Quyens.BanQuanLy)]
+    public async Task<IActionResult> Merge(MergeTablesRequest req)
+    {
+        var chinh = await _db.Bans.FindAsync(req.MaBanChinh);
+        if (chinh is null) return NotFound(new { message = "Bàn chính không tồn tại." });
+
+        var idThanhVien = (req.MaThanhVien ?? Array.Empty<int>())
+            .Where(x => x != req.MaBanChinh).Distinct().ToList();
+        if (idThanhVien.Count == 0)
+            return BadRequest(new { message = "Chọn ít nhất 2 bàn để ghép." });
+
+        var thanhVien = await _db.Bans.Where(x => idThanhVien.Contains(x.MaBan)).ToListAsync();
+        if (thanhVien.Count != idThanhVien.Count)
+            return BadRequest(new { message = "Có bàn không tồn tại." });
+
+        // Bàn chính trở thành bàn chính thực sự
+        chinh.MaBanChinh = null;
+        // Gộp thành viên về bàn chính; làm phẳng nếu thành viên từng là bàn chính của nhóm khác
+        foreach (var tv in thanhVien) tv.MaBanChinh = req.MaBanChinh;
+        var nhomCon = await _db.Bans.Where(x => x.MaBanChinh != null && idThanhVien.Contains(x.MaBanChinh.Value)).ToListAsync();
+        foreach (var c in nhomCon) c.MaBanChinh = req.MaBanChinh;
+
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    /// <summary>Tách bàn: nếu là bàn chính → giải tán cả nhóm; nếu là thành viên → tách riêng bàn đó.</summary>
+    [HttpPost("{id:int}/unmerge")]
+    [Authorize(Policy = Quyens.BanQuanLy)]
+    public async Task<IActionResult> Unmerge(int id)
+    {
+        var ban = await _db.Bans.FindAsync(id);
+        if (ban is null) return NotFound();
+
+        var thanhVien = await _db.Bans.Where(x => x.MaBanChinh == id).ToListAsync();
+        if (thanhVien.Count > 0)
+            foreach (var tv in thanhVien) tv.MaBanChinh = null;   // là bàn chính → giải tán
+        else if (ban.MaBanChinh != null)
+            ban.MaBanChinh = null;                                // là thành viên → tách riêng
+
         await _db.SaveChangesAsync();
         return NoContent();
     }
 
     private TableItem Map(Ban x) => new(
         x.MaBan, x.TenBan, x.MaKhuVuc, x.KhuVuc?.TenKhuVuc ?? "", x.SucChua, x.TrangThai,
-        x.MaQRHash, $"{FeOrigin}/menu/{x.MaQRHash}");
+        x.MaQRHash, $"{FeOrigin}/menu/{x.MaQRHash}", x.MaBanChinh, x.BanChinh?.TenBan);
 }

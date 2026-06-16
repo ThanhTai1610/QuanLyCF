@@ -147,6 +147,11 @@
             </label>
           </div>
 
+          <!-- Thong bao loi -->
+          <p v-if="errorMsg" class="text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            {{ errorMsg }}
+          </p>
+
           <!-- Submit Button -->
           <div class="pt-3 space-y-3">
             <button
@@ -240,13 +245,19 @@ const securityFeatures = [
   'Phiên đăng nhập tự động hết hạn',
 ]
 
+const errorMsg = ref('')
+
 const handleSubmit = async () => {
   isLoading.value = true
-  // Simulate API call
-  await new Promise(r => setTimeout(r, 800))
-  authStore.login()
-  isLoading.value = false
-  router.push('/revenue-report')
+  errorMsg.value = ''
+  try {
+    await authStore.login(email.value, password.value)
+    router.push('/revenue-report')
+  } catch (e) {
+    errorMsg.value = e instanceof Error ? e.message : 'Đăng nhập thất bại, vui lòng thử lại.'
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const handleGoogleLogin = () => {

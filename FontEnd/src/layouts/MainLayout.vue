@@ -27,7 +27,6 @@
               <component :is="item.icon" class="w-4 h-4" />
               <span class="text-sm font-medium">{{ item.label }}</span>
             </div>
-            <span v-if="item.badge" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#CC8033]/20 text-[#CC8033]">{{ item.badge }}</span>
           </router-link>
 
           <!-- GROUP ACCORDION -->
@@ -79,7 +78,6 @@
                       <div class="w-1 h-1 rounded-full bg-current opacity-50"></div>
                       <span class="font-medium">{{ child.label }}</span>
                     </div>
-                    <span v-if="child.badge" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#CC8033]/20 text-[#CC8033]">{{ child.badge }}</span>
                   </router-link>
                 </template>
               </div>

@@ -228,16 +228,15 @@ const clearPin = () => {
   errorMsg.value = ''
 }
 
-const verifyPin = () => {
-  setTimeout(() => {
-    if (pin.value === selectedStaff.value!.pin) {
-      authStore.login()
-      router.push(selectedStaff.value!.redirect)
-    } else {
-      errorMsg.value = 'Mã PIN không đúng. Vui lòng thử lại!'
-      pin.value = ''
-    }
-  }, 200)
+const verifyPin = async () => {
+  const staff = selectedStaff.value!
+  try {
+    await authStore.loginPin(staff.id, pin.value)
+    router.push(staff.redirect)
+  } catch (e) {
+    errorMsg.value = e instanceof Error ? e.message : 'Mã PIN không đúng. Vui lòng thử lại!'
+    pin.value = ''
+  }
 }
 </script>
 

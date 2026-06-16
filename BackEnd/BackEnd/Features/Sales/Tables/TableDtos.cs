@@ -13,7 +13,12 @@ public record TableItem(
     int? SucChua,
     string TrangThai,
     string MaQRHash,
-    string UrlDatMon);
+    string UrlDatMon,
+    int? MaBanChinh,
+    string? TenBanChinh);
 
 public record SaveTableRequest(string TenBan, int MaKhuVuc, int? SucChua);
 public record UpdateTableStatusRequest(string TrangThai);   // Trong, CoKhach, BaoTri
+
+// Ghép bàn: gộp các bàn thành viên về 1 bàn chính
+public record MergeTablesRequest(int MaBanChinh, int[] MaThanhVien);

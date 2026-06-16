@@ -51,6 +51,7 @@ namespace BackEnd
             builder.Services.AddSingleton<JwtTokenService>();
             builder.Services.AddScoped<Features.Inventory.StockReceipts.StockReceiptService>();
             builder.Services.AddScoped<Features.Inventory.StockTakes.StockTakeService>();
+            builder.Services.AddScoped<Features.Sales.Orders.OrderService>();
 
             // ── CORS cho frontend Vite ──────────────────────────
             var feOrigin = builder.Configuration["Cors:FrontendOrigin"] ?? "http://localhost:5173";
