@@ -453,7 +453,7 @@ public class QuanLyCFDbContext : DbContext
             e.HasKey(x => x.MaSanPham);
             e.Property(x => x.TenSanPham).HasMaxLength(150).IsRequired();
             e.Property(x => x.MaVach_SKU).HasMaxLength(50);
-            e.Property(x => x.HinhAnh).HasMaxLength(255);
+
             e.Property(x => x.KieuMon).HasMaxLength(50);
             e.Property(x => x.GiaVonDuKien).HasColumnType("decimal(10,2)");
             e.Property(x => x.GiaBan).HasColumnType("decimal(10,2)");

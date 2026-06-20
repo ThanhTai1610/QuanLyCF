@@ -646,7 +646,7 @@
           </div>
 
           <!-- Topping -->
-          <div class="space-y-4">
+          <div v-if="selectedItem?.category !== 'pastry'" class="space-y-4">
             <h3 class="text-[11px] uppercase tracking-[0.15em] font-bold text-[#8A8178] flex items-center gap-2"><Plus class="w-4 h-4" /> Thêm Topping</h3>
             
             <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -685,7 +685,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-6">
+          <div v-if="selectedItem?.category !== 'pastry'" class="grid grid-cols-2 gap-6">
             <!-- Tùy chỉnh khác -->
             <div class="space-y-4">
               <h3 class="text-[11px] uppercase tracking-[0.15em] font-bold text-[#8A8178]">Lượng đường</h3>
@@ -856,7 +856,7 @@ const currentOptionsTotalExtra = computed(() => {
   let extra = selectedSize.value === 'L' ? 10000 : 0
   for (const t of availableToppings) {
     if (selectedToppings.value[t.id]) {
-      extra += selectedToppings.value[t.id] * t.price
+      extra += (selectedToppings.value[t.id] || 0) * t.price
     }
   }
   return extra
