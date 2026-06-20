@@ -157,6 +157,8 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const authStore = useAuthStore()
 
+import { api } from '@/services/api'
+
 interface Staff {
   id: number
   name: string
@@ -166,22 +168,32 @@ interface Staff {
   redirect: string
 }
 
-const staffOnShift: Staff[] = [
-  { id: 1, name: 'Nguyễn Hà', initials: 'NH', pin: '1234', role: 'Barista', redirect: '/orders' },
-  { id: 2, name: 'Trần Minh', initials: 'TM', pin: '5678', role: 'Thu Ngân', redirect: '/orders' },
-  { id: 3, name: 'Lê Thu', initials: 'LT', pin: '9012', role: 'Phục vụ', redirect: '/orders' },
-  { id: 4, name: 'Phạm An', initials: 'PA', pin: '3456', role: 'Bếp', redirect: '/kitchen' },
-  { id: 5, name: 'Võ Lan', initials: 'VL', pin: '7890', role: 'Barista', redirect: '/orders' },
-  { id: 6, name: 'Đỗ Hùng', initials: 'DH', pin: '2468', role: 'Bếp', redirect: '/kitchen' },
-  { id: 7, name: 'Bùi Mai', initials: 'BM', pin: '1357', role: 'Phục vụ', redirect: '/orders' },
-  { id: 8, name: 'Hoàng Bảo', initials: 'HB', pin: '8642', role: 'Thu Ngân', redirect: '/orders' },
-]
-
+const staffOnShift = ref<Staff[]>([])
 const pinLength = 4
 const selectedStaff = ref<Staff | null>(null)
 const pin = ref('')
 const errorMsg = ref('')
 const currentTime = ref('')
+
+const getInitials = (name: string): string => {
+  if (!name) return ''
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 0) return ''
+  if (parts.length === 1) {
+    const p = parts[0]
+    return p ? p.substring(0, 2).toUpperCase() : ''
+  }
+  const first = parts[0]
+  const last = parts[parts.length - 1]
+  const fChar = first && first[0] ? first[0] : ''
+  const lChar = last && last[0] ? last[0] : ''
+  return (fChar + lChar).toUpperCase()
+}
+
+const getRedirect = (role: string): string => {
+  if (role === 'Pha chế' || role === 'Bếp') return '/kitchen'
+  return '/orders'
+}
 
 let timer: ReturnType<typeof setInterval>
 
@@ -192,9 +204,24 @@ const updateTime = () => {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
   updateTime()
   timer = setInterval(updateTime, 1000)
+
+  try {
+    const data = await api.get<any[]>('/api/auth/staff')
+    staffOnShift.value = data.map(item => ({
+      id: item.id,
+      name: item.name,
+      initials: getInitials(item.name),
+      role: item.role,
+      redirect: getRedirect(item.role),
+      pin: ''
+    }))
+  } catch (e) {
+    console.error('Failed to load staff:', e)
+    errorMsg.value = 'Không thể tải danh sách nhân viên.'
+  }
 })
 
 onUnmounted(() => clearInterval(timer))

@@ -64,17 +64,33 @@
       </div>
     </section>
 
-    <!-- Loyalty Banner -->
+    <!-- Loyalty Banner / Member Card -->
     <div class="max-w-[1200px] mx-auto px-4 sm:px-6 mt-4">
+      <!-- Đã đăng nhập: Thẻ thành viên -->
+      <div v-if="customerPhone" class="relative overflow-hidden flex items-center justify-between gap-4 px-4 sm:px-5 py-4 rounded-2xl bg-gradient-to-r from-[#CC8033] via-[#D9842F] to-[#E8973D] text-white shadow-[0_8px_24px_rgba(204,128,51,0.3)] border border-white/15">
+        <div class="absolute -right-4 -top-12 w-32 h-32 rounded-full bg-white/15 blur-2xl pointer-events-none"></div>
+        <div class="flex items-center gap-3.5 min-w-0">
+          <div class="w-11 h-11 rounded-full bg-white/25 flex items-center justify-center font-bold text-lg border border-white/40 shrink-0 shadow-inner">
+            {{ (customerName || 'K').charAt(0).toUpperCase() }}
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-bold leading-tight truncate">{{ customerName }}</p>
+            <p class="text-[11px] text-white/80 font-medium mt-0.5">✨ {{ customerDiem }} điểm tích lũy</p>
+          </div>
+        </div>
+        <button @click="logout" class="shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-white/20 text-white text-xs font-bold border border-white/30 hover:bg-white/30 transition-all">
+          Đăng xuất
+        </button>
+      </div>
+
+      <!-- Chưa đăng nhập: Banner tích điểm -->
       <button
+        v-else
         @click="openLoginSheet = true"
         class="relative w-full overflow-hidden flex items-center justify-between gap-4 px-4 sm:px-5 py-4 rounded-2xl bg-gradient-to-r from-[#CC8033] via-[#D9842F] to-[#E8973D] text-white text-left shadow-[0_8px_24px_rgba(204,128,51,0.3)] border border-white/15 hover:shadow-[0_12px_32px_rgba(204,128,51,0.4)] transition-all duration-300 active:scale-[0.99] group"
       >
-        <!-- Decorative soft glows -->
         <div class="absolute -right-4 -top-12 w-32 h-32 rounded-full bg-white/15 blur-2xl pointer-events-none"></div>
         <div class="absolute right-28 -bottom-14 w-28 h-28 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
-
-        <!-- Left: icon + text -->
         <div class="relative flex items-center gap-3.5 min-w-0">
           <div class="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center border border-white/30 shrink-0 shadow-inner">
             <Gift class="w-5 h-5 text-white" stroke-width="2" />
@@ -86,14 +102,13 @@
             <p class="text-[11px] text-white/80 font-medium mt-0.5 truncate">Đăng nhập để áp dụng ngay cho đơn hôm nay</p>
           </div>
         </div>
-
-        <!-- Right: CTA -->
         <span class="relative shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 sm:px-4 rounded-xl bg-white text-[#CC8033] text-xs font-bold shadow-md transition-all group-hover:gap-2.5">
           <span class="hidden sm:inline">Đăng nhập</span>
           <ChevronRight class="w-4 h-4" stroke-width="2.5" />
         </span>
       </button>
     </div>
+
 
     <!-- Categories Tabs -->
     <nav class="sticky top-16 z-20 bg-[#FDFBF7]/90 backdrop-blur-md border-b border-[#EAE3D9] py-3 mt-6">
@@ -287,8 +302,13 @@
                   <div class="text-sm font-bold text-[#2A231E] truncate">{{ customerName || customerPhone }} 👋</div>
                 </div>
               </div>
-              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-[#E8C5A5] text-[#CC8033] text-xs font-bold shadow-sm shrink-0">
-                <Coffee class="w-3 h-3" /> 150 điểm
+              <div class="flex items-center gap-2 shrink-0">
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-[#E8C5A5] text-[#CC8033] text-xs font-bold shadow-sm">
+                  <Coffee class="w-3 h-3" /> {{ customerDiem }} điểm
+                </div>
+                <button @click="logout" class="w-7 h-7 rounded-full bg-[#F5F2ED] border border-[#EAE3D9] flex items-center justify-center text-[#8A8178] hover:text-red-500 hover:border-red-300 transition-colors" title="Đăng xuất">
+                  <X class="w-3.5 h-3.5" stroke-width="2.5" />
+                </button>
               </div>
             </div>
             <button
@@ -562,9 +582,15 @@
                     v-model="customerName"
                     type="text"
                     placeholder="Nguyễn Văn A"
-                    class="w-full h-12 pl-10 pr-4 rounded-xl border-2 border-[#EAE3D9] focus:border-[#CC8033] focus:outline-none text-sm font-medium bg-[#FAF6F0] text-[#2A231E] placeholder:text-[#A89F95] transition-colors duration-200"
+                    @blur="touchCustomerField('name')"
+                    @input="clearCustomerError('name')"
+                    class="w-full h-12 pl-10 pr-4 rounded-xl border-2 focus:outline-none text-sm font-medium bg-[#FAF6F0] text-[#2A231E] placeholder:text-[#A89F95] transition-colors duration-200"
+                    :class="customerLoginErrors.name ? 'border-red-400 focus:border-red-500' : 'border-[#EAE3D9] focus:border-[#CC8033]'"
                   />
                 </div>
+                <p v-if="customerLoginErrors.name" class="text-[10px] text-red-500 font-semibold flex items-center gap-1 mt-1">
+                  <AlertCircle class="w-3.5 h-3.5 shrink-0" /> {{ customerLoginErrors.name }}
+                </p>
               </div>
 
               <div>
@@ -575,16 +601,22 @@
                     v-model="phoneNumber"
                     type="tel"
                     placeholder="9xx xxx xxx"
-                    maxlength="10"
+                    maxlength="12"
                     @keyup.enter="submitLogin"
-                    class="w-full h-12 pl-[4.75rem] pr-4 rounded-xl border-2 border-[#EAE3D9] focus:border-[#CC8033] focus:outline-none text-sm font-medium bg-[#FAF6F0] text-[#2A231E] placeholder:text-[#A89F95] transition-colors duration-200"
+                    @blur="touchCustomerField('phone')"
+                    @input="clearCustomerError('phone')"
+                    class="w-full h-12 pl-[4.75rem] pr-4 rounded-xl border-2 focus:outline-none text-sm font-medium bg-[#FAF6F0] text-[#2A231E] placeholder:text-[#A89F95] transition-colors duration-200"
+                    :class="customerLoginErrors.phone ? 'border-red-400 focus:border-red-500' : 'border-[#EAE3D9] focus:border-[#CC8033]'"
                   />
                 </div>
+                <p v-if="customerLoginErrors.phone" class="text-[10px] text-red-500 font-semibold flex items-center gap-1 mt-1">
+                  <AlertCircle class="w-3.5 h-3.5 shrink-0" /> {{ customerLoginErrors.phone }}
+                </p>
               </div>
 
               <button
                 @click="submitLogin"
-                :disabled="!customerName.trim() || phoneNumber.length < 9"
+                :disabled="!isCustomerFormValid"
                 class="w-full h-12 rounded-xl bg-[#CC8033] text-white text-sm font-bold uppercase tracking-wide shadow-md hover:bg-[#B8722D] disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 Tích điểm ngay
@@ -795,6 +827,7 @@ import { useCartStore } from '@/stores/cart'
 import { useOrderStore } from '@/stores/orders'
 import Button from '@/components/ui/Button.vue'
 import ChatbotWidget from '@/components/ChatbotWidget.vue'
+import { customerApi } from '@/services/customer'
 
 const route = useRoute()
 const router = useRouter()
@@ -803,10 +836,67 @@ const activeCat = ref<Category | "all">("all")
 const search = ref("")
 const open = ref(false)
 const openLoginSheet = ref(false)
-const phoneNumber = ref('')
-const customerName = ref('')
+const customerName = ref(localStorage.getItem('customer_name') || '')
+const customerPhone = ref(localStorage.getItem('customer_phone') || '')
+const customerDiem = ref(parseInt(localStorage.getItem('customer_diem') || '0'))
+const phoneNumber = ref(localStorage.getItem('customer_phone') || '')
 const cart = useCartStore()
 const orderStore = useOrderStore()
+
+// Customer Login validation state
+const customerLoginTouched = ref({ name: false, phone: false })
+
+const touchCustomerField = (field: 'name' | 'phone') => {
+  customerLoginTouched.value[field] = true
+}
+
+const clearCustomerError = (field: 'name' | 'phone') => {
+  if (field === 'name' && customerName.value.length > 0) {
+    customerLoginTouched.value.name = true
+  }
+  if (field === 'phone' && phoneNumber.value.length > 0) {
+    customerLoginTouched.value.phone = true
+  }
+}
+
+const customerLoginErrors = computed(() => {
+  const errs: { name?: string; phone?: string } = {}
+
+  if (customerLoginTouched.value.name) {
+    const name = customerName.value.trim()
+    if (!name) {
+      errs.name = 'Họ và tên không được để trống.'
+    } else if (name.length < 2) {
+      errs.name = 'Họ và tên phải có ít nhất 2 ký tự.'
+    } else if (/[0-9!@#$%^&*(),.?":{}|<>]/.test(name)) {
+      errs.name = 'Họ và tên không được chứa số hoặc ký tự đặc biệt.'
+    }
+  }
+
+  if (customerLoginTouched.value.phone) {
+    const phone = phoneNumber.value.trim()
+    if (!phone) {
+      errs.phone = 'Số điện thoại không được để trống.'
+    } else {
+      const cleanPhone = phone.replace(/[\s.-]/g, '')
+      if (!/^\d+$/.test(cleanPhone)) {
+        errs.phone = 'Số điện thoại chỉ được chứa số.'
+      } else if (!/^(0?)(3|5|7|8|9)\d{8}$/.test(cleanPhone)) {
+        errs.phone = 'Số điện thoại không hợp lệ (9xx xxx xxx hoặc 09xx xxx xxx).'
+      }
+    }
+  }
+
+  return errs
+})
+
+const isCustomerFormValid = computed(() => {
+  const name = customerName.value.trim()
+  const phone = phoneNumber.value.trim().replace(/[\s.-]/g, '')
+  return name.length >= 2 &&
+         !/[0-9!@#$%^&*(),.?":{}|<>]/.test(name) &&
+         /^(0?)(3|5|7|8|9)\d{8}$/.test(phone)
+})
 
 const toasts = ref<{ id: number, title?: string, message: string, type: 'success' | 'error' }[]>([])
 let toastId = 0
@@ -827,7 +917,6 @@ const toast = {
   }
 }
 
-const customerPhone = ref('')
 const usePoints = ref(false)
 
 const selectedItem = ref<any>(null)
@@ -856,7 +945,7 @@ const currentOptionsTotalExtra = computed(() => {
   let extra = selectedSize.value === 'L' ? 10000 : 0
   for (const t of availableToppings) {
     if (selectedToppings.value[t.id]) {
-      extra += selectedToppings.value[t.id] * t.price
+      extra += (selectedToppings.value[t.id] || 0) * t.price
     }
   }
   return extra
@@ -915,11 +1004,46 @@ const loginBenefits = [
   { emoji: '🎂', label: 'Ưu đãi sinh nhật' },
 ]
 
-const submitLogin = () => {
-  if (!customerName.value.trim() || phoneNumber.value.length < 9) return
-  customerPhone.value = phoneNumber.value
-  toast.success('Đã tích điểm thành viên', `Chào ${customerName.value.trim()}! Điểm sẽ được cộng vào đơn này.`)
-  openLoginSheet.value = false
+const submitLogin = async () => {
+  customerLoginTouched.value = { name: true, phone: true }
+  if (!isCustomerFormValid.value) return
+  try {
+    const cleanPhone = phoneNumber.value.trim().replace(/[\s.-]/g, '')
+    const response = await customerApi.login({
+      soDienThoai: cleanPhone,
+      hoTen: customerName.value.trim()
+    })
+
+    customerName.value = response.hoTen || customerName.value.trim()
+    customerPhone.value = response.soDienThoai || phoneNumber.value
+    customerDiem.value = response.diemTichLuy
+
+    // Lưu vào localStorage
+    localStorage.setItem('customer_name', customerName.value)
+    localStorage.setItem('customer_phone', customerPhone.value)
+    localStorage.setItem('customer_diem', String(response.diemTichLuy))
+
+    const msg = response.isNew
+      ? `Chào mừng bạn mới! Bạn hiện có ${response.diemTichLuy} điểm.`
+      : `Chào mừng quay lại! Điểm tích lũy: ${response.diemTichLuy} điểm.`
+    toast.success(`Xin chào ${customerName.value}! 🎉`, msg)
+    openLoginSheet.value = false
+  } catch (error: any) {
+    console.error(error)
+    const errMsg = error?.message || 'Có lỗi xảy ra, vui lòng thử lại.'
+    toast.error('Đăng nhập thất bại', errMsg)
+  }
+}
+
+const logout = () => {
+  customerName.value = ''
+  customerPhone.value = ''
+  customerDiem.value = 0
+  phoneNumber.value = ''
+  localStorage.removeItem('customer_name')
+  localStorage.removeItem('customer_phone')
+  localStorage.removeItem('customer_diem')
+  toast.success('Đã đăng xuất', 'Hẹn gặp lại bạn!')
 }
 
 // --- LOGIC LỌC VÀ PHÂN TRANG ---

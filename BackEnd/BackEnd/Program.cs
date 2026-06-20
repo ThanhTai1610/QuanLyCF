@@ -53,11 +53,13 @@ namespace BackEnd
             builder.Services.AddScoped<Features.Inventory.StockTakes.StockTakeService>();
             builder.Services.AddScoped<Features.Sales.Orders.OrderService>();
             builder.Services.AddScoped<Features.Sales.Promotions.PromotionService>();
+            builder.Services.AddScoped<Features.Storefront.CustomerService>();
 
-            // ── CORS cho frontend Vite ──────────────────────────
-            var feOrigin = builder.Configuration["Cors:FrontendOrigin"] ?? "http://localhost:5173";
+            // ── CORS cho frontend Vite (hỗ trợ nhiều origins cách nhau bởi dấu phẩy) ──
+            var feOrigins = (builder.Configuration["Cors:FrontendOrigin"] ?? "http://localhost:5173")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             builder.Services.AddCors(o => o.AddPolicy("frontend", p =>
-                p.WithOrigins(feOrigin).AllowAnyHeader().AllowAnyMethod()));
+                p.WithOrigins(feOrigins).AllowAnyHeader().AllowAnyMethod()));
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();

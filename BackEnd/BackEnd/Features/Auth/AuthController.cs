@@ -18,6 +18,25 @@ public class AuthController : ControllerBase
         _auth = auth; _db = db;
     }
 
+    /// <summary>Danh sách nhân viên đang hoạt động (dùng cho màn hình StaffLogin).</summary>
+    [HttpGet("staff")]
+    public async Task<IActionResult> GetStaffList()
+    {
+        var list = await _db.NhanViens
+            .Include(x => x.VaiTro)
+            .Where(x => x.TrangThaiHoatDong)
+            .OrderBy(x => x.HoTen)
+            .Select(x => new
+            {
+                id = x.MaNhanVien,
+                name = x.HoTen,
+                role = x.VaiTro.TenVaiTro,
+                avatar = x.AnhDaiDien
+            })
+            .ToListAsync();
+        return Ok(list);
+    }
+
     /// <summary>Đăng nhập bằng email + mật khẩu (Quản lý/nhân viên).</summary>
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest req)

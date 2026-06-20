@@ -80,17 +80,37 @@
         </button>
       </div>
 
-      <button
-        @click="openAdd"
-        class="ml-auto flex items-center gap-2 px-4 h-9 rounded-lg bg-[#CC8033] text-white text-xs font-bold hover:bg-brown transition-colors shadow-md shadow-[#CC8033]/20"
-      >
-        <UserPlus class="w-4 h-4" />
-        Thêm khách hàng
-      </button>
+      <div class="ml-auto flex items-center gap-2">
+        <!-- Nút refresh -->
+        <button
+          @click="fetchCustomers(searchQuery)"
+          :disabled="loading"
+          class="flex items-center gap-1.5 px-3 h-9 rounded-lg border border-cream-deep text-xs font-semibold text-espresso hover:border-[#CC8033] hover:text-[#CC8033] transition-all disabled:opacity-50"
+        >
+          <RefreshCcw class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" /> Làm mới
+        </button>
+        <button
+          @click="openAdd"
+          class="flex items-center gap-2 px-4 h-9 rounded-lg bg-[#CC8033] text-white text-xs font-bold hover:bg-brown transition-colors shadow-md shadow-[#CC8033]/20"
+        >
+          <UserPlus class="w-4 h-4" />
+          Thêm khách hàng
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading / Error -->
+    <div v-if="loading" class="flex items-center justify-center py-16 gap-3 text-muted-foreground">
+      <RefreshCcw class="w-5 h-5 animate-spin text-[#CC8033]" />
+      <span class="text-sm">Đang tải dữ liệu...</span>
+    </div>
+    <div v-else-if="apiError" class="flex flex-col items-center justify-center py-16 gap-3">
+      <p class="text-sm text-red-500 font-medium">{{ apiError }}</p>
+      <button @click="fetchCustomers()" class="px-4 h-9 rounded-lg bg-[#CC8033] text-white text-xs font-bold">Thử lại</button>
     </div>
 
     <!-- CUSTOMER CARD GRID -->
-    <div v-if="filteredCustomers.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div v-if="!loading && !apiError && filteredCustomers.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       <article
         v-for="customer in filteredCustomers"
         :key="customer.id"
@@ -376,12 +396,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   Search, Users, UserPlus, Eye, X, Clock,
   Star, Award, Gem, Crown, Pencil, Trash2,
-  Gift, Ticket, Percent, Coffee, Cookie, ChevronDown, Check
+  Gift, Ticket, Percent, Coffee, Cookie, ChevronDown, Check, RefreshCcw
 } from 'lucide-vue-next'
+import { customerApi, type Customer as ApiCustomer } from '@/services/customer'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Transaction {
@@ -410,7 +431,7 @@ interface Reward {
   icon: any
 }
 
-// ─── State ───────────────────────────────────────────────────────────────────
+// ─── State ──────────────────────────────────────────────────────────────────────
 const searchQuery = ref('')
 const selectedTier = ref('Tất cả')
 const selectedCustomer = ref<Customer | null>(null)
@@ -419,6 +440,10 @@ const showFormModal = ref(false)
 const formMode = ref<'add' | 'edit'>('add')
 const editingId = ref<number | null>(null)
 const form = ref({ name: '', phone: '', note: '' })
+
+// Loading / Error
+const loading = ref(false)
+const apiError = ref<string | null>(null)
 
 // ─── Tier benefits ─────────────────────────────────────────────────────────────
 const tiers = [
@@ -440,6 +465,59 @@ const tiers = [
   },
 ]
 
+// ─── API data ───────────────────────────────────────────────────────────────────
+/** Map từ API response sang dạng hiển thị */
+const mapApi = (k: ApiCustomer): Customer => ({
+  id: k.maKhachHang,
+  name: k.hoTen ?? '(Chưa đặt tên)',
+  phone: k.soDienThoai ?? '',
+  note: '',
+  tier: hangToTier(k.hangThanhVien),
+  points: k.diemTichLuy,
+  totalSpend: Number(k.tongTienDaTieu),
+  lastVisit: k.lanGheThamCuoi ? formatDate(k.lanGheThamCuoi) : 'Chưa ghé',
+  visits: 0,
+  history: [],
+})
+
+const hangToTier = (hang: string) => ({
+  Member: 'Đồng', Silver: 'Bạc', Gold: 'Vàng', Diamond: 'Kim cương'
+}[hang] ?? 'Đồng')
+
+const formatDate = (isoStr: string) => {
+  const d = new Date(isoStr)
+  const now = new Date()
+  const diffH = Math.floor((now.getTime() - d.getTime()) / 3600000)
+  if (diffH < 1) return 'Vừa rồi'
+  if (diffH < 24) return `${diffH} giờ trước`
+  if (diffH < 48) return 'Hôm qua'
+  return d.toLocaleDateString('vi-VN')
+}
+
+const customers = ref<Customer[]>([])
+
+const fetchCustomers = async (search?: string) => {
+  loading.value = true
+  apiError.value = null
+  try {
+    const data = await customerApi.getAll(search || undefined)
+    customers.value = data.map(mapApi)
+  } catch (e: any) {
+    apiError.value = e?.message ?? 'Không thể tải dữ liệu.'
+  } finally {
+    loading.value = false
+  }
+}
+
+// Debounce search
+let searchTimer: ReturnType<typeof setTimeout>
+watch(searchQuery, (val) => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => fetchCustomers(val), 400)
+})
+
+onMounted(() => fetchCustomers())
+
 // ─── Rewards catalog ───────────────────────────────────────────────────────────
 const rewards: Reward[] = [
   { id: 1, name: 'Free 1 topping', cost: 100, icon: Cookie },
@@ -448,55 +526,7 @@ const rewards: Reward[] = [
   { id: 4, name: 'Voucher 50.000đ', cost: 500, icon: Ticket },
 ]
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-const customers = ref<Customer[]>([
-  {
-    id: 1, name: 'Nguyễn Minh Châu', phone: '0901234567', tier: 'Kim cương',
-    points: 4850, totalSpend: 4850000, lastVisit: 'Hôm nay, 09:30', visits: 42,
-    history: [
-      { date: '04/06/2026', note: 'Mua Cappuccino × 2', points: 80 },
-      { date: '01/06/2026', note: 'Mua Latte × 3', points: 105 },
-      { date: '28/05/2026', note: 'Đổi điểm giảm giá', points: -200 },
-    ]
-  },
-  {
-    id: 2, name: 'Trần Hoàng Linh', phone: '0912345678', tier: 'Vàng',
-    points: 2100, totalSpend: 2100000, lastVisit: 'Hôm qua, 14:15', visits: 28,
-    history: [
-      { date: '03/06/2026', note: 'Mua Trà sữa matcha', points: 55 },
-      { date: '30/05/2026', note: 'Mua Bánh croissant', points: 30 },
-    ]
-  },
-  {
-    id: 3, name: 'Phạm Thị Hương', phone: '0923456789', tier: 'Bạc',
-    points: 980, totalSpend: 980000, lastVisit: '02/06/2026', visits: 14,
-    history: [
-      { date: '02/06/2026', note: 'Mua Cold brew', points: 45 },
-    ]
-  },
-  {
-    id: 4, name: 'Lê Văn Tuấn', phone: '0934567890', tier: 'Đồng',
-    points: 320, totalSpend: 320000, lastVisit: '01/06/2026', visits: 5,
-    history: [
-      { date: '01/06/2026', note: 'Mua Americano', points: 35 },
-    ]
-  },
-  {
-    id: 5, name: 'Võ Thị Mai', phone: '0945678901', tier: 'Vàng',
-    points: 1750, totalSpend: 1750000, lastVisit: '03/06/2026', visits: 21,
-    history: [
-      { date: '03/06/2026', note: 'Mua Combo 2 người', points: 120 },
-      { date: '29/05/2026', note: 'Đổi điểm giảm giá', points: -100 },
-    ]
-  },
-  {
-    id: 6, name: 'Đỗ Quang Huy', phone: '0956789012', tier: 'Bạc',
-    points: 860, totalSpend: 860000, lastVisit: '31/05/2026', visits: 11,
-    history: [
-      { date: '31/05/2026', note: 'Mua Espresso × 2', points: 60 },
-    ]
-  },
-])
+
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
 const filteredCustomers = computed(() => {
@@ -588,28 +618,33 @@ const openEdit = (customer: Customer) => {
   showFormModal.value = true
 }
 
-const handleSaveCustomer = () => {
+const handleSaveCustomer = async () => {
   const name = form.value.name.trim()
   const phone = form.value.phone.trim()
   if (!name || !phone) return
 
   if (formMode.value === 'edit' && editingId.value !== null) {
+    // Chỉnh sửa cục bộ (backend chưa có endpoint PATCH khách hàng)
     const target = customers.value.find(c => c.id === editingId.value)
     if (target) {
       target.name = name
       target.phone = phone
       target.note = form.value.note.trim()
     }
+    showFormModal.value = false
+    form.value = { name: '', phone: '', note: '' }
   } else {
-    customers.value.push({
-      id: Date.now(),
-      name, phone, note: form.value.note.trim(),
-      tier: 'Đồng', points: 0, totalSpend: 0,
-      lastVisit: 'Hôm nay', visits: 0, history: [],
-    })
+    // Thêm mới → gọi API login để tạo khách hàng trong DB
+    try {
+      await customerApi.login({ soDienThoai: phone, hoTen: name })
+      showFormModal.value = false
+      form.value = { name: '', phone: '', note: '' }
+      // Tải lại danh sách từ DB
+      await fetchCustomers()
+    } catch (e: any) {
+      alert('Lỗi: ' + (e?.message ?? 'Không thể tạo khách hàng.'))
+    }
   }
-  showFormModal.value = false
-  form.value = { name: '', phone: '', note: '' }
 }
 
 const deleteCustomer = (customer: Customer) => {
