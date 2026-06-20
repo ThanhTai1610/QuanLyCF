@@ -345,10 +345,14 @@ public class QuanLyCFDbContext : DbContext
     {
         mb.Entity<CaiDatHeThong>().HasData(
             new CaiDatHeThong { MaCaiDat = 1, NhomCaiDat = "CHUNG", KhoaCaiDat = "TEN_QUAN", GiaTriCaiDat = "BrewManager Coffee", MoTa = "Tên quán" },
-            new CaiDatHeThong { MaCaiDat = 2, NhomCaiDat = "CHUNG", KhoaCaiDat = "DIA_CHI", GiaTriCaiDat = "", MoTa = "Địa chỉ quán" },
+            new CaiDatHeThong { MaCaiDat = 2, NhomCaiDat = "CHUNG", KhoaCaiDat = "DIA_CHI", GiaTriCaiDat = "123 Nguyễn Huệ, Quận 1, TP.HCM", MoTa = "Địa chỉ quán" },
             new CaiDatHeThong { MaCaiDat = 3, NhomCaiDat = "THANH_TOAN", KhoaCaiDat = "THUE_VAT_MAC_DINH", GiaTriCaiDat = "8", MoTa = "Thuế VAT mặc định (%)" },
             new CaiDatHeThong { MaCaiDat = 4, NhomCaiDat = "THANH_TOAN", KhoaCaiDat = "PHI_DICH_VU", GiaTriCaiDat = "0", MoTa = "Phí dịch vụ mặc định (đ)" },
-            new CaiDatHeThong { MaCaiDat = 5, NhomCaiDat = "TICH_DIEM", KhoaCaiDat = "TY_LE_TICH_DIEM", GiaTriCaiDat = "1", MoTa = "Số điểm cho mỗi 1.000đ" }
+            new CaiDatHeThong { MaCaiDat = 5, NhomCaiDat = "TICH_DIEM", KhoaCaiDat = "TY_LE_TICH_DIEM", GiaTriCaiDat = "1", MoTa = "Số điểm cho mỗi 1.000đ" },
+            new CaiDatHeThong { MaCaiDat = 6, NhomCaiDat = "CHUNG", KhoaCaiDat = "CHE_DO_BAO_TRI", GiaTriCaiDat = "false", MoTa = "Chế độ bảo trì hệ thống" },
+            new CaiDatHeThong { MaCaiDat = 7, NhomCaiDat = "CHUNG", KhoaCaiDat = "THONG_DIEP_BAO_TRI", GiaTriCaiDat = "Hệ thống đang bảo trì để nâng cấp định kỳ. Vui lòng quay lại sau.", MoTa = "Thông điệp bảo trì" },
+            new CaiDatHeThong { MaCaiDat = 8, NhomCaiDat = "CHUNG", KhoaCaiDat = "SO_DIEN_THOAI", GiaTriCaiDat = "0909 123 456", MoTa = "Số điện thoại quán" },
+            new CaiDatHeThong { MaCaiDat = 9, NhomCaiDat = "CHUNG", KhoaCaiDat = "MO_TA_QUAN", GiaTriCaiDat = "Quán cà phê đặc sản với không gian ấm cúng. Phục vụ cà phê pha máy, trà, bánh ngọt và các loại đồ uống đá xay.", MoTa = "Mô tả quán" }
         );
     }
 

@@ -8,7 +8,7 @@
         <div class="w-8 h-8 rounded-lg bg-[#CC8033] flex items-center justify-center shadow-lg shadow-[#CC8033]/20">
           <Coffee class="w-4.5 h-4.5 text-white" />
         </div>
-        <span class="font-display text-base text-white font-bold tracking-wide">BrewManager</span>
+        <span class="font-display text-base text-white font-bold tracking-wide">{{ storeInfoStore.tenQuan }}</span>
       </div>
 
       <!-- NAVIGATION -->
@@ -105,6 +105,12 @@
 
     <!-- MAIN CONTENT -->
     <div class="flex-1 flex flex-col min-w-0">
+      <!-- Banner Cảnh báo bảo trì dành cho Admin -->
+      <div v-if="isSystemMaintenance" class="bg-[#EF4444]/10 border-b border-[#EF4444]/20 px-6 py-2.5 flex items-center gap-2.5 text-[#EF4444] z-20">
+        <Wrench class="w-4 h-4 flex-shrink-0 animate-pulse" />
+        <span class="text-xs font-semibold">Chế độ bảo trì đang bật. Mọi truy cập đặt món QR của khách hàng và nhân viên thường đều bị chặn.</span>
+      </div>
+
       <header class="h-14 bg-cream border-b border-cream-deep flex items-center justify-between px-6 shadow-sm z-10">
         <div>
           <h1 class="font-display text-lg font-bold text-espresso">{{ currentLabel }}</h1>
@@ -129,17 +135,19 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useStoreInfoStore } from '../stores/storeInfo'
 import {
   LayoutDashboard, ShoppingBag, Coffee, Users, Settings, LogOut,
   QrCode, FileText, FolderTree, Package, ClipboardCheck, CalendarDays, BookOpen, ChefHat, Bell, ShieldCheck,
-  ChevronDown, Wallet, Heart, Star, Gift
+  ChevronDown, Wallet, Heart, Star, Gift, Wrench
 } from 'lucide-vue-next'
 
 import { routePermission } from '@/router/permissions'
 
 const route = useRoute()
 const router = useRouter()
-const authStore = useAuthStore()
+const authStore      = useAuthStore()
+const storeInfoStore = useStoreInfoStore()
 
 // Ẩn menu theo quyền: chỉ hiện trang user được phép vào
 function canSee(to: string) {
@@ -223,6 +231,18 @@ const navItems: NavItem[] = [
 
 const expanded = ref<Record<string, boolean>>({})
 
+const isSystemMaintenance = ref(false)
+
+const checkMaintenanceStatus = async () => {
+  try {
+    const res = await fetch('/api/settings/maintenance')
+    if (res.ok) {
+      const data = await res.json()
+      isSystemMaintenance.value = data.isMaintenance
+    }
+  } catch (e) {}
+}
+
 function expandCurrentGroup() {
   for (const item of navItems) {
     if (item.children?.some(c => route.path === c.to || (c.to !== '/' && route.path.startsWith(c.to)))) {
@@ -230,8 +250,16 @@ function expandCurrentGroup() {
     }
   }
 }
-onMounted(expandCurrentGroup)
-watch(() => route.path, expandCurrentGroup)
+
+onMounted(() => {
+  expandCurrentGroup()
+  checkMaintenanceStatus()
+})
+
+watch(() => route.path, () => {
+  expandCurrentGroup()
+  checkMaintenanceStatus()
+})
 
 const toggleGroup = (label: string) => {
   expanded.value[label] = !expanded.value[label]
@@ -253,10 +281,11 @@ const currentLabel = computed(() => {
 const todayDate = new Date().toLocaleDateString("vi-VN", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
 const userInitials = computed(() => {
-  const words = (authStore.user?.hoTen ?? '').trim().split(/\s+/)
+  const words = (authStore.user?.hoTen ?? '').trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return 'U'
   return words.length >= 2
-    ? (words[0][0] + words[words.length - 1][0]).toUpperCase()
-    : words[0]?.[0]?.toUpperCase() ?? 'U'
+    ? ((words[0]?.[0] ?? '') + (words[words.length - 1]?.[0] ?? '')).toUpperCase()
+    : (words[0]?.[0] ?? 'U').toUpperCase()
 })
 
 const handleLogout = () => {

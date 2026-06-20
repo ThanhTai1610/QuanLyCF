@@ -5,7 +5,7 @@
         <div class="w-10 h-10 rounded-md bg-espresso flex items-center justify-center shadow-soft">
           <Coffee class="w-5 h-5 text-cream" />
         </div>
-        <span class="font-display text-xl text-espresso font-semibold">BrewManager</span>
+        <span class="font-display text-xl text-espresso font-semibold">{{ tenQuan }}</span>
       </div>
       <button
         @click="isPhoneModalOpen = true"
@@ -26,9 +26,20 @@
             <span class="text-caramel italic">Đơn giản, ấm áp.</span>
           </h1>
           <p class="text-muted-foreground mt-5 text-lg leading-relaxed max-w-lg">
-            BrewManager giúp khách gọi món qua QR, nhân viên xử lý đơn nhanh chóng,
-            và chủ quán theo dõi doanh thu mọi lúc — tất cả trong một giao diện được pha chế tỉ mỉ.
+            {{ moTaQuan || 'BrewManager giúp khách gọi món qua QR, nhân viên xử lý đơn nhanh chóng, và chủ quán theo dõi doanh thu mọi lúc — tất cả trong một giao diện được pha chế tỉ mỉ.' }}
           </p>
+
+          <!-- Địa chỉ & SĐT — hiện khi có dữ liệu từ cài đặt -->
+          <div class="flex flex-col gap-2 mt-4">
+            <div v-if="storeInfoStore.diaChi" class="flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin class="w-4 h-4 text-caramel shrink-0" />
+              <span>{{ storeInfoStore.diaChi }}</span>
+            </div>
+            <div v-if="storeInfoStore.soDienThoai" class="flex items-center gap-2 text-sm text-muted-foreground">
+              <Phone class="w-4 h-4 text-caramel shrink-0" />
+              <span>{{ storeInfoStore.soDienThoai }}</span>
+            </div>
+          </div>
 
           <div class="flex flex-wrap gap-3 mt-8">
             <router-link
@@ -127,12 +138,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Coffee, ArrowRight, QrCode, LayoutDashboard, ShoppingBag, X, History } from 'lucide-vue-next';
+import { ref } from 'vue'
+import { Coffee, ArrowRight, QrCode, LayoutDashboard, ShoppingBag, X, History, MapPin, Phone } from 'lucide-vue-next';
 import heroImg from '@/assets/cafe-hero.jpg';
+import { useStoreInfoStore } from '@/stores/storeInfo'
 
 const router = useRouter()
+const storeInfoStore = useStoreInfoStore()
+
+// Dùng store toàn cục — App.vue đã fetch khi khởi động
+const tenQuan  = computed(() => storeInfoStore.tenQuan)
+const moTaQuan = computed(() => storeInfoStore.moTaQuan)
 
 const isPhoneModalOpen = ref(false)
 const phoneNumber = ref('')

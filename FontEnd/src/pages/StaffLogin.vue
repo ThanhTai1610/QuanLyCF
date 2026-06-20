@@ -13,7 +13,7 @@
         <div class="w-9 h-9 rounded-lg bg-[#2A231E] flex items-center justify-center shadow-lg">
           <Coffee class="w-4.5 h-4.5 text-[#CC8033]" stroke-width="1.5" />
         </div>
-        <span class="font-premium-serif text-xl font-bold text-[#2A231E] tracking-wide">BrewManager</span>
+        <span class="font-premium-serif text-xl font-bold text-[#2A231E] tracking-wide">{{ storeInfoStore.tenQuan }}</span>
       </div>
       <div class="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-[#EAE3D9] shadow-sm">
         <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
@@ -153,9 +153,11 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Coffee, Delete, ArrowLeft } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { useStoreInfoStore } from '@/stores/storeInfo'
 
-const router = useRouter()
-const authStore = useAuthStore()
+const router         = useRouter()
+const authStore      = useAuthStore()
+const storeInfoStore = useStoreInfoStore()
 
 interface Staff {
   id: number
