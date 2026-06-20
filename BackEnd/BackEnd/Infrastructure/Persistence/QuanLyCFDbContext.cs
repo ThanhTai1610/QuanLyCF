@@ -513,7 +513,6 @@ public class QuanLyCFDbContext : DbContext
             new VaiTro { MaVaiTro = 2, TenVaiTro = "Pha chế",  MoTa = "Bếp, đơn hàng, xem kho", LaVaiTroHeThong = true },
             new VaiTro { MaVaiTro = 3, TenVaiTro = "Thu ngân", MoTa = "Bán hàng, thu ngân, hoá đơn", LaVaiTroHeThong = true },
             new VaiTro { MaVaiTro = 4, TenVaiTro = "Phục vụ",  MoTa = "Đơn hàng, bàn, phục vụ", LaVaiTroHeThong = true },
-            new VaiTro { MaVaiTro = 5, TenVaiTro = "Bếp",      MoTa = "Màn hình bếp", LaVaiTroHeThong = true },
         };
         mb.Entity<VaiTro>().HasData(vaiTros);
 
@@ -551,7 +550,6 @@ public class QuanLyCFDbContext : DbContext
             [2] = new[] { "SANPHAM_XEM", "KHO_XEM", "DONHANG_XEM", "DONHANG_XULY", "BEP_XEM" },                        // Pha chế
             [3] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY", "THANHTOAN", "KHACHHANG_XEM", "BAN_XEM" },     // Thu ngân
             [4] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY", "BAN_XEM" },                                   // Phục vụ
-            [5] = new[] { "BEP_XEM", "DONHANG_XEM" },                                                                  // Bếp
         };
 
         var vtq = new List<VaiTroQuyen>();

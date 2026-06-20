@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-[#FDFBF7] pb-40 font-premium-sans text-[#2A231E]">
+  <div class="min-h-screen bg-[#FDFBF7] font-premium-sans text-[#2A231E] lg:pr-[380px]">
    
     <!-- Top bar -->
     <header class="sticky top-0 z-30 bg-[#FDFBF7]/80 backdrop-blur-xl border-b border-[#EAE3D9] shadow-card">
@@ -20,7 +20,7 @@
             <span class="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#5C544E]">Bàn số {{ tableId }}</span>
           </div>
          
-          <button @click="open = true" class="relative w-11 h-11 bg-white rounded-lg border border-[#EAE3D9] shadow-xl flex items-center justify-center text-[#2A231E]">
+          <button @click="open = true" class="relative w-11 h-11 bg-white rounded-lg border border-[#EAE3D9] shadow-xl flex items-center justify-center text-[#2A231E] lg:hidden">
             <ShoppingBag class="w-5 h-5" stroke-width="1.5" />
             <span v-if="cart.count() > 0" class="absolute -top-1 -right-1 w-5 h-5 rounded-lg bg-[#CC8033] text-white text-[10px] font-bold flex items-center justify-center shadow-xl border border-[#FDFBF7]">
               {{ cart.count() }}
@@ -115,7 +115,7 @@
     </nav>
 
     <!-- Menu grid -->
-    <main class="max-w-[1200px] mx-auto px-4 sm:px-6 mt-8">
+    <main class="max-w-[1200px] mx-auto px-4 sm:px-6 mt-8 pb-40 lg:pb-12">
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
         <article
           v-for="m in paginatedItems"
@@ -172,7 +172,7 @@
                 v-else
                 @click="addToCart(m)"
                 class="w-10 h-10 rounded-xl bg-[#2A231E] flex items-center justify-center text-white shadow-md hover:bg-[#CC8033] transition-colors active:scale-90 shrink-0"
-                title="Thêm vào giỏ"
+                title="Đặt ngay"
               >
                 <Plus class="w-5 h-5" stroke-width="2.5" />
               </button>
@@ -227,7 +227,7 @@
     </main>
 
     <!-- Sticky Bottom Bar -->
-    <div v-if="cart.count() > 0" class="fixed bottom-6 left-0 right-0 z-30 px-4 sm:px-6">
+    <div v-if="cart.count() > 0" class="fixed bottom-6 left-0 right-0 z-30 px-4 sm:px-6 lg:hidden">
       <div class="max-w-[1200px] mx-auto flex justify-center sm:justify-end">
         <button
           @click="open = true"
@@ -252,9 +252,9 @@
       </div>
     </div>
 
-    <!-- Slide-Over Giỏ Hàng (合一 DESIGN) -->
+    <!-- Slide-Over Giỏ Hàng (mobile only) -->
     <Transition name="slide-right">
-      <div v-if="open" class="fixed inset-0 z-50 flex justify-end" @click.self="open = false">
+      <div v-if="open" class="fixed inset-0 z-50 flex justify-end lg:hidden" @click.self="open = false">
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-[#1A1512]/60 backdrop-blur-md" @click="open = false"></div>
         
@@ -404,6 +404,113 @@
         </div>
       </div>
     </Transition>
+
+    <!-- ─── Desktop Cart Sidebar (always visible, lg+) ─── -->
+    <div class="hidden lg:flex fixed top-0 right-0 h-screen w-[380px] bg-[#F5F2ED] border-l border-[#EAE3D9] flex-col z-20 shadow-[-16px_0_48px_rgba(42,35,30,0.07)]">
+      <!-- Header -->
+      <div class="px-5 pt-5 pb-4 border-b border-[#EAE3D9] bg-white flex flex-col gap-3 shrink-0">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <h2 class="font-premium-serif text-xl font-bold text-[#2A231E]">Đơn của bạn</h2>
+            <span v-if="cart.count() > 0" class="px-2 py-0.5 rounded-full bg-[#CC8033]/12 text-[#CC8033] text-xs font-bold">{{ cart.count() }} món</span>
+          </div>
+          <div class="flex items-center gap-1.5 bg-[#F5F2ED] px-3 py-1.5 rounded-lg border border-[#EAE3D9]">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#CC8033]"></span>
+            <span class="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#5C544E]">Bàn {{ tableId }}</span>
+          </div>
+        </div>
+        <div v-if="customerPhone" class="flex items-center justify-between bg-[#FFF9F2] border border-[#E8C5A5]/60 rounded-xl p-2.5">
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="w-8 h-8 rounded-full bg-[#CC8033] text-white flex items-center justify-center font-bold text-xs shrink-0">{{ (customerName || 'K').charAt(0).toUpperCase() }}</div>
+            <div class="text-sm font-bold text-[#2A231E] truncate">{{ customerName || customerPhone }}</div>
+          </div>
+          <div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-[#E8C5A5] text-[#CC8033] text-[11px] font-bold shrink-0"><Coffee class="w-3 h-3" /> 150 điểm</div>
+        </div>
+        <button v-else @click="openLoginSheet = true" class="w-full flex items-center justify-between gap-2 bg-[#FDFBF7] border border-dashed border-[#CC8033]/40 rounded-xl p-2.5 hover:bg-[#FFF9F2] transition-colors">
+          <span class="flex items-center gap-2">
+            <span class="w-8 h-8 rounded-full bg-[#CC8033]/12 text-[#CC8033] flex items-center justify-center shrink-0"><Gift class="w-3.5 h-3.5" /></span>
+            <span class="text-left">
+              <span class="block text-xs font-bold text-[#2A231E]">Đăng nhập tích điểm</span>
+              <span class="block text-[10px] text-[#8A8178]">Nhận voucher &amp; ưu đãi thành viên</span>
+            </span>
+          </span>
+          <ChevronRight class="w-4 h-4 text-[#CC8033] shrink-0" stroke-width="2.5" />
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+        <div v-if="cart.lines.length === 0" class="text-center py-16 flex flex-col items-center">
+          <div class="w-16 h-16 rounded-2xl border border-dashed border-[#EAE3D9] flex items-center justify-center mb-4 bg-white shadow-sm">
+            <ShoppingBag class="w-7 h-7 text-[#D5CEC4]" stroke-width="1.5" />
+          </div>
+          <p class="font-premium-serif text-lg font-bold text-[#2A231E]">Chưa chọn món</p>
+          <p class="text-xs text-[#8A8178] mt-1.5 font-medium">Chọn món từ thực đơn để đặt ngay.</p>
+        </div>
+
+        <div v-for="l in cart.lines" :key="l.cartLineId" class="flex gap-3 p-3 rounded-2xl bg-white border border-[#EAE3D9] relative">
+          <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0">
+            <img :src="l.item.image" :alt="l.item.name" class="w-full h-full object-cover" />
+          </div>
+          <div class="flex-1 min-w-0 flex flex-col justify-between">
+            <div class="flex justify-between items-start gap-2 pr-5">
+              <div class="min-w-0">
+                <h4 class="font-bold text-sm text-[#2A231E] leading-tight truncate">{{ l.item.name }}</h4>
+                <div v-if="l.options" class="mt-0.5 flex flex-wrap gap-1">
+                  <span v-if="l.options.size !== 'M' || l.options.sugar !== '100%' || l.options.ice !== '100%'" class="text-[9px] font-bold text-[#5C544E] bg-[#F5F2ED] px-1.5 py-0.5 rounded-md">{{ l.options.size }} · Đá {{ l.options.ice }} · Đường {{ l.options.sugar }}</span>
+                  <span v-for="t in l.options.toppings" :key="t.name" class="text-[9px] font-bold text-[#CC8033] bg-[#FFF9F2] px-1.5 py-0.5 rounded-md">+{{ t.name }}</span>
+                </div>
+                <div v-if="l.options?.note" class="text-[10px] text-[#D97724] italic mt-0.5">"{{ l.options.note }}"</div>
+              </div>
+              <button @click="cart.remove(l.cartLineId)" class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-[#C5BEB8] hover:text-red-500 hover:bg-red-50 transition-colors">
+                <Trash2 class="w-3.5 h-3.5" stroke-width="2" />
+              </button>
+            </div>
+            <div class="flex items-center justify-between mt-2">
+              <div class="flex items-center bg-[#FDFBF7] rounded-xl border border-[#EAE3D9] p-0.5">
+                <button @click="cart.setQty(l.cartLineId, l.qty - 1)" class="w-6 h-6 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white transition-all"><Minus class="w-3 h-3" stroke-width="2.5" /></button>
+                <span class="w-7 text-center text-xs font-bold text-[#2A231E]">{{ l.qty }}</span>
+                <button @click="cart.setQty(l.cartLineId, l.qty + 1)" class="w-6 h-6 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white transition-all"><Plus class="w-3 h-3" stroke-width="2.5" /></button>
+              </div>
+              <span class="text-sm font-bold text-[#2A231E]">{{ formatVND((l.item.price + (l.options?.extraPrice || 0)) * l.qty) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="cart.lines.length > 0 && customerPhone" class="bg-white p-3.5 rounded-2xl border border-[#EAE3D9]">
+          <label for="usePointsSidebar" class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" v-model="usePoints" id="usePointsSidebar" class="w-4 h-4 rounded border-[#EAE3D9] text-[#CC8033] focus:ring-[#CC8033]" />
+            <span class="flex-1">
+              <span class="block text-sm font-bold text-[#2A231E]">Dùng 50 điểm thưởng</span>
+              <span class="block text-[10px] text-[#8A8178]">Giảm ngay <span class="text-[#CC8033] font-bold">20.000đ</span></span>
+            </span>
+            <Gift class="w-4 h-4 text-[#CC8033]" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div v-if="cart.lines.length > 0" class="p-4 bg-white border-t border-[#EAE3D9] shrink-0 shadow-[0_-8px_24px_rgba(42,35,30,0.05)]">
+        <div class="space-y-2 mb-3">
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-[#8A8178] font-medium">Tạm tính</span>
+            <span class="font-bold text-[#5C544E]">{{ formatVND(cart.total()) }}</span>
+          </div>
+          <div v-if="usePoints" class="flex justify-between items-center text-sm">
+            <span class="text-[#8A8178] font-medium flex items-center gap-1.5"><Gift class="w-3.5 h-3.5 text-[#CC8033]" /> Điểm thưởng</span>
+            <span class="font-bold text-[#E85D04]">- 20.000đ</span>
+          </div>
+          <div class="border-t border-dashed border-[#EAE3D9] pt-2.5 flex justify-between items-center">
+            <span class="text-sm font-bold text-[#2A231E]">Tổng cộng</span>
+            <span class="text-xl font-bold text-[#2A231E]">{{ formatVND(cart.total() - (usePoints ? 20000 : 0)) }}</span>
+          </div>
+        </div>
+        <button @click="handleOrder" class="group w-full h-12 bg-gradient-to-r from-[#CC8033] to-[#D97724] hover:shadow-[0_8px_24px_rgba(204,128,51,0.4)] text-white rounded-2xl shadow-lg transition-all active:scale-[0.99] flex items-center justify-between px-4">
+          <span class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide"><ShoppingBag class="w-4 h-4" /> Gửi đơn đặt món</span>
+          <span class="flex items-center gap-1.5 font-bold text-sm">{{ formatVND(cart.total() - (usePoints ? 20000 : 0)) }}<ChevronRight class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" stroke-width="2.5" /></span>
+        </button>
+      </div>
+    </div>
 
     <!-- Chatbot Widget -->
     <ChatbotWidget />
@@ -637,7 +744,7 @@
               </button>
             </div>
             <button @click="submitOptions" class="flex-1 h-[60px] rounded-2xl bg-[#D97724] hover:bg-[#C2661B] text-white flex items-center justify-center gap-3 shadow-xl transition-colors">
-              <span class="text-sm font-bold uppercase tracking-widest">Thêm vào giỏ</span>
+              <span class="text-sm font-bold uppercase tracking-widest">Đặt ngay</span>
               <span class="text-sm font-bold opacity-90">• {{ formatVND(((selectedItem?.price || 0) + currentOptionsTotalExtra) * quantity) }}</span>
             </button>
           </div>
@@ -798,10 +905,6 @@ const submitOptions = () => {
     cart.setQty(addedLine.cartLineId, quantity.value)
   }
 
-  const customNames = options.toppings.map(t => t.name).join(', ')
-  const details = `Size ${options.size}${customNames ? ' • Thêm ' + customNames : ''}`
-  toast.success('Đã thêm vào giỏ', `${quantity.value} × ${selectedItem.value.name} (${details})`)
-
   itemOptionsOpen.value = false
 }
 
@@ -863,7 +966,6 @@ const goToPage = (page: number) => {
 
 const addToCart = (m: any) => {
   cart.add(m)
-  toast.success('Đã thêm vào giỏ', m.name)
 }
 
 const handleOrder = () => {

@@ -95,10 +95,24 @@
       <QrcodeVue v-for="t in printQueue" :key="t.maBan" :id="`qr-batch-${t.maBan}`" :value="t.urlDatMon" :size="240" foreground="#2C1A0E" background="#ffffff" level="M" />
     </div>
 
-    <!-- Error / Loading -->
+    <!-- Error / Notice / Loading -->
     <p v-if="errorMsg" class="text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
       {{ errorMsg }}
     </p>
+    <p v-if="noticeMsg" class="flex items-center justify-between gap-2 text-sm font-semibold text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+      {{ noticeMsg }}
+      <button @click="noticeMsg = ''" class="text-green-700/70 hover:text-green-700"><X class="w-4 h-4" /></button>
+    </p>
+    <!-- Hoàn tác đóng bàn (1 bước gần nhất) -->
+    <div v-if="lastCleared" class="flex items-center justify-between gap-2 text-sm bg-espresso/5 border border-espresso/20 rounded-lg px-4 py-2.5">
+      <span class="text-espresso">Vừa dọn <b>{{ lastCleared.label }}</b>. Nếu nhầm, có thể khôi phục.</span>
+      <div class="flex items-center gap-2 shrink-0">
+        <Button @click="hoanTacDongBan" variant="outline" class="border border-cream-deep rounded-lg h-8 px-3 text-espresso">
+          <RotateCcw class="w-3.5 h-3.5 mr-1" /> Hoàn tác
+        </Button>
+        <button @click="lastCleared = null" class="text-muted-foreground hover:text-espresso"><X class="w-4 h-4" /></button>
+      </div>
+    </div>
     <p v-if="loading" class="text-sm text-muted-foreground">Đang tải dữ liệu...</p>
 
     <div v-if="!loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -155,6 +169,9 @@
                 <span :class="['px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap', statusMeta[u.trangThai].badgeClass]">
                   {{ statusMeta[u.trangThai].label }}
                 </span>
+                <button @click="openHistory(u)" class="text-muted-foreground hover:text-espresso" title="Lịch sử bàn">
+                  <Clock class="w-4 h-4" />
+                </button>
                 <button v-if="u.isGroup" @click="unmergeTable(u.primary)" class="text-muted-foreground hover:text-caramel" title="Tách nhóm">
                   <Unlink class="w-4 h-4" />
                 </button>
@@ -181,17 +198,49 @@
               </span>
             </div>
 
-            <!-- Đổi trạng thái (áp cho cả nhóm) -->
+            <!-- Đổi trạng thái (áp cho cả nhóm). "Có khách" tự động khi có đơn, không chỉnh tay. -->
             <div class="mt-4 grid grid-cols-3 gap-2">
               <button
                 v-for="st in statusOptions" :key="st.value"
                 @click="changeUnitStatus(u, st.value)"
-                :disabled="u.trangThai === st.value"
+                :disabled="u.trangThai === st.value || st.value === 'CoKhach'"
+                :title="st.value === 'CoKhach' ? 'Tự động khi bàn có đơn' : ''"
                 :class="[
                   'px-2 py-2 rounded-lg text-[11px] font-semibold border transition',
-                  u.trangThai === st.value ? st.activeClass : 'bg-card text-espresso border-cream-deep hover:bg-cream'
+                  u.trangThai === st.value
+                    ? st.activeClass
+                    : st.value === 'CoKhach'
+                      ? 'bg-cream/40 text-muted-foreground border-cream-deep cursor-not-allowed'
+                      : 'bg-card text-espresso border-cream-deep hover:bg-cream'
                 ]"
               >{{ st.label }}</button>
+            </div>
+
+            <!-- Đơn hàng -->
+            <div class="mt-3 space-y-2">
+              <div v-for="o in u.orders" :key="o.maDonHang" class="rounded-lg border border-cream-deep bg-cream/40 p-2.5">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-espresso flex-wrap">
+                    <Receipt class="w-3.5 h-3.5" /> Đơn #{{ o.maDonHang }}
+                    <span v-if="u.isGroup && o.tenBan" class="inline-flex items-center gap-1 text-[10px] font-bold text-caramel bg-caramel/10 px-1.5 py-0.5 rounded">
+                      <Armchair class="w-3 h-3" /> {{ o.tenBan }}
+                    </span>
+                    <span class="text-muted-foreground font-medium">· {{ o.soMon }} món</span>
+                  </span>
+                  <span class="text-sm font-bold text-espresso">{{ formatVnd(o.thanhTien) }}</span>
+                </div>
+                <p class="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  {{ o.items.map(i => i.soLuong + '× ' + i.tenMon + (i.tenKichCo ? ' (' + i.tenKichCo + ')' : '')).join(', ') }}
+                </p>
+                <div class="flex gap-1.5 mt-2">
+                  <button @click="openMove(o)" class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border border-cream-deep bg-card text-espresso hover:bg-cream">
+                    <ArrowLeftRight class="w-3 h-3" /> Đổi bàn
+                  </button>
+                  <button @click="cancelOrder(o)" class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border border-cream-deep bg-card text-red-600 hover:bg-red-50">
+                    <X class="w-3 h-3" /> Huỷ đơn
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -536,6 +585,114 @@
       </template>
     </Modal>
 
+    <!-- Đóng bàn (dọn dẹp) Modal -->
+    <Modal v-model="closeModalOpen">
+      <template #header>
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-emerald-100 grid place-items-center shrink-0"><Sparkles class="w-5 h-5 text-emerald-600" /></div>
+          <div>
+            <h2 class="font-display text-xl text-espresso font-semibold">Dọn bàn · {{ closeUnit?.ten }}</h2>
+            <p class="text-sm text-muted-foreground">Xác nhận trước khi trả bàn về Trống</p>
+          </div>
+        </div>
+      </template>
+      <div class="space-y-3">
+        <p v-if="closeUnit && closeUnit.orders.length" class="text-sm text-espresso/80 bg-cream/50 border border-cream-deep rounded-lg px-3 py-2">
+          Bàn đang có <b>{{ closeUnit.orders.length }} đơn</b> — đóng bàn sẽ <b>hoàn tất</b> các đơn này (vào lịch sử).
+        </p>
+        <label class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 cursor-pointer transition" :class="chkKhachRoi ? 'bg-emerald-50 border-emerald-300' : 'border-cream-deep'">
+          <input type="checkbox" v-model="chkKhachRoi" class="w-4 h-4 accent-emerald-600" />
+          <span class="text-sm font-semibold text-espresso">Khách đã rời bàn</span>
+        </label>
+        <label class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 cursor-pointer transition" :class="chkDaDon ? 'bg-emerald-50 border-emerald-300' : 'border-cream-deep'">
+          <input type="checkbox" v-model="chkDaDon" class="w-4 h-4 accent-emerald-600" />
+          <span class="text-sm font-semibold text-espresso">Đã dọn dẹp bàn</span>
+        </label>
+      </div>
+      <template #footer>
+        <Button variant="outline" class="border border-cream-deep rounded-xl h-11 px-5" @click="closeModalOpen = false">Huỷ</Button>
+        <Button class="bg-emerald-600 text-white rounded-xl h-11 px-6 disabled:opacity-50" :disabled="!chkKhachRoi || !chkDaDon || closing" @click="confirmClose">
+          {{ closing ? 'Đang xử lý...' : 'Trả bàn về Trống' }}
+        </Button>
+      </template>
+    </Modal>
+
+    <!-- Lịch sử bàn Modal -->
+    <Modal v-model="historyModalOpen">
+      <template #header>
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-caramel/15 grid place-items-center shrink-0"><Clock class="w-5 h-5 text-caramel" /></div>
+          <div>
+            <h2 class="font-display text-xl text-espresso font-semibold">Lịch sử · {{ historyUnit?.ten }}</h2>
+            <p class="text-sm text-muted-foreground">Các đơn đã đặt tại bàn</p>
+          </div>
+        </div>
+      </template>
+      <div class="space-y-4">
+        <p v-if="historyLoading" class="text-sm text-muted-foreground">Đang tải...</p>
+        <template v-else>
+          <div v-for="grp in historyData" :key="grp.tenBan" class="space-y-2">
+            <p v-if="historyData.length > 1" class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{{ grp.tenBan }}</p>
+            <div v-if="grp.orders.length === 0" class="text-sm text-muted-foreground">Chưa có đơn nào.</div>
+            <div v-for="o in grp.orders" :key="o.maDonHang" class="rounded-xl border border-cream-deep p-3">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-semibold text-espresso">Đơn #{{ o.maDonHang }} · {{ o.soMon }} món</span>
+                <span class="text-sm font-bold text-espresso">{{ formatVnd(o.thanhTien) }}</span>
+              </div>
+              <div class="flex items-center justify-between mt-1">
+                <span :class="['text-[10px] font-semibold px-1.5 py-0.5 rounded', donBadge(o.trangThaiDon)]">{{ trangThaiDonLabel[o.trangThaiDon] || o.trangThaiDon }}</span>
+                <div class="flex items-center gap-2">
+                  <button v-if="o.trangThaiDon==='HoanThanh' || o.trangThaiDon==='Huy'" @click="restoreOrder(o)"
+                    class="inline-flex items-center gap-1 text-[10px] font-bold text-caramel hover:text-espresso">
+                    <RotateCcw class="w-3 h-3" /> Khôi phục
+                  </button>
+                  <span class="text-[11px] text-muted-foreground">{{ fmtTime(o.thoiGianTao) }}</span>
+                </div>
+              </div>
+              <p class="text-[11px] text-muted-foreground mt-1 truncate">{{ o.items.map(i => i.soLuong + '× ' + i.tenMon).join(', ') }}</p>
+            </div>
+          </div>
+        </template>
+      </div>
+      <template #footer>
+        <Button variant="outline" class="border border-cream-deep rounded-xl h-11 px-5" @click="historyModalOpen = false">Đóng</Button>
+      </template>
+    </Modal>
+
+    <!-- Đổi bàn Modal -->
+    <Modal v-model="moveModalOpen">
+      <template #header>
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-caramel/15 grid place-items-center shrink-0"><ArrowLeftRight class="w-5 h-5 text-caramel" /></div>
+          <div>
+            <h2 class="font-display text-xl text-espresso font-semibold">Đổi bàn</h2>
+            <p class="text-sm text-muted-foreground">Đơn #{{ moveOrder?.maDonHang }} · đang ở {{ moveOrder?.tenBan }}</p>
+          </div>
+        </div>
+      </template>
+      <div class="space-y-2">
+        <p class="text-[11px] text-muted-foreground">Chọn bàn đích. Bàn đã có khách → sẽ <b>ghép bàn</b> (giữ đơn riêng).</p>
+        <div class="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+          <label v-for="t in moveTargets" :key="t.maBan"
+            :class="['flex items-center gap-3 rounded-xl border px-3 py-2.5 cursor-pointer transition', moveTargetId === t.maBan ? 'border-caramel bg-caramel/5' : 'border-cream-deep hover:bg-cream/50']">
+            <input type="radio" :value="t.maBan" v-model="moveTargetId" class="w-4 h-4 accent-espresso" />
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-espresso">{{ t.tenBan }}</p>
+              <p class="text-[11px] text-muted-foreground">{{ t.tenKhuVuc }}</p>
+            </div>
+            <span v-if="t.coDon" class="text-[11px] font-semibold text-caramel bg-caramel/10 px-2 py-0.5 rounded-full">Có khách → ghép</span>
+            <span v-else class="text-[11px] font-semibold text-success">Trống</span>
+          </label>
+        </div>
+      </div>
+      <template #footer>
+        <Button variant="outline" class="border border-cream-deep rounded-xl h-11 px-5" @click="moveModalOpen = false">Huỷ</Button>
+        <Button class="bg-espresso text-cream rounded-xl h-11 px-6" :disabled="!moveTargetId || moving" @click="confirmMove">
+          {{ moving ? 'Đang đổi...' : 'Đổi bàn' }}
+        </Button>
+      </template>
+    </Modal>
+
     <!-- Zones management Modal -->
     <Modal v-model="zonesModalOpen">
       <template #header>
@@ -637,16 +794,19 @@ import {
   Printer, Download, Plus, Trash2, Pencil, Search, RefreshCw, LayoutGrid,
   ChevronLeft, ChevronRight, Coffee, Wrench, CheckCircle2, Grid3x3, MapPin,
   Armchair, Hash, Users, ChevronDown, AlertCircle, ArrowRight, AlertTriangle, Coins,
-  Combine, Link2, Unlink, Check, X, CheckSquare
+  Combine, Link2, Unlink, Check, X, CheckSquare,
+  Receipt, ArrowLeftRight, Clock, RotateCcw, Sparkles
 } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Modal from '@/components/ui/Modal.vue'
 import { tablesApi, type TableItem, type Zone, type TableStatus } from '@/services/tables'
+import { ordersApi, type OrderDto } from '@/services/orders'
 
 // ── State ─────────────────────────────────────────────────────
 const tables = ref<TableItem[]>([])
 const zones = ref<Zone[]>([])
+const orders = ref<OrderDto[]>([])
 const loading = ref(false)
 const errorMsg = ref('')
 
@@ -680,9 +840,10 @@ async function loadAll() {
   loading.value = true
   errorMsg.value = ''
   try {
-    const [t, z] = await Promise.all([tablesApi.list(), tablesApi.listZones()])
+    const [t, z, o] = await Promise.all([tablesApi.list(), tablesApi.listZones(), ordersApi.active()])
     tables.value = t
     zones.value = z
+    orders.value = o
   } catch (e) {
     errorMsg.value = e instanceof Error ? e.message : 'Không tải được dữ liệu bàn.'
   } finally {
@@ -731,7 +892,18 @@ interface TableUnit {
   tenKhuVuc: string
   tongSucChua: number
   trangThai: TableStatus
+  orders: OrderDto[]       // đơn đang hoạt động của các bàn trong đơn vị
 }
+const ordersByTable = computed(() => {
+  const m = new Map<number, OrderDto[]>()
+  for (const o of orders.value) {
+    if (o.maBan == null) continue
+    const arr = m.get(o.maBan) ?? []
+    arr.push(o)
+    m.set(o.maBan, arr)
+  }
+  return m
+})
 const allUnits = computed<TableUnit[]>(() => {
   const byPrimary = new Map<number, TableItem[]>()
   for (const t of tables.value) if (t.maBanChinh === null) byPrimary.set(t.maBan, [t])
@@ -756,6 +928,7 @@ const allUnits = computed<TableUnit[]>(() => {
       tenKhuVuc: zones.size === 1 ? primary.tenKhuVuc : 'Nhiều khu vực',
       tongSucChua: members.reduce((s, m) => s + (m.sucChua ?? 0), 0),
       trangThai: primary.trangThai,
+      orders: members.flatMap(m => ordersByTable.value.get(m.maBan) ?? []),
     })
   }
   return units.sort((a, b) => a.primary.tenBan.localeCompare(b.primary.tenBan, 'vi', { numeric: true }))
@@ -890,6 +1063,11 @@ const statusChanging = ref(false)
 
 function changeUnitStatus(u: TableUnit, st: TableStatus) {
   if (u.trangThai === st) return
+  if (st === 'Trong') { openCloseModal(u); return }   // đổi sang Trống = đóng bàn (có xác nhận dọn dẹp)
+  if (st === 'BaoTri' && u.orders.length > 0) {
+    errorMsg.value = `${u.ten} đang có đơn — hãy bấm "Đổi bàn" chuyển đơn sang bàn khác trước khi chuyển sang Bảo trì.`
+    return
+  }
   statusTarget.value = { members: u.members, ten: u.ten, tuTrangThai: u.trangThai, status: st }
   confirmStatusOpen.value = true
 }
@@ -910,6 +1088,89 @@ async function confirmChangeStatus() {
     errorMsg.value = e instanceof Error ? e.message : 'Không đổi được trạng thái.'
   } finally {
     statusChanging.value = false
+  }
+}
+
+// ── Đóng bàn (xác nhận dọn dẹp) + Hoàn tác ────────────────────
+const closeModalOpen = ref(false)
+const closeUnit = ref<TableUnit | null>(null)
+const chkKhachRoi = ref(false)
+const chkDaDon = ref(false)
+const closing = ref(false)
+const lastCleared = ref<{ maBans: number[]; label: string } | null>(null)
+
+function openCloseModal(u: TableUnit) {
+  closeUnit.value = u
+  chkKhachRoi.value = false
+  chkDaDon.value = false
+  closeModalOpen.value = true
+}
+async function confirmClose() {
+  if (!closeUnit.value || !chkKhachRoi.value || !chkDaDon.value) return
+  const u = closeUnit.value
+  closing.value = true
+  try {
+    for (const m of u.members) await ordersApi.closeTable(m.maBan)
+    lastCleared.value = { maBans: u.members.map(m => m.maBan), label: u.ten }
+    closeModalOpen.value = false
+    noticeMsg.value = `Đã dọn ${u.ten}. Bàn trở về Trống.`
+    await loadAll()
+  } catch (e) {
+    errorMsg.value = e instanceof Error ? e.message : 'Không đóng được bàn.'
+  } finally {
+    closing.value = false
+  }
+}
+async function hoanTacDongBan() {
+  if (!lastCleared.value) return
+  try {
+    for (const id of lastCleared.value.maBans) await ordersApi.reopenTable(id)
+    noticeMsg.value = `Đã khôi phục ${lastCleared.value.label}.`
+    lastCleared.value = null
+    await loadAll()
+  } catch (e) {
+    errorMsg.value = e instanceof Error ? e.message : 'Không khôi phục được.'
+  }
+}
+
+// ── Lịch sử bàn ───────────────────────────────────────────────
+const historyModalOpen = ref(false)
+const historyUnit = ref<TableUnit | null>(null)
+const historyLoading = ref(false)
+const historyData = ref<{ tenBan: string; orders: OrderDto[] }[]>([])
+const trangThaiDonLabel: Record<string, string> = {
+  ChoXacNhan: 'Chờ xác nhận', DangPha: 'Đang pha', HoanThanh: 'Hoàn thành', Huy: 'Đã huỷ',
+}
+function donBadge(s: string) {
+  return s === 'HoanThanh' ? 'bg-emerald-100 text-emerald-700'
+    : s === 'Huy' ? 'bg-red-100 text-red-600'
+    : 'bg-caramel/15 text-caramel'
+}
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+async function openHistory(u: TableUnit) {
+  historyUnit.value = u
+  historyData.value = []
+  historyModalOpen.value = true
+  historyLoading.value = true
+  try {
+    historyData.value = await Promise.all(
+      u.members.map(async m => ({ tenBan: m.tenBan, orders: await ordersApi.history(m.maBan) })))
+  } catch (e) {
+    errorMsg.value = e instanceof Error ? e.message : 'Không tải được lịch sử.'
+  } finally {
+    historyLoading.value = false
+  }
+}
+async function restoreOrder(o: OrderDto) {
+  try {
+    await ordersApi.restore(o.maDonHang)
+    historyModalOpen.value = false
+    noticeMsg.value = `Đã khôi phục đơn #${o.maDonHang}${o.tenBan ? ' (' + o.tenBan + ')' : ''} về hoạt động.`
+    await loadAll()
+  } catch (e) {
+    errorMsg.value = e instanceof Error ? e.message : 'Không khôi phục được đơn.'
   }
 }
 
@@ -1176,6 +1437,53 @@ function regenerateQR(t: TableItem) {
       } catch (e) {
         errorMsg.value = e instanceof Error ? e.message : 'Không tạo lại được mã QR.'
       }
+    },
+  })
+}
+
+// ── Đơn hàng: đổi bàn / huỷ ───────────────────────────────────
+const moveModalOpen = ref(false)
+const moveOrder = ref<OrderDto | null>(null)
+const moveTargetId = ref<number | null>(null)
+const moving = ref(false)
+const noticeMsg = ref('')
+
+const moveTargets = computed(() => {
+  const cur = moveOrder.value?.maBan
+  return tables.value
+    .filter(t => t.maBan !== cur)
+    .map(t => ({ ...t, coDon: (ordersByTable.value.get(t.maBan)?.length ?? 0) > 0 }))
+})
+function openMove(o: OrderDto) {
+  moveOrder.value = o
+  moveTargetId.value = null
+  moveModalOpen.value = true
+}
+async function confirmMove() {
+  if (!moveOrder.value || !moveTargetId.value) return
+  moving.value = true
+  try {
+    const res = await ordersApi.move(moveOrder.value.maDonHang, moveTargetId.value)
+    moveModalOpen.value = false
+    noticeMsg.value = res.ketQua === 'merged'
+      ? `Đã ghép ${res.tenBanCu} với ${res.tenBanMoi} (giữ đơn riêng).`
+      : `Đã chuyển đơn sang ${res.tenBanMoi}.`
+    await loadAll()
+  } catch (e) {
+    errorMsg.value = e instanceof Error ? e.message : 'Không đổi được bàn.'
+  } finally {
+    moving.value = false
+  }
+}
+function cancelOrder(o: OrderDto) {
+  askConfirm({
+    title: 'Huỷ đơn',
+    message: `Huỷ đơn #${o.maDonHang} (${o.tenBan})? Bàn sẽ được giải phóng nếu không còn đơn nào.`,
+    confirmLabel: 'Huỷ đơn',
+    danger: true,
+    onConfirm: async () => {
+      try { await ordersApi.cancel(o.maDonHang); await loadAll() }
+      catch (e) { errorMsg.value = e instanceof Error ? e.message : 'Không huỷ được đơn.' }
     },
   })
 }

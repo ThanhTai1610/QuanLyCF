@@ -52,6 +52,7 @@ namespace BackEnd
             builder.Services.AddScoped<Features.Inventory.StockReceipts.StockReceiptService>();
             builder.Services.AddScoped<Features.Inventory.StockTakes.StockTakeService>();
             builder.Services.AddScoped<Features.Sales.Orders.OrderService>();
+            builder.Services.AddScoped<Features.Sales.Promotions.PromotionService>();
 
             // ── CORS cho frontend Vite ──────────────────────────
             var feOrigin = builder.Configuration["Cors:FrontendOrigin"] ?? "http://localhost:5173";

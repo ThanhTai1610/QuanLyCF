@@ -1703,13 +1703,6 @@ namespace BackEnd.Migrations
                             LaVaiTroHeThong = true,
                             MoTa = "Đơn hàng, bàn, phục vụ",
                             TenVaiTro = "Phục vụ"
-                        },
-                        new
-                        {
-                            MaVaiTro = 5,
-                            LaVaiTroHeThong = true,
-                            MoTa = "Màn hình bếp",
-                            TenVaiTro = "Bếp"
                         });
                 });
 
@@ -1892,16 +1885,6 @@ namespace BackEnd.Migrations
                         {
                             MaVaiTro = 4,
                             MaQuyen = 17
-                        },
-                        new
-                        {
-                            MaVaiTro = 5,
-                            MaQuyen = 9
-                        },
-                        new
-                        {
-                            MaVaiTro = 5,
-                            MaQuyen = 7
                         });
                 });
 

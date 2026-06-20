@@ -14,7 +14,7 @@
       <!-- NAVIGATION -->
       <nav class="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto custom-scrollbar">
         
-        <template v-for="(item, idx) in navItems" :key="idx">
+        <template v-for="(item, idx) in visibleNav" :key="idx">
           
           <!-- SINGLE ROOT ITEM -->
           <router-link
@@ -91,10 +91,10 @@
       <!-- USER PROFILE -->
       <div class="p-3 border-t border-white/5 bg-[#1A1D24]">
         <div class="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
-          <div class="w-8 h-8 rounded-full bg-[#CC8033] flex items-center justify-center text-white font-bold text-xs shadow-md">MN</div>
+          <div class="w-8 h-8 rounded-full bg-[#CC8033] flex items-center justify-center text-white font-bold text-xs shadow-md">{{ userInitials }}</div>
           <div class="flex-1 min-w-0">
-            <div class="text-xs text-white font-medium truncate">Minh Nguyễn</div>
-            <div class="text-[10px] text-[#A1A1AA]">Quản lý</div>
+            <div class="text-xs text-white font-medium truncate">{{ authStore.user?.hoTen ?? 'Người dùng' }}</div>
+            <div class="text-[10px] text-[#A1A1AA]">{{ authStore.user?.vaiTro ?? '' }}</div>
           </div>
           <button @click="handleLogout" class="text-[#A1A1AA] hover:text-[#EF4444] p-1.5 transition-colors">
             <LogOut class="w-3.5 h-3.5" />
@@ -111,10 +111,6 @@
           <p class="text-xs text-muted-foreground mt-0.5">Hôm nay, {{ todayDate }}</p>
         </div>
         <div class="flex items-center gap-3">
-          <div class="relative hidden md:block">
-            <Search class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input placeholder="Tìm kiếm nhanh..." class="pl-9 w-56 bg-white border border-cream-deep h-8 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-caramel/20 shadow-inner" />
-          </div>
           <button class="relative w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-cream-deep shadow-sm hover:bg-cream-deep transition-colors text-espresso">
             <Bell class="w-4 h-4" />
             <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-destructive rounded-full border border-white"></span>
@@ -130,25 +126,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import {
-  LayoutDashboard, ShoppingBag, Coffee, Users, Settings, LogOut, Search,
+  LayoutDashboard, ShoppingBag, Coffee, Users, Settings, LogOut,
   QrCode, FileText, FolderTree, Package, ClipboardCheck, CalendarDays, BookOpen, ChefHat, Bell, ShieldCheck,
   ChevronDown, Wallet, Heart, Star, Gift
 } from 'lucide-vue-next'
+
+import { routePermission } from '@/router/permissions'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
-const navItems = [
+// Ẩn menu theo quyền: chỉ hiện trang user được phép vào
+function canSee(to: string) {
+  const p = routePermission[to]
+  return p == null ? true : authStore.coQuyen(p)
+}
+
+interface NavChild { to: string; label: string; external?: boolean; badge?: string }
+interface NavItem { label: string; icon?: any; to?: string; external?: boolean; badge?: string; children?: NavChild[] }
+const navItems: NavItem[] = [
   {
     label: "Nhân sự & Ca làm",
     icon: Users,
     children: [
-      { to: "/staff", label: "Quản lý tài khoản", badge: "Cấp 1" },
+      { to: "/staff", label: "Quản lý tài khoản" },
+      { to: "/roles", label: "Vai trò & quyền" },
       { to: "/check-in", label: "Chấm công & Yêu cầu" },
       { to: "/shifts", label: "Ca làm & Bảng lương" },
     ]
@@ -168,6 +175,7 @@ const navItems = [
     children: [
       { to: "/orders", label: "Đơn hàng", badge: "Cấp 1" },
       { to: "/invoices", label: "Hoá đơn", badge: "Cấp 2" },
+      { to: "/promotions", label: "Khuyến mãi" },
     ]
   },
   {
@@ -213,15 +221,29 @@ const navItems = [
   }
 ]
 
-const expanded = ref<Record<string, boolean>>({
-  "Quản lý sản phẩm": true
-})
+const expanded = ref<Record<string, boolean>>({})
+
+function expandCurrentGroup() {
+  for (const item of navItems) {
+    if (item.children?.some(c => route.path === c.to || (c.to !== '/' && route.path.startsWith(c.to)))) {
+      expanded.value[item.label] = true
+    }
+  }
+}
+onMounted(expandCurrentGroup)
+watch(() => route.path, expandCurrentGroup)
 
 const toggleGroup = (label: string) => {
   expanded.value[label] = !expanded.value[label]
 }
 
-const flat = navItems.flatMap((g) => g.children ? g.children : [g])
+// Menu sau khi lọc theo quyền (bỏ nhóm rỗng)
+const visibleNav = computed(() =>
+  navItems
+    .map(g => ({ ...g, children: g.children ? g.children.filter(c => canSee(c.to)) : g.children }))
+    .filter(g => !g.children || g.children.length > 0))
+
+const flat: NavChild[] = navItems.flatMap((g) => g.children ?? [])
 
 const currentLabel = computed(() => {
   const current = flat.find((n) => route.path === n.to || (n.to !== '/' && n.to !== '/dashboard' && route.path.startsWith(n.to)))
@@ -229,6 +251,13 @@ const currentLabel = computed(() => {
 })
 
 const todayDate = new Date().toLocaleDateString("vi-VN", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+
+const userInitials = computed(() => {
+  const words = (authStore.user?.hoTen ?? '').trim().split(/\s+/)
+  return words.length >= 2
+    ? (words[0][0] + words[words.length - 1][0]).toUpperCase()
+    : words[0]?.[0]?.toUpperCase() ?? 'U'
+})
 
 const handleLogout = () => {
   authStore.logout()

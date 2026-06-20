@@ -1,0 +1,25 @@
+// Map đường dẫn -> mã quyền yêu cầu. null = chỉ cần đăng nhập (vd: chấm công của chính mình).
+// Dùng chung cho router guard (chặn vào trang) và MainLayout (ẩn menu).
+export const routePermission: Record<string, string | null> = {
+  '/staff': 'TAIKHOAN_XEM',
+  '/roles': 'TAIKHOAN_QUANLY',
+  '/check-in': null,
+  '/shifts': 'NHANSU_XEM',
+  '/menu-admin': 'SANPHAM_XEM',
+  '/combos': 'SANPHAM_XEM',
+  '/categories': 'SANPHAM_XEM',
+  '/orders': 'DONHANG_XEM',
+  '/invoices': 'DONHANG_XEM',
+  '/promotions': 'SANPHAM_QUANLY',
+  '/cashflow': 'BAOCAO_XEM',
+  '/revenue-report': 'BAOCAO_XEM',
+  '/kitchen': 'BEP_XEM',
+  '/tables': 'BAN_XEM',
+  '/pos-sale': 'DONHANG_XULY',
+  '/inventory': 'KHO_XEM',
+  '/suppliers': 'KHO_XEM',
+  '/stocktake': 'KHO_XEM',
+  '/loyalty': 'KHACHHANG_XEM',
+  '/settings': 'CAIDAT_QUANLY',
+  '/system-logs': 'CAIDAT_QUANLY',
+}

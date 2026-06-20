@@ -45,10 +45,10 @@
               <LayoutDashboard class="w-4 h-4" /> Vào Dashboard
             </router-link>
             <router-link
-              to="/orders"
+              to="/lich-su-don"
               class="inline-flex items-center gap-2 px-5 py-3 rounded-md bg-card hover:bg-caramel-light text-espresso font-semibold border border-cream-deep transition-colors"
             >
-              <ShoppingBag class="w-4 h-4" /> Quản lý đơn
+              <History class="w-4 h-4" /> Lịch sử đơn hàng
             </router-link>
           </div>
 
@@ -129,7 +129,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Coffee, ArrowRight, QrCode, LayoutDashboard, ShoppingBag, X } from 'lucide-vue-next';
+import { Coffee, ArrowRight, QrCode, LayoutDashboard, ShoppingBag, X, History } from 'lucide-vue-next';
 import heroImg from '@/assets/cafe-hero.jpg';
 
 const router = useRouter()
