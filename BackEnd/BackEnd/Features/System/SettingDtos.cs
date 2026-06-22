@@ -8,11 +8,15 @@ namespace BackEnd.Features.System
         string DiaChi,
         string SoDienThoai,
         string MoTaQuan,
+        string GioMoCua,
+        string AnhTrangChu,
         string ThueVatMacDinh,
         string PhiDichVu,
         string TyLeTichDiem,
         bool   CheDoBaoTri,
-        string ThongDiepBaoTri
+        string ThongDiepBaoTri,
+        string TenAI,
+        string XungHoAI
     );
 
     /// <summary>Request cập nhật cài đặt hệ thống.</summary>
@@ -21,11 +25,15 @@ namespace BackEnd.Features.System
         string DiaChi,
         string SoDienThoai,
         string MoTaQuan,
+        string GioMoCua,
+        string AnhTrangChu,
         string ThueVatMacDinh,
         string PhiDichVu,
         string TyLeTichDiem,
         bool   CheDoBaoTri,
-        string ThongDiepBaoTri
+        string ThongDiepBaoTri,
+        string TenAI,
+        string XungHoAI
     );
 
     /// <summary>Thông tin công khai của quán (không cần đăng nhập).</summary>
@@ -33,7 +41,11 @@ namespace BackEnd.Features.System
         string TenQuan,
         string DiaChi,
         string SoDienThoai,
-        string MoTaQuan
+        string MoTaQuan,
+        string GioMoCua,
+        string AnhTrangChu,
+        string TenAI,
+        string XungHoAI
     );
 
     /// <summary>Trạng thái bảo trì — endpoint công khai.</summary>

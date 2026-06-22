@@ -58,6 +58,7 @@ namespace BackEnd
             builder.Services.AddScoped<Features.System.SettingService>();
             builder.Services.AddScoped<Features.System.AuditLogService>();
             builder.Services.AddMemoryCache();
+            builder.Services.AddHttpClient();
 
             // ── CORS cho frontend Vite ──────────────────────────
             var feOrigin = builder.Configuration["Cors:FrontendOrigin"] ?? "http://localhost:5173";
@@ -99,6 +100,7 @@ namespace BackEnd
                 app.UseSwaggerUI();
             }
 
+            app.UseStaticFiles(); // Cho phép truy cập ảnh tải lên (thư mục wwwroot)
             app.UseHttpsRedirection();
             app.UseCors("frontend");
             app.UseAuthentication();

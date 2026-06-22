@@ -7,7 +7,7 @@
        
         <!-- Logo -->
         <router-link to="/" class="flex items-center gap-3">
-          <div class="w-10 h-10 flex items-center justify-center bg-[#2A231E] text-[#FDFBF7] rounded-lg shadow-xl">
+          <div class="w-10 h-10 flex items-center justify-center bg-[#4A3224] text-[#FDFBF7] rounded-lg shadow-xl">
             <Coffee class="w-5 h-5" stroke-width="1.5" />
           </div>
           <span class="font-premium-serif text-2xl font-bold tracking-wide text-[#2A231E]">{{ storeInfoStore.tenQuan }}</span>
@@ -32,7 +32,7 @@
 
     <!-- Hero -->
     <section class="max-w-[1200px] mx-auto px-4 sm:px-6 pt-6">
-      <div class="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#2A231E] via-[#3A2D22] to-[#6B4A2E] p-7 sm:p-10 shadow-[0_24px_60px_rgba(42,35,30,0.28)]">
+      <div class="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#4A3224] via-[#5C4033] to-[#7B563F] p-7 sm:p-10 shadow-[0_24px_60px_rgba(74,50,36,0.28)]">
         <!-- Decorative glows -->
         <div class="absolute -top-16 -right-8 w-56 h-56 rounded-full bg-[#CC8033]/30 blur-[80px]"></div>
         <div class="absolute -bottom-24 -left-10 w-64 h-64 rounded-full bg-[#E8973D]/20 blur-[90px]"></div>
@@ -105,7 +105,7 @@
           :class="[
             'px-5 py-2.5 rounded-full whitespace-nowrap text-xs font-bold tracking-wide transition-all duration-200 border',
             activeCat === c.id
-              ? 'bg-[#2A231E] text-white border-[#2A231E] shadow-lg shadow-[#2A231E]/20'
+              ? 'bg-[#4A3224] text-white border-[#4A3224] shadow-lg shadow-[#4A3224]/20'
               : 'bg-white border-[#EAE3D9] text-[#8A8178] hover:border-[#CC8033]/40 hover:text-[#CC8033]'
           ]"
         >
@@ -171,7 +171,7 @@
               <button
                 v-else
                 @click="addToCart(m)"
-                class="w-10 h-10 rounded-xl bg-[#2A231E] flex items-center justify-center text-white shadow-md hover:bg-[#CC8033] transition-colors active:scale-90 shrink-0"
+                class="w-10 h-10 rounded-xl bg-[#4A3224] flex items-center justify-center text-white shadow-md hover:bg-[#CC8033] transition-colors active:scale-90 shrink-0"
                 title="Đặt ngay"
               >
                 <Plus class="w-5 h-5" stroke-width="2.5" />
@@ -231,7 +231,7 @@
       <div class="max-w-[1200px] mx-auto flex justify-center sm:justify-end">
         <button
           @click="open = true"
-          class="bg-[#2A231E]/95 backdrop-blur-xl text-[#FDFBF7] rounded-lg p-3 sm:px-5 sm:py-3 flex items-center gap-6 sm:gap-10 shadow-card border border-white/10"
+          class="bg-[#4A3224]/95 backdrop-blur-xl text-[#FDFBF7] rounded-lg p-3 sm:px-5 sm:py-3 flex items-center gap-6 sm:gap-10 shadow-card border border-white/10"
         >
           <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-lg border border-white/20 flex items-center justify-center text-sm font-bold text-white bg-[#CC8033] shadow-xl">
@@ -758,8 +758,8 @@
         <div 
           v-for="t in toasts" 
           :key="t.id"
-          class="flex items-start gap-4 p-5 rounded-3xl shadow-[0_20px_60px_rgba(42,35,30,0.25)] backdrop-blur-xl border pointer-events-auto relative overflow-hidden"
-          :class="t.type === 'success' ? 'bg-[#2A231E]/95 border-[#4A3F35] text-[#FDFBF7]' : 'bg-[#EF4444]/95 border-[#EF4444]/50 text-white'"
+          class="flex items-start gap-4 p-5 rounded-3xl shadow-[0_20px_60px_rgba(74,50,36,0.25)] backdrop-blur-xl border pointer-events-auto relative overflow-hidden"
+          :class="t.type === 'success' ? 'bg-[#4A3224]/95 border-[#5C4033] text-[#FDFBF7]' : 'bg-[#EF4444]/95 border-[#EF4444]/50 text-white'"
         >
           <!-- Gradient glow background -->
           <div v-if="t.type === 'success'" class="absolute -top-10 -right-10 w-32 h-32 bg-[#CC8033] rounded-full blur-[50px] opacity-20 pointer-events-none"></div>

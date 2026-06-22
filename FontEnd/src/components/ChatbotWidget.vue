@@ -1,159 +1,261 @@
 <template>
   <div>
+    <!-- Nút mở Chatbot -->
     <button
       @click="open = !open"
-      class="fixed bottom-24 right-4 z-40 px-4 py-3 rounded-full bg-caramel hover:bg-brown text-cream shadow-warm flex items-center gap-2 font-semibold transition-all hover:scale-105 animate-bounce"
-      :style="{ animationDuration: '2s', animationIterationCount: open ? '0' : 'infinite' }"
+      class="fixed bottom-6 right-6 z-50 h-14 w-auto px-5 rounded-full bg-gradient-to-r from-[#CC8033] to-[#B36B22] hover:from-[#B36B22] hover:to-[#995919] text-white shadow-[0_10px_25px_-5px_rgba(204,128,51,0.5)] flex items-center gap-2.5 font-bold transition-all duration-300 hover:scale-105 group"
     >
-      <X v-if="open" class="w-5 h-5" />
+      <X v-if="open" class="w-6 h-6" />
       <template v-else>
-        <MessageCircle class="w-5 h-5" /> 
-        <span class="hidden sm:inline text-sm">Hỏi AI tư vấn</span>
+        <MessageCircle class="w-6 h-6 group-hover:rotate-12 transition-transform" /> 
+        <span class="hidden sm:inline text-sm tracking-wide">Hỏi AI tư vấn</span>
       </template>
     </button>
 
-    <div v-if="open" class="fixed bottom-24 right-4 z-40 w-[360px] max-w-[calc(100vw-2rem)] h-[520px] max-h-[calc(100vh-8rem)] bg-card rounded-lg border border-cream-deep shadow-warm flex flex-col overflow-hidden mt-16 mr-0 sm:mr-14">
-      <header class="bg-espresso text-cream px-4 py-3 flex items-center gap-3">
-        <div class="w-9 h-9 rounded-full bg-caramel flex items-center justify-center">
-          <Sparkles class="w-4 h-4 text-cream" />
-        </div>
-        <div class="flex-1">
-          <div class="font-display font-semibold text-sm">Barista AI</div>
-          <div class="text-xs text-cream/60">Tôi có thể giúp bạn chọn món 😊</div>
-        </div>
-        <button @click="open = false" class="text-cream/70 hover:text-cream">
-          <X class="w-4 h-4" />
-        </button>
-      </header>
+    <!-- Khung Chat -->
+    <Transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="transform scale-95 opacity-0 translate-y-4"
+      enter-to-class="transform scale-100 opacity-100 translate-y-0"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="transform scale-100 opacity-100 translate-y-0"
+      leave-to-class="transform scale-95 opacity-0 translate-y-4"
+    >
+      <div v-if="open" class="fixed bottom-24 right-6 z-50 w-[380px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-8rem)] bg-[#FAF6F0] rounded-2xl shadow-2xl border border-[#EAE3D9]/60 flex flex-col overflow-hidden ring-1 ring-black/5">
+        
+        <!-- Header -->
+        <header class="bg-gradient-to-br from-[#4A3224] to-[#2A231E] px-5 py-4 flex items-center gap-3 relative overflow-hidden">
+          <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
+          <div class="relative w-10 h-10 rounded-full bg-gradient-to-b from-[#CC8033] to-[#995919] flex items-center justify-center shadow-inner border border-white/20">
+            <Sparkles class="w-5 h-5 text-white" />
+            <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-[#2A231E] rounded-full"></div>
+          </div>
+          <div class="flex-1 relative z-10">
+            <div class="font-premium-serif font-bold text-white tracking-wide text-lg leading-tight">{{ storeInfo.tenAI }}</div>
+            <div class="text-xs text-[#EAE3D9] font-medium flex items-center gap-1.5 mt-0.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+              Luôn sẵn sàng hỗ trợ
+            </div>
+          </div>
+          <button @click="open = false" class="relative z-10 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition-colors">
+            <X class="w-4 h-4" stroke-width="2.5" />
+          </button>
+        </header>
 
-      <div class="flex-1 overflow-y-auto p-3 space-y-3 bg-cream/30">
-        <div v-for="(m, i) in msgs" :key="i" :class="['flex', m.role === 'user' ? 'justify-end' : 'justify-start']">
-          <div :class="['max-w-[85%] px-3 py-2 rounded-lg text-sm', m.role === 'user' ? 'bg-caramel text-cream' : 'bg-card border border-cream-deep text-espresso']">
-            <p>{{ m.text }}</p>
-            <div v-if="m.recommendItems" class="mt-2 space-y-2">
-              <div v-for="it in m.recommendItems" :key="it.id" class="flex items-center gap-2 bg-background rounded-lg p-2 border border-cream-deep">
-                <img :src="it.image" :alt="it.name" class="w-10 h-10 rounded object-cover" />
-                <div class="flex-1 min-w-0">
-                  <div class="text-xs font-semibold text-espresso truncate">{{ it.name }}</div>
-                  <div class="text-xs text-caramel">{{ it.price.toLocaleString("vi-VN") }}₫</div>
+        <!-- Body -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-5 bg-[#FAF6F0] scroll-smooth">
+          <div v-for="(m, i) in msgs" :key="i" :class="['flex', m.role === 'user' ? 'justify-end' : 'justify-start']">
+            
+            <div :class="[
+              'max-w-[88%] px-4 py-3 text-[14px] leading-relaxed shadow-sm relative',
+              m.role === 'user' 
+                ? 'bg-gradient-to-r from-[#CC8033] to-[#B36B22] text-white rounded-2xl rounded-tr-sm' 
+                : 'bg-white border border-[#EAE3D9] text-[#2A231E] rounded-2xl rounded-tl-sm'
+            ]">
+              <p class="font-medium">{{ m.text }}</p>
+              
+              <!-- Recommend Items (Bot only) -->
+              <div v-if="m.recommendItems" class="mt-3 space-y-2.5">
+                <div v-for="it in m.recommendItems" :key="it.id" class="flex items-center gap-3 bg-[#FAF6F0] rounded-xl p-2 border border-[#EAE3D9] hover:border-[#CC8033]/30 transition-colors group">
+                  <img :src="it.image" :alt="it.name" class="w-12 h-12 rounded-lg object-cover shadow-sm group-hover:scale-105 transition-transform" />
+                  <div class="flex-1 min-w-0">
+                    <div class="text-xs font-bold text-[#1A1512] truncate">{{ it.name }}</div>
+                    <div class="text-xs font-bold text-[#CC8033] mt-0.5">{{ it.price.toLocaleString("vi-VN") }}₫</div>
+                  </div>
+                  <button
+                    @click="addToCart(it)"
+                    class="w-8 h-8 rounded-full bg-[#2A231E] text-white flex items-center justify-center hover:bg-[#CC8033] transition-colors shadow-sm shrink-0"
+                    title="Thêm vào giỏ"
+                  >
+                    <Plus class="w-4 h-4" stroke-width="2.5" />
+                  </button>
                 </div>
-                <button
-                  @click="addToCart(it)"
-                  class="w-7 h-7 rounded-full bg-caramel text-cream flex items-center justify-center hover:bg-brown"
-                >
-                  <Plus class="w-3.5 h-3.5" />
+              </div>
+
+              <!-- Suggestions (Bot only) -->
+              <div v-if="m.suggestions" class="mt-3 flex flex-wrap gap-2">
+                <button v-for="s in m.suggestions" :key="s" @click="send(s)" class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-[#FDFBF7] border border-[#CC8033]/30 text-[#CC8033] hover:bg-[#CC8033] hover:text-white transition-all shadow-sm active:scale-95">
+                  {{ s }}
                 </button>
               </div>
             </div>
-            <div v-if="m.suggestions" class="mt-2 flex flex-wrap gap-1.5">
-              <button v-for="s in m.suggestions" :key="s" @click="send(s)" class="text-xs px-2 py-1 rounded-full bg-caramel-light text-brown hover:bg-caramel hover:text-cream transition-colors">
-                {{ s }}
-              </button>
-            </div>
           </div>
-        </div>
-        <div v-if="typing" class="flex justify-start">
-          <div class="bg-card border border-cream-deep px-3 py-2 rounded-lg">
-            <div class="flex gap-1">
-              <span v-for="d in [0, 0.15, 0.3]" :key="d" class="w-1.5 h-1.5 rounded-full bg-caramel animate-bounce" :style="{ animationDelay: `${d}s` }" />
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <form
-        @submit.prevent="send(input)"
-        class="border-t border-cream-deep p-3 flex gap-2"
-      >
-        <input
-          v-model="input"
-          placeholder="Hỏi Barista AI..."
-          class="flex-1 px-3 py-2 rounded-md bg-background border border-cream-deep text-sm text-espresso outline-none focus:ring-2 focus:ring-caramel/40"
-        />
-        <button type="submit" class="w-10 h-10 rounded-md bg-caramel hover:bg-brown text-cream flex items-center justify-center">
-          <Send class="w-4 h-4" />
-        </button>
-      </form>
-      <div class="text-center text-[10px] text-muted-foreground py-1">Powered by AI ✨</div>
-    </div>
+          <!-- Typing Indicator -->
+          <div v-if="typing" class="flex justify-start">
+            <div class="bg-white border border-[#EAE3D9] px-4 py-3.5 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-1.5">
+              <span v-for="d in [0, 0.15, 0.3]" :key="d" class="w-1.5 h-1.5 rounded-full bg-[#CC8033]/60 animate-bounce" :style="{ animationDelay: `${d}s` }" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="bg-white border-t border-[#EAE3D9] p-3.5">
+          <form
+            @submit.prevent="send(input)"
+            class="flex items-center gap-2"
+          >
+            <input
+              v-model="input"
+              placeholder="Nhập tin nhắn..."
+              class="flex-1 h-11 px-4 rounded-full bg-[#FAF6F0] border border-[#EAE3D9] text-sm text-[#2A231E] font-medium outline-none focus:ring-2 focus:ring-[#CC8033]/20 focus:border-[#CC8033] transition-all placeholder:text-[#C5BEB8]"
+            />
+            <button 
+              type="submit" 
+              :disabled="!input.trim()"
+              class="w-11 h-11 rounded-full bg-[#2A231E] hover:bg-[#CC8033] disabled:bg-[#D5CEC4] disabled:cursor-not-allowed text-white flex items-center justify-center transition-all shadow-sm shrink-0"
+            >
+              <Send class="w-4 h-4 -ml-0.5" stroke-width="2.5" />
+            </button>
+          </form>
+          <div class="text-center text-[9px] font-bold uppercase tracking-widest text-[#C5BEB8] mt-2">
+            Powered by AI <Sparkles class="inline w-2.5 h-2.5 text-[#CC8033] mb-0.5" />
+          </div>
+        </div>
+
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { MessageCircle, X, Send, Sparkles, Plus } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
 import { menuItems } from '@/data/menu'
+import { ordersApi, type MenuItem } from '@/services/orders'
+import { useStoreInfoStore } from '@/stores/storeInfo'
 
 interface Msg {
   role: "bot" | "user"
   text: string
   suggestions?: string[]
-  recommendItems?: typeof menuItems
+  recommendItems?: any[]
 }
 
 const toast = { success: (msg: string) => alert('Thành công: ' + msg) }
+const storeInfo = useStoreInfoStore()
 
-const initialMsgs: Msg[] = [
+const initialMsgs = computed<Msg[]>(() => [
   {
     role: "bot",
-    text: "Xin chào! Tôi là Barista AI ☕ Tôi có thể giúp bạn chọn món hợp gu hôm nay. Bạn muốn gì?",
+    text: `Xin chào! Tôi là ${storeInfo.tenAI} ☕ Tôi có thể giúp bạn chọn món hợp gu hôm nay. Bạn muốn gì?`,
     suggestions: ["Món phổ biến hôm nay", "Gợi ý cho người ít ngọt", "Combo cà phê + bánh", "Tôi muốn gì đó mát lạnh"],
   },
-]
+])
 
-const respond = (q: string): Msg => {
+const realMenu = ref<MenuItem[]>([])
+
+onMounted(async () => {
+  try {
+    const data = await ordersApi.menu()
+    realMenu.value = data.filter((m: any) => m.kieuMon !== 'Topping')
+  } catch {}
+})
+
+const respond = async (q: string): Promise<Msg> => {
   const lower = q.toLowerCase()
+
+  const getMappedRealMenu = (filterFn: (m: MenuItem) => boolean) => {
+      return realMenu.value.filter(filterFn).map(m => ({
+          id: String(m.maSanPham),
+          name: m.tenSanPham,
+          price: m.giaBan,
+          image: m.hinhAnh || "https://via.placeholder.com/150"
+      }))
+  }
+
+  // Giữ lại các thẻ gợi ý trực quan (có nút Add to Cart) cho các luồng cơ bản
   if (lower.includes("phổ biến") || lower.includes("bán chạy")) {
     return {
       role: "bot",
-      text: "Hôm nay 3 món được order nhiều nhất:",
-      recommendItems: menuItems.filter((m) => m.popular).slice(0, 3),
+      text: "Hôm nay các món này được order nhiều nhất:",
+      recommendItems: getMappedRealMenu(m => true).slice(0, 3),
     }
   }
-  if (lower.includes("ngọt")) {
+  if (lower.includes("ít ngọt")) {
     return {
       role: "bot",
-      text: "Với người ít ngọt, mình gợi ý Espresso hoặc Cappuccino — đậm vị cà phê, có thể yêu cầu không đường:",
-      recommendItems: menuItems.filter((m) => m.category === "coffee").slice(0, 2),
+      text: "Với người ít ngọt, mình gợi ý vài món đậm vị cà phê nhé:",
+      recommendItems: getMappedRealMenu(m => (m.tenDanhMuc || '').toLowerCase().includes("cà phê")).slice(0, 2),
     }
   }
   if (lower.includes("mát") || lower.includes("lạnh") || lower.includes("đá xay")) {
     return {
       role: "bot",
       text: "Hôm nay nóng quá! Mời bạn thử các món đá xay refresh nè:",
-      recommendItems: menuItems.filter((m) => m.category === "frappe"),
+      recommendItems: getMappedRealMenu(m => (m.tenDanhMuc || '').toLowerCase().includes("đá xay") || (m.tenDanhMuc || '').toLowerCase().includes("trà")).slice(0, 3),
     }
   }
   if (lower.includes("combo") || lower.includes("bánh")) {
     return {
       role: "bot",
-      text: "Combo classic best-seller: Cappuccino + Croissant bơ — đậm đà gặp giòn rụm 😋",
-      recommendItems: [menuItems[0], menuItems[10]],
+      text: "Bạn thử dùng nước kết hợp với một chút bánh xem sao nhé 😋",
+      recommendItems: getMappedRealMenu(m => (m.tenDanhMuc || '').toLowerCase().includes("bánh")).slice(0, 2),
     }
   }
-  return {
-    role: "bot",
-    text: "Mình chưa hiểu lắm 😅 Bạn thử hỏi: 'món bán chạy', 'gợi ý đồ mát', 'combo cà phê + bánh' nhé!",
-    suggestions: ["Món phổ biến hôm nay", "Tôi muốn gì đó mát lạnh"],
+
+  // Nếu không khớp các lệnh đặc biệt -> Gọi AI Gemini ở Backend xử lý!
+  try {
+    const res = await fetch('/api/chatbot/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: q })
+    })
+    
+    if (!res.ok) {
+        let errStr = 'Lỗi hệ thống AI'
+        try {
+            const errJson = await res.json()
+            errStr = errJson.message || errStr
+        } catch {
+            errStr = 'Không thể kết nối đến máy chủ AI (Có thể cần khởi động lại Backend)'
+        }
+        throw new Error(errStr)
+    }
+    
+    const data = await res.json()
+    const botReply: Msg = { role: "bot", text: data.reply }
+    
+    // Nếu AI có gợi ý ID món ăn, ánh xạ sang dạng thẻ giao diện
+    if (data.recommendedIds && Array.isArray(data.recommendedIds) && data.recommendedIds.length > 0) {
+        const mappedItems = realMenu.value
+            .filter(m => data.recommendedIds.includes(m.maSanPham))
+            .map(m => ({
+                id: String(m.maSanPham),
+                name: m.tenSanPham,
+                price: m.giaBan,
+                image: m.hinhAnh || "https://via.placeholder.com/150"
+            }))
+        if (mappedItems.length > 0) {
+            botReply.recommendItems = mappedItems
+        }
+    }
+    return botReply
+  } catch (error: any) {
+      return {
+          role: "bot",
+          text: error.message || "Xin lỗi, não bộ AI của mình đang tải hơi chậm 😅 Bạn thử bấm các gợi ý bên trên nhé!",
+          suggestions: ["Món phổ biến hôm nay", "Tôi muốn gì đó mát lạnh"]
+      }
   }
 }
 
 const open = ref(false)
-const msgs = ref<Msg[]>([...initialMsgs])
+const msgs = ref<Msg[]>([...initialMsgs.value])
 const input = ref("")
 const typing = ref(false)
 const cart = useCartStore()
 
-const send = (text: string) => {
+const send = async (text: string) => {
   if (!text.trim()) return
   msgs.value.push({ role: "user", text })
   input.value = ""
   typing.value = true
-  setTimeout(() => {
-    msgs.value.push(respond(text))
-    typing.value = false
-  }, 700)
+  
+  const botReply = await respond(text)
+  msgs.value.push(botReply)
+  typing.value = false
 }
 
 const addToCart = (it: any) => {

@@ -46,7 +46,7 @@
                 <!-- Cancel (only confirm) -->
                 <button
                   v-if="store.options.type === 'confirm'"
-                  class="flex-1 h-12 rounded-2xl text-sm font-semibold transition-all duration-200 border"
+                  class="flex-1 h-16 rounded-2xl text-lg font-semibold transition-all duration-200 border"
                   :class="cancelBtnClass"
                   @click="store.cancel()"
                 >
@@ -55,7 +55,7 @@
 
                 <!-- Confirm -->
                 <button
-                  class="flex-1 h-12 rounded-2xl text-sm font-bold tracking-wide transition-all duration-200 shadow-lg active:scale-95"
+                  class="flex-1 h-16 rounded-2xl text-xl font-extrabold tracking-widest transition-all duration-200 shadow-xl active:scale-95 uppercase"
                   :class="confirmBtnClass"
                   @click="store.confirm()"
                 >
@@ -90,35 +90,35 @@ function onBackdropClick() {
 }
 
 const cardClass = computed(() => ({
-  success: 'bg-[#F5FAF4] border border-[#BBE3B0]',
-  error:   'bg-[#FDF4F4] border border-[#F0B8B8]',
-  warning: 'bg-[#FDFAF0] border border-[#EDD98A]',
-  info:    'bg-[#F4F7FD] border border-[#B0C8F0]',
-  confirm: 'bg-[#1E2128] border border-white/10',
+  success: 'bg-[#FDF6EC] border border-[#EBE0D0] shadow-warm', // bg-card
+  error:   'bg-[#FDF8F7] border border-[#F2D7D7] shadow-warm',
+  warning: 'bg-[#FCFAF2] border border-[#EADFBA] shadow-warm',
+  info:    'bg-[#FAFBFD] border border-[#D5E1F2] shadow-warm',
+  confirm: 'bg-[#2C1A0E] border border-[#3E291C]', // bg-espresso and border-espresso-soft
 }[type.value]))
 
 const stripClass = computed(() => ({
-  success: 'bg-gradient-to-r from-[#22C55E] to-[#16A34A]',
-  error:   'bg-gradient-to-r from-[#EF4444] to-[#DC2626]',
-  warning: 'bg-gradient-to-r from-[#F59E0B] to-[#D97706]',
-  info:    'bg-gradient-to-r from-[#3B82F6] to-[#2563EB]',
-  confirm: 'bg-gradient-to-r from-[#CC8033] to-[#B8722D]',
+  success: 'bg-gradient-to-r from-caramel to-brown',
+  error:   'bg-gradient-to-r from-[#E57373] to-[#C62828]',
+  warning: 'bg-gradient-to-r from-[#F6D07A] to-caramel',
+  info:    'bg-gradient-to-r from-[#90A4AE] to-[#546E7A]',
+  confirm: 'bg-gradient-to-r from-caramel to-brown',
 }[type.value]))
 
 const iconBgClass = computed(() => ({
-  success: 'bg-[#DCFCE7]',
-  error:   'bg-[#FEE2E2]',
-  warning: 'bg-[#FEF3C7]',
-  info:    'bg-[#DBEAFE]',
-  confirm: 'bg-[#CC8033]/20',
+  success: 'bg-[#F6E4CF]', // bg-caramel-light
+  error:   'bg-[#FCECEB]',
+  warning: 'bg-[#FCF5E3]',
+  info:    'bg-[#ECEFF1]',
+  confirm: 'bg-caramel/20',
 }[type.value]))
 
 const iconColorClass = computed(() => ({
-  success: 'text-[#16A34A]',
-  error:   'text-[#DC2626]',
-  warning: 'text-[#D97706]',
-  info:    'text-[#2563EB]',
-  confirm: 'text-[#CC8033]',
+  success: 'text-caramel', 
+  error:   'text-[#C62828]',
+  warning: 'text-caramel',  
+  info:    'text-[#455A64]',
+  confirm: 'text-caramel',
 }[type.value]))
 
 const iconComponent = computed(() => ({
@@ -130,37 +130,37 @@ const iconComponent = computed(() => ({
 }[type.value]))
 
 const titleColorClass = computed(() => ({
-  success: 'text-[#14532D]',
-  error:   'text-[#7F1D1D]',
-  warning: 'text-[#78350F]',
-  info:    'text-[#1E3A8A]',
-  confirm: 'text-white',
+  success: 'text-espresso font-extrabold font-display',
+  error:   'text-espresso font-extrabold font-display',
+  warning: 'text-espresso font-extrabold font-display',
+  info:    'text-espresso font-extrabold font-display',
+  confirm: 'text-cream font-extrabold font-display',
 }[type.value]))
 
 const messageColorClass = computed(() => ({
-  success: 'text-[#14532D]',
-  error:   'text-[#7F1D1D]',
-  warning: 'text-[#78350F]',
-  info:    'text-[#1E3A8A]',
-  confirm: 'text-white',
+  success: 'text-espresso/70',
+  error:   'text-[#7A5A58]',
+  warning: 'text-espresso/70',
+  info:    'text-[#54626F]',
+  confirm: 'text-cream/80',
 }[type.value]))
 
 const confirmBtnClass = computed(() => ({
-  success: 'bg-[#16A34A] hover:bg-[#15803D] text-white shadow-[#16A34A]/30',
-  error:   'bg-[#DC2626] hover:bg-[#B91C1C] text-white shadow-[#DC2626]/30',
-  warning: 'bg-[#D97706] hover:bg-[#B45309] text-white shadow-[#D97706]/30',
-  info:    'bg-[#2563EB] hover:bg-[#1D4ED8] text-white shadow-[#2563EB]/30',
-  confirm: 'bg-[#CC8033] hover:bg-[#B8722D] text-white shadow-[#CC8033]/30',
+  success: 'bg-espresso hover:bg-brown text-cream shadow-lg shadow-espresso/25',
+  error:   'bg-[#C62828] hover:bg-[#A32222] text-white shadow-lg shadow-[#C62828]/25',
+  warning: 'bg-caramel hover:bg-brown text-cream shadow-lg shadow-caramel/25',
+  info:    'bg-espresso hover:bg-brown text-cream shadow-lg shadow-espresso/25',
+  confirm: 'bg-caramel hover:bg-caramel-light hover:text-brown text-cream shadow-lg shadow-caramel/25',
 }[type.value]))
 
-const cancelBtnClass = computed(() => 'bg-white/5 hover:bg-white/10 text-white/70 border-white/10')
+const cancelBtnClass = computed(() => 'bg-white/5 hover:bg-white/10 text-cream/70 border-white/10')
 
 const decorClass = computed(() => ({
-  success: 'bg-[#16A34A]',
-  error:   'bg-[#DC2626]',
-  warning: 'bg-[#D97706]',
-  info:    'bg-[#2563EB]',
-  confirm: 'bg-[#CC8033]',
+  success: 'bg-caramel',
+  error:   'bg-red-500',
+  warning: 'bg-caramel',
+  info:    'bg-espresso',
+  confirm: 'bg-caramel',
 }[type.value]))
 </script>
 

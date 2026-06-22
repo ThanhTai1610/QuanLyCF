@@ -35,6 +35,47 @@
             <Label class="text-espresso">Mô tả ngắn</Label>
             <Textarea v-model="storeDesc" class="bg-background border border-cream-deep rounded-lg shadow-card min-h-[80px]" />
           </div>
+          <div class="space-y-1.5">
+            <Label class="text-espresso">Giờ mở cửa</Label>
+            <div class="flex items-center gap-2">
+              <Input type="time" v-model="openTime" class="bg-background border border-cream-deep rounded-lg shadow-card flex-1" />
+              <span class="text-muted-foreground font-bold">-</span>
+              <Input type="time" v-model="closeTime" class="bg-background border border-cream-deep rounded-lg shadow-card flex-1" />
+            </div>
+          </div>
+          <div class="space-y-1.5">
+            <Label class="text-espresso">Ảnh trang chủ (Link/URL)</Label>
+            <div class="flex items-center gap-2">
+              <Input v-model="heroImage" placeholder="Dán link ảnh bìa vào đây" class="bg-background border border-cream-deep rounded-lg shadow-card flex-1" />
+              <input type="file" ref="fileInput" @change="handleFileUpload" accept="image/*" class="hidden" />
+              <Button variant="outline" @click="$refs.fileInput.click()" type="button" class="border border-cream-deep rounded-lg shadow-card text-caramel hover:text-brown bg-caramel-light px-3" title="Tải ảnh từ máy tính">
+                <Upload class="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trợ lý ảo AI -->
+      <section class="bg-card rounded-lg border border-cream-deep shadow-card p-6">
+        <div class="flex items-start gap-3 mb-5">
+          <div class="w-10 h-10 rounded-lg bg-caramel-light flex items-center justify-center flex-shrink-0 border border-cream-deep">
+            <Sparkles class="w-5 h-5 text-caramel" />
+          </div>
+          <div>
+            <h3 class="font-display text-lg text-espresso font-semibold">Trợ lý ảo AI</h3>
+            <p class="text-xs text-muted-foreground mt-0.5">Tên gọi và cách xưng hô của Chatbot trên trang chủ</p>
+          </div>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <Label class="text-espresso">Tên hiển thị của AI</Label>
+            <Input v-model="tenAI" placeholder="VD: Barista AI, Cô Tấm, Cậu Vàng..." class="bg-background border border-cream-deep rounded-lg shadow-card" />
+          </div>
+          <div class="space-y-1.5">
+            <Label class="text-espresso">Cách AI xưng hô với khách</Label>
+            <Input v-model="xungHoAI" placeholder="VD: mình - bạn, em - anh/chị, tôi - bạn..." class="bg-background border border-cream-deep rounded-lg shadow-card" />
+          </div>
         </div>
       </section>
 
@@ -134,7 +175,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Coffee, Bell, CreditCard, Wrench, RefreshCw } from 'lucide-vue-next'
+import { Coffee, Bell, CreditCard, Wrench, RefreshCw, Upload, Sparkles } from 'lucide-vue-next'
 import { api } from '@/services/api'
 import { useStoreInfoStore } from '@/stores/storeInfo'
 import { useAlert } from '@/stores/alert'
@@ -154,6 +195,14 @@ const storeName = ref("")
 const storePhone = ref("")
 const storeAddress = ref("")
 const storeDesc = ref("")
+const openTime = ref("07:00")
+const closeTime = ref("22:30")
+const heroImage = ref("")
+const fileInput = ref<HTMLInputElement | null>(null)
+
+// Trợ lý AI
+const tenAI = ref("Barista AI")
+const xungHoAI = ref("tôi - bạn")
 
 // Thuế & Phí & Tích điểm
 const vatRate = ref("8")
@@ -181,11 +230,22 @@ const loadSettings = async () => {
       storePhone.value = res.soDienThoai || ""
       storeAddress.value = res.diaChi || ""
       storeDesc.value = res.moTaQuan || ""
+      
+      const hours = res.gioMoCua || "07:00 - 22:30"
+      if (hours.includes(' - ')) {
+        const parts = hours.split(' - ')
+        openTime.value = parts[0]
+        closeTime.value = parts[1]
+      }
+      
+      heroImage.value = res.anhTrangChu || ""
       vatRate.value = res.thueVatMacDinh || "8"
       serviceFee.value = res.phiDichVu || "0"
       pointRate.value = res.tyLeTichDiem || "1"
       maintenanceMode.value = res.cheDoBaoTri ?? false
       maintenanceMessage.value = res.thongDiepBaoTri || ""
+      tenAI.value = res.tenAI || "Barista AI"
+      xungHoAI.value = res.xungHoAI || "tôi - bạn"
     }
   } catch (err: any) {
     await alert.error('Lỗi tải dữ liệu', 'Không thể tải cài đặt: ' + err.message)
@@ -203,11 +263,15 @@ const save = async () => {
       diaChi: storeAddress.value,
       soDienThoai: storePhone.value,
       moTaQuan: storeDesc.value,
+      gioMoCua: `${openTime.value} - ${closeTime.value}`,
+      anhTrangChu: heroImage.value,
       thueVatMacDinh: vatRate.value.toString(),
       phiDichVu: serviceFee.value.toString(),
       tyLeTichDiem: pointRate.value.toString(),
       cheDoBaoTri: maintenanceMode.value,
       thongDiepBaoTri: maintenanceMessage.value,
+      tenAI: tenAI.value,
+      xungHoAI: xungHoAI.value,
     })
 
     // Cập nhật store toàn cục ngay lập tức — các trang khác thay đổi không cần reload
@@ -216,6 +280,10 @@ const save = async () => {
       diaChi:      storeAddress.value,
       soDienThoai: storePhone.value,
       moTaQuan:    storeDesc.value,
+      gioMoCua:    `${openTime.value} - ${closeTime.value}`,
+      anhTrangChu: heroImage.value,
+      tenAI:       tenAI.value,
+      xungHoAI:    xungHoAI.value,
     })
 
     if (maintenanceMode.value) {
@@ -236,4 +304,49 @@ const save = async () => {
 onMounted(() => {
   loadSettings()
 })
+
+const handleFileUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const response = await fetch('/api/uploads/image', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+      }
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Lỗi tải ảnh';
+      try {
+        const errText = await response.text();
+        if (errText) {
+          try {
+            const errJson = JSON.parse(errText);
+            errorMessage = errJson.message || errorMessage;
+          } catch {
+            errorMessage = errText;
+          }
+        }
+      } catch (e) {
+        // Fallback if reading text fails
+      }
+      throw new Error(`[${response.status}] ${errorMessage}`);
+    }
+
+    const data = await response.json();
+    heroImage.value = data.url; // Đường dẫn tuyệt đối từ Backend trả về
+    await alert.success('Thành công', 'Đã tải ảnh lên. Nhớ bấm Lưu cài đặt!');
+  } catch (err: any) {
+    await alert.error('Lỗi upload', err.message);
+  } finally {
+    if (fileInput.value) fileInput.value.value = ''; // Reset input file
+  }
+}
 </script>

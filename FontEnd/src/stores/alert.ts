@@ -48,7 +48,7 @@ export function useAlert() {
 
   return {
     success: (title: string, message?: string) =>
-      store.show({ type: 'success', title, message, confirmText: 'Tuyệt vời!' }),
+      store.show({ type: 'success', title, message, confirmText: 'Hoàn tất' }),
 
     error: (title: string, message?: string) =>
       store.show({ type: 'error', title, message, confirmText: 'Đã hiểu' }),

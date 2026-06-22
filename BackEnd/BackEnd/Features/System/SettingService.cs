@@ -17,9 +17,9 @@ namespace BackEnd.Features.System
         // Các khoá cài đặt
         private static readonly string[] AllKeys =
         {
-            "TEN_QUAN", "DIA_CHI", "SO_DIEN_THOAI", "MO_TA_QUAN",
+            "TEN_QUAN", "DIA_CHI", "SO_DIEN_THOAI", "MO_TA_QUAN", "GIO_MO_CUA", "ANH_TRANG_CHU",
             "THUE_VAT_MAC_DINH", "PHI_DICH_VU", "TY_LE_TICH_DIEM",
-            "CHE_DO_BAO_TRI", "THONG_DIEP_BAO_TRI"
+            "CHE_DO_BAO_TRI", "THONG_DIEP_BAO_TRI", "TEN_AI", "XUNG_HO_AI"
         };
 
         private static readonly Dictionary<string, string> NhomMap = new()
@@ -28,11 +28,15 @@ namespace BackEnd.Features.System
             ["DIA_CHI"]            = "CHUNG",
             ["SO_DIEN_THOAI"]      = "CHUNG",
             ["MO_TA_QUAN"]         = "CHUNG",
+            ["GIO_MO_CUA"]         = "CHUNG",
+            ["ANH_TRANG_CHU"]      = "CHUNG",
             ["CHE_DO_BAO_TRI"]     = "CHUNG",
             ["THONG_DIEP_BAO_TRI"] = "CHUNG",
             ["THUE_VAT_MAC_DINH"]  = "THANH_TOAN",
             ["PHI_DICH_VU"]        = "THANH_TOAN",
             ["TY_LE_TICH_DIEM"]    = "TICH_DIEM",
+            ["TEN_AI"]             = "CHUNG",
+            ["XUNG_HO_AI"]         = "CHUNG",
         };
 
         public SettingService(QuanLyCFDbContext db, IMemoryCache cache)
@@ -57,13 +61,17 @@ namespace BackEnd.Features.System
                 DiaChi:           Val("DIA_CHI"),
                 SoDienThoai:      Val("SO_DIEN_THOAI"),
                 MoTaQuan:         Val("MO_TA_QUAN"),
+                GioMoCua:         Val("GIO_MO_CUA", "7:00 - 22:30"),
+                AnhTrangChu:      Val("ANH_TRANG_CHU", ""),
                 ThueVatMacDinh:   Val("THUE_VAT_MAC_DINH", "8"),
                 PhiDichVu:        Val("PHI_DICH_VU", "0"),
                 TyLeTichDiem:     Val("TY_LE_TICH_DIEM", "1"),
                 CheDoBaoTri:      Val("CHE_DO_BAO_TRI", "false")
                                     .Equals("true", StringComparison.OrdinalIgnoreCase),
                 ThongDiepBaoTri:  Val("THONG_DIEP_BAO_TRI",
-                                    "Hệ thống đang bảo trì. Vui lòng quay lại sau.")
+                                    "Hệ thống đang bảo trì. Vui lòng quay lại sau."),
+                TenAI:            Val("TEN_AI", "Barista AI"),
+                XungHoAI:         Val("XUNG_HO_AI", "mình - bạn")
             );
         }
 
@@ -87,11 +95,15 @@ namespace BackEnd.Features.System
                 ["DIA_CHI"]            = req.DiaChi?.Trim(),
                 ["SO_DIEN_THOAI"]      = req.SoDienThoai?.Trim(),
                 ["MO_TA_QUAN"]         = req.MoTaQuan?.Trim(),
+                ["GIO_MO_CUA"]         = req.GioMoCua?.Trim(),
+                ["ANH_TRANG_CHU"]      = req.AnhTrangChu?.Trim(),
                 ["THUE_VAT_MAC_DINH"]  = req.ThueVatMacDinh.Trim(),
                 ["PHI_DICH_VU"]        = req.PhiDichVu.Trim(),
                 ["TY_LE_TICH_DIEM"]    = req.TyLeTichDiem.Trim(),
                 ["CHE_DO_BAO_TRI"]     = req.CheDoBaoTri ? "true" : "false",
                 ["THONG_DIEP_BAO_TRI"] = req.ThongDiepBaoTri?.Trim(),
+                ["TEN_AI"]             = req.TenAI?.Trim(),
+                ["XUNG_HO_AI"]         = req.XungHoAI?.Trim(),
             };
 
             var existing = await _db.CaiDatHeThongs
@@ -130,7 +142,7 @@ namespace BackEnd.Features.System
 
         public async Task<StoreInfoDto> GetStoreInfoAsync()
         {
-            var publicKeys = new[] { "TEN_QUAN", "DIA_CHI", "SO_DIEN_THOAI", "MO_TA_QUAN" };
+            var publicKeys = new[] { "TEN_QUAN", "DIA_CHI", "SO_DIEN_THOAI", "MO_TA_QUAN", "GIO_MO_CUA", "ANH_TRANG_CHU", "TEN_AI", "XUNG_HO_AI" };
             var rows = await _db.CaiDatHeThongs
                 .AsNoTracking()
                 .Where(x => publicKeys.Contains(x.KhoaCaiDat))
@@ -143,7 +155,11 @@ namespace BackEnd.Features.System
                 TenQuan:     Val("TEN_QUAN", "BrewManager Coffee"),
                 DiaChi:      Val("DIA_CHI"),
                 SoDienThoai: Val("SO_DIEN_THOAI"),
-                MoTaQuan:    Val("MO_TA_QUAN")
+                MoTaQuan:    Val("MO_TA_QUAN"),
+                GioMoCua:    Val("GIO_MO_CUA", "7:00 - 22:30"),
+                AnhTrangChu: Val("ANH_TRANG_CHU", ""),
+                TenAI:       Val("TEN_AI", "Barista AI"),
+                XungHoAI:    Val("XUNG_HO_AI", "tôi - bạn")
             );
         }
 

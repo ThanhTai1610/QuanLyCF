@@ -11,6 +11,10 @@ export const useStoreInfoStore = defineStore('storeInfo', () => {
   const diaChi      = ref('')
   const soDienThoai = ref('')
   const moTaQuan    = ref('')
+  const gioMoCua    = ref('')
+  const anhTrangChu = ref('')
+  const tenAI       = ref('Barista AI')
+  const xungHoAI    = ref('tôi - bạn')
   const loaded      = ref(false)
 
   /** Tên quán + " Coffee" nếu chưa có thêm gì */
@@ -38,11 +42,19 @@ export const useStoreInfoStore = defineStore('storeInfo', () => {
     diaChi?: string
     soDienThoai?: string
     moTaQuan?: string
+    gioMoCua?: string
+    anhTrangChu?: string
+    tenAI?: string
+    xungHoAI?: string
   }) {
     if (data.tenQuan     !== undefined) tenQuan.value     = data.tenQuan     || 'BrewManager'
     if (data.diaChi      !== undefined) diaChi.value      = data.diaChi      || ''
     if (data.soDienThoai !== undefined) soDienThoai.value = data.soDienThoai || ''
     if (data.moTaQuan    !== undefined) moTaQuan.value    = data.moTaQuan    || ''
+    if (data.gioMoCua    !== undefined) gioMoCua.value    = data.gioMoCua    || ''
+    if (data.anhTrangChu !== undefined) anhTrangChu.value = data.anhTrangChu || ''
+    if (data.tenAI       !== undefined) tenAI.value       = data.tenAI       || 'Barista AI'
+    if (data.xungHoAI    !== undefined) xungHoAI.value    = data.xungHoAI    || 'tôi - bạn'
   }
 
   /** Xoá cache để fetch lại lần tiếp theo */
@@ -50,5 +62,5 @@ export const useStoreInfoStore = defineStore('storeInfo', () => {
     loaded.value = false
   }
 
-  return { tenQuan, tenQuanFull, diaChi, soDienThoai, moTaQuan, loaded, fetchInfo, setInfo, invalidate }
+  return { tenQuan, tenQuanFull, diaChi, soDienThoai, moTaQuan, gioMoCua, anhTrangChu, tenAI, xungHoAI, loaded, fetchInfo, setInfo, invalidate }
 })

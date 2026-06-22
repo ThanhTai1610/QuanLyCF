@@ -18,7 +18,7 @@ public class OrdersController : ControllerBase
             ? id : null;
 
     [HttpGet("menu")]
-    [Authorize(Policy = Quyens.DonHangXem)]
+    [AllowAnonymous]
     public async Task<IActionResult> Menu() => Ok(await _svc.LayMenuAsync());
 
     [HttpGet("active")]
