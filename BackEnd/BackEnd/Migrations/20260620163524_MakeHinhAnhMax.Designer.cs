@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(QuanLyCFDbContext))]
-    partial class QuanLyCFDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260620163524_MakeHinhAnhMax")]
+    partial class MakeHinhAnhMax
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -198,7 +201,7 @@ namespace BackEnd.Migrations
                         new
                         {
                             MaCaiDat = 2,
-                            GiaTriCaiDat = "123 Nguyễn Huệ, Quận 1, TP.HCM",
+                            GiaTriCaiDat = "",
                             KhoaCaiDat = "DIA_CHI",
                             MoTa = "Địa chỉ quán",
                             NhomCaiDat = "CHUNG",
@@ -229,42 +232,6 @@ namespace BackEnd.Migrations
                             KhoaCaiDat = "TY_LE_TICH_DIEM",
                             MoTa = "Số điểm cho mỗi 1.000đ",
                             NhomCaiDat = "TICH_DIEM",
-                            ThoiGianCapNhat = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            MaCaiDat = 6,
-                            GiaTriCaiDat = "false",
-                            KhoaCaiDat = "CHE_DO_BAO_TRI",
-                            MoTa = "Chế độ bảo trì hệ thống",
-                            NhomCaiDat = "CHUNG",
-                            ThoiGianCapNhat = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            MaCaiDat = 7,
-                            GiaTriCaiDat = "Hệ thống đang bảo trì để nâng cấp định kỳ. Vui lòng quay lại sau.",
-                            KhoaCaiDat = "THONG_DIEP_BAO_TRI",
-                            MoTa = "Thông điệp bảo trì",
-                            NhomCaiDat = "CHUNG",
-                            ThoiGianCapNhat = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            MaCaiDat = 8,
-                            GiaTriCaiDat = "0909 123 456",
-                            KhoaCaiDat = "SO_DIEN_THOAI",
-                            MoTa = "Số điện thoại quán",
-                            NhomCaiDat = "CHUNG",
-                            ThoiGianCapNhat = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            MaCaiDat = 9,
-                            GiaTriCaiDat = "Quán cà phê đặc sản với không gian ấm cúng. Phục vụ cà phê pha máy, trà, bánh ngọt và các loại đồ uống đá xay.",
-                            KhoaCaiDat = "MO_TA_QUAN",
-                            MoTa = "Mô tả quán",
-                            NhomCaiDat = "CHUNG",
                             ThoiGianCapNhat = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         });
                 });
