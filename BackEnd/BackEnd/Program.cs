@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Persistence;
 using BackEnd.Shared;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -53,6 +54,10 @@ namespace BackEnd
             builder.Services.AddScoped<Features.Inventory.StockTakes.StockTakeService>();
             builder.Services.AddScoped<Features.Sales.Orders.OrderService>();
             builder.Services.AddScoped<Features.Sales.Promotions.PromotionService>();
+            // System
+            builder.Services.AddScoped<Features.System.SettingService>();
+            builder.Services.AddScoped<Features.System.AuditLogService>();
+            builder.Services.AddMemoryCache();
 
             // ── CORS cho frontend Vite ──────────────────────────
             var feOrigin = builder.Configuration["Cors:FrontendOrigin"] ?? "http://localhost:5173";
@@ -97,6 +102,62 @@ namespace BackEnd
             app.UseHttpsRedirection();
             app.UseCors("frontend");
             app.UseAuthentication();
+
+            // ── Maintenance Mode Middleware (cache 30s để tránh query DB mỗi request) ───
+            app.Use(async (context, next) =>
+            {
+                var path = context.Request.Path.Value ?? "";
+
+                // Các đường dẫn luôn được phép đi qua
+                bool isExceptionPath =
+                    path.StartsWith("/api/settings/maintenance", StringComparison.OrdinalIgnoreCase) ||
+                    path.StartsWith("/api/auth/login",          StringComparison.OrdinalIgnoreCase) ||
+                    path.StartsWith("/api/auth/staff-login",    StringComparison.OrdinalIgnoreCase) ||
+                    path.StartsWith("/swagger",                 StringComparison.OrdinalIgnoreCase);
+
+                if (!isExceptionPath)
+                {
+                    var cache = context.RequestServices.GetRequiredService<IMemoryCache>();
+
+                    // Đọc từ cache; nếu miss mới query DB (TTL = 30 giây)
+                    if (!cache.TryGetValue("__maint_on", out bool isMaint))
+                    {
+                        var db = context.RequestServices.GetRequiredService<QuanLyCFDbContext>();
+                        var row = await db.CaiDatHeThongs
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(x => x.KhoaCaiDat == "CHE_DO_BAO_TRI");
+                        isMaint = row?.GiaTriCaiDat?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
+                        cache.Set("__maint_on", isMaint, TimeSpan.FromSeconds(30));
+                    }
+
+                    if (isMaint)
+                    {
+                        bool isAdmin = context.User.Identity?.IsAuthenticated == true
+                                    && context.User.HasClaim("perm", Quyens.CaiDatQuanLy);
+
+                        if (!isAdmin)
+                        {
+                            if (!cache.TryGetValue("__maint_msg", out string? message) || message is null)
+                            {
+                                var db = context.RequestServices.GetRequiredService<QuanLyCFDbContext>();
+                                var msgRow = await db.CaiDatHeThongs
+                                    .AsNoTracking()
+                                    .FirstOrDefaultAsync(x => x.KhoaCaiDat == "THONG_DIEP_BAO_TRI");
+                                message = msgRow?.GiaTriCaiDat ?? "Hệ thống đang bảo trì. Vui lòng quay lại sau.";
+                                cache.Set("__maint_msg", message, TimeSpan.FromSeconds(30));
+                            }
+
+                            context.Response.StatusCode  = StatusCodes.Status503ServiceUnavailable;
+                            context.Response.ContentType = "application/json";
+                            await context.Response.WriteAsJsonAsync(new { message, isMaintenance = true });
+                            return;
+                        }
+                    }
+                }
+
+                await next(context);
+            });
+
             app.UseAuthorization();
             app.MapControllers();
 

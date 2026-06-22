@@ -29,7 +29,7 @@
           </div>
           
           <div class="space-y-3">
-            <h2 class="font-premium-serif text-3xl font-bold tracking-[0.1em] text-[#FDFBF7]">BREWMANAGER</h2>
+            <h2 class="font-premium-serif text-3xl font-bold tracking-[0.1em] text-[#FDFBF7]">{{ storeInfoStore.tenQuan.toUpperCase() }}</h2>
             <div class="w-10 h-[1px] bg-[#CC8033] mx-auto opacity-60"></div>
             <p class="text-[10px] uppercase tracking-[0.3em] text-[#8A8178] font-bold leading-relaxed">
               Hệ thống quản trị và <br/> vận hành toàn diện
@@ -217,6 +217,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Coffee, Eye, EyeOff, ArrowRight, Check, Lock, Shield, Users, Home } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { useStoreInfoStore } from '@/stores/storeInfo'
 
 const activeTab = ref<'admin'|'staff'>('admin')
 const showPwd = ref(false)
@@ -224,8 +225,9 @@ const email = ref('admin@brew.vn')
 const password = ref('demo1234')
 const rememberMe = ref(false)
 const isLoading = ref(false)
-const router = useRouter()
-const authStore = useAuthStore()
+const router         = useRouter()
+const authStore      = useAuthStore()
+const storeInfoStore = useStoreInfoStore()
 
 // Watch for tab change to update placeholders
 import { watch } from 'vue'

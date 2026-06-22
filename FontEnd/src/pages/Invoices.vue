@@ -146,9 +146,9 @@
             <div class="w-10 h-10 mx-auto bg-[#2A231E] rounded-md flex items-center justify-center text-white mb-3">
               <Coffee class="w-5 h-5" />
             </div>
-            <h2 class="font-premium-serif text-3xl font-bold text-[#2A231E]">BrewManager</h2>
-            <p class="text-[10px] uppercase tracking-widest text-[#8A8178] font-bold mt-2">123 Nguyễn Huệ, Q1, TP.HCM</p>
-            <p class="text-[10px] uppercase tracking-widest text-[#8A8178] font-bold mt-0.5">Hotline: 0909 123 456</p>
+            <h2 class="font-premium-serif text-3xl font-bold text-[#2A231E]">{{ storeInfoStore.tenQuan }}</h2>
+            <p class="text-[10px] uppercase tracking-widest text-[#8A8178] font-bold mt-2">{{ storeInfoStore.diaChi || '123 Nguyễn Huệ, Q1, TP.HCM' }}</p>
+            <p class="text-[10px] uppercase tracking-widest text-[#8A8178] font-bold mt-0.5">Hotline: {{ storeInfoStore.soDienThoai || '0909 123 456' }}</p>
           </div>
          
           <div class="py-2 text-[11px] font-medium text-[#5C544E] space-y-2">
@@ -217,6 +217,9 @@ import { Search, Calendar, Download, Eye, Printer, FileText, Filter, Coffee, Che
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Modal from '@/components/ui/Modal.vue'
+import { useStoreInfoStore } from '@/stores/storeInfo'
+
+const storeInfoStore = useStoreInfoStore()
 
 const formatVND = (val: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)
 

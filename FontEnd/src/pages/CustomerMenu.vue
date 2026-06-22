@@ -10,7 +10,7 @@
           <div class="w-10 h-10 flex items-center justify-center bg-[#2A231E] text-[#FDFBF7] rounded-lg shadow-xl">
             <Coffee class="w-5 h-5" stroke-width="1.5" />
           </div>
-          <span class="font-premium-serif text-2xl font-bold tracking-wide text-[#2A231E]">BrewManager</span>
+          <span class="font-premium-serif text-2xl font-bold tracking-wide text-[#2A231E]">{{ storeInfoStore.tenQuan }}</span>
         </router-link>
         
         <!-- Right actions -->
@@ -793,6 +793,7 @@ import { ShoppingBag, Plus, Minus, Trash2, Coffee, X, ChevronLeft, ChevronRight,
 import { menuItems, categories, formatVND, type Category } from '@/data/menu'
 import { useCartStore } from '@/stores/cart'
 import { useOrderStore } from '@/stores/orders'
+import { useStoreInfoStore } from '@/stores/storeInfo'
 import Button from '@/components/ui/Button.vue'
 import ChatbotWidget from '@/components/ChatbotWidget.vue'
 
@@ -805,8 +806,9 @@ const open = ref(false)
 const openLoginSheet = ref(false)
 const phoneNumber = ref('')
 const customerName = ref('')
-const cart = useCartStore()
-const orderStore = useOrderStore()
+const cart         = useCartStore()
+const orderStore   = useOrderStore()
+const storeInfoStore = useStoreInfoStore()
 
 const toasts = ref<{ id: number, title?: string, message: string, type: 'success' | 'error' }[]>([])
 let toastId = 0

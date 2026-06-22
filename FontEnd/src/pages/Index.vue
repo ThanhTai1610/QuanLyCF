@@ -8,7 +8,7 @@
             <Coffee class="w-5 h-5 text-cream" />
           </div>
           <div class="flex flex-col text-left">
-            <span class="font-display text-lg text-espresso font-bold tracking-tight">BrewManager Cafe</span>
+            <span class="font-display text-lg text-espresso font-bold tracking-tight">{{ tenQuan || 'BrewManager Cafe' }}</span>
             <span class="text-[10px] text-caramel font-semibold uppercase tracking-wider">Không gian & Cà phê tử tế</span>
           </div>
         </div>
@@ -59,16 +59,28 @@
         
         <div class="max-w-6xl mx-auto px-6 grid lg:grid-cols-12 gap-12 items-center">
           <div class="lg:col-span-7 text-left space-y-6">
-            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-caramel-light border border-caramel/20 text-[11px] font-bold text-brown uppercase tracking-wider">
-              🍃 Cà phê nguyên bản & Không gian ấm áp
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-caramel-light border border-caramel/20 text-xs font-medium text-brown">
+              ☕ Hệ thống dành cho quán cà phê hiện đại
             </span>
             <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl text-espresso leading-[1.1] font-extrabold tracking-tight">
-              Thưởng thức tách<br />
-              <span class="bg-gradient-to-r from-caramel via-brown to-espresso bg-clip-text text-transparent">Cà phê ngon trọn vị.</span>
+              Chào mừng bạn đến với<br />
+              <span class="bg-gradient-to-r from-caramel via-brown to-espresso bg-clip-text text-transparent">{{ tenQuan || 'BrewManager Cafe' }}</span>
             </h1>
             <p class="text-muted-foreground text-base sm:text-lg leading-relaxed max-w-xl">
-              Từ nông trại tới ly cà phê của bạn. BrewManager mang đến hương vị đậm đà được pha chế tỉ mỉ, kết hợp cùng dịch vụ tự động gọi món QR hiện đại giúp trải nghiệm của bạn trọn vẹn nhất.
+              {{ moTaQuan || 'Từ nông trại tới ly cà phê của bạn. Chúng tôi mang đến hương vị đậm đà được pha chế tỉ mỉ, kết hợp cùng dịch vụ tự động gọi món QR hiện đại giúp trải nghiệm của bạn trọn vẹn nhất.' }}
             </p>
+
+            <!-- Store Contact Details -->
+            <div class="flex flex-col gap-2 text-left">
+              <div v-if="storeInfoStore.diaChi" class="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin class="w-4 h-4 text-caramel shrink-0" />
+                <span>{{ storeInfoStore.diaChi }}</span>
+              </div>
+              <div v-if="storeInfoStore.soDienThoai" class="flex items-center gap-2 text-sm text-muted-foreground">
+                <Phone class="w-4 h-4 text-caramel shrink-0" />
+                <span>{{ storeInfoStore.soDienThoai }}</span>
+              </div>
+            </div>
 
             <div class="flex flex-wrap gap-4 pt-2">
               <a
@@ -431,7 +443,7 @@
                 <p class="text-[11px] text-muted-foreground">Giờ mở cửa</p>
               </div>
               <div class="border-l border-cream-deep/60 pl-6">
-                <h5 class="font-bold text-espresso">123 Đường Cà Phê, Q. 1</h5>
+                <h5 class="font-bold text-espresso">{{ storeInfoStore.diaChi || '123 Đường Cà Phê, Q. 1' }}</h5>
                 <p class="text-[11px] text-muted-foreground">Địa chỉ quán</p>
               </div>
             </div>
@@ -448,10 +460,10 @@
             <div class="w-9 h-9 rounded-lg bg-caramel flex items-center justify-center text-cream">
               <Coffee class="w-5 h-5" />
             </div>
-            <span class="font-display text-lg text-cream font-bold">BrewManager</span>
+            <span class="font-display text-lg text-cream font-bold">{{ tenQuan || 'BrewManager' }}</span>
           </div>
           <p class="text-xs text-cream/50 leading-relaxed font-semibold">
-            Hệ thống giải pháp vận hành tối giản, tinh tế cho các mô hình quán cafe, trà sữa, trà chanh hiện đại.
+            {{ moTaQuan || 'Hệ thống giải pháp vận hành tối giản, tinh tế cho các mô hình quán cafe, trà sữa, trà chanh hiện đại.' }}
           </p>
         </div>
 
@@ -477,14 +489,14 @@
           <h4 class="font-bold text-xs text-cream uppercase tracking-wider">Liên Hệ</h4>
           <p class="text-xs text-cream/50 leading-relaxed">
             Email: contact@brewmanager.vn<br />
-            Hotline: 1900 6789<br />
-            Địa chỉ: 123 Đường Cà Phê, Quận 1, TP. HCM
+            Hotline: {{ storeInfoStore.soDienThoai || '1900 6789' }}<br />
+            Địa chỉ: {{ storeInfoStore.diaChi || '123 Đường Cà Phê, Quận 1, TP. HCM' }}
           </p>
         </div>
       </div>
 
       <div class="max-w-6xl mx-auto px-6 mt-12 pt-8 border-t border-white/5 text-center text-[10px] text-cream/40 flex flex-col sm:flex-row justify-between gap-4">
-        <span>© 2026 BrewManager. Mọi quyền được bảo lưu. Thiết kế pha chế tỉ mỉ.</span>
+        <span>© 2026 {{ tenQuan || 'BrewManager' }}. Mọi quyền được bảo lưu. Thiết kế pha chế tỉ mỉ.</span>
         <div class="flex gap-4 justify-center">
           <a href="#" class="hover:text-caramel transition-colors">Chính sách bảo mật</a>
           <a href="#" class="hover:text-caramel transition-colors">Điều khoản dịch vụ</a>
@@ -543,15 +555,21 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { 
-  Coffee, ArrowRight, QrCode, X, History, Sparkles, CheckCircle 
+  Coffee, ArrowRight, QrCode, LayoutDashboard, X, History, Sparkles, CheckCircle, MapPin, Phone 
 } from 'lucide-vue-next';
 import heroImg from '@/assets/cafe-hero.jpg';
 import menuCoffee from '@/assets/menu-coffee.jpg';
 import menuTea from '@/assets/menu-tea.jpg';
 import menuFrappe from '@/assets/menu-frappe.jpg';
 import menuPastry from '@/assets/menu-pastry.jpg';
+import { useStoreInfoStore } from '@/stores/storeInfo';
 
 const router = useRouter()
+const storeInfoStore = useStoreInfoStore()
+
+// Dùng store toàn cục — App.vue đã fetch khi khởi động
+const tenQuan  = computed(() => storeInfoStore.tenQuan)
+const moTaQuan = computed(() => storeInfoStore.moTaQuan)
 
 // Modal and loyalty state management
 const isPhoneModalOpen = ref(false)
