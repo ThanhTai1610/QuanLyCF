@@ -346,6 +346,14 @@
             />
           </div>
           <div>
+            <label class="text-xs font-semibold text-espresso mb-1.5 block">Email (Tùy chọn)</label>
+            <input
+              v-model="form.email"
+              placeholder="example@gmail.com"
+              class="w-full h-10 px-3 bg-background border border-cream-deep rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-caramel/20 focus:border-caramel transition-all"
+            />
+          </div>
+          <div>
             <label class="text-xs font-semibold text-espresso mb-1.5 block">Ghi chú</label>
             <input
               v-model="form.note"
@@ -372,53 +380,105 @@
       </div>
     </div>
 
+    <!-- OTP VERIFICATION MODAL -->
+    <div
+      v-if="showOtpModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-espresso/40 backdrop-blur-sm p-4"
+      @click.self="showOtpModal = false"
+    >
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-base font-bold text-espresso flex items-center gap-2">
+            <Lock class="w-5 h-5 text-[#CC8033]" /> Xác thực mã OTP
+          </h3>
+          <button @click="showOtpModal = false" class="p-1.5 rounded-lg hover:bg-background transition-colors">
+            <X class="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+
+        <p class="text-xs text-muted-foreground mb-4">
+          <template v-if="simulatedOtpCode">
+            Hệ thống đã gửi một mã OTP giả lập tới số điện thoại của <strong>{{ currentRedeemCustomer?.name }}</strong>.
+          </template>
+          <template v-else>
+            Hệ thống đã gửi một mã OTP xác thực tới số điện thoại <strong>{{ currentRedeemCustomer?.phone }}</strong> của <strong>{{ currentRedeemCustomer?.name }}</strong>. Vui lòng nhập mã OTP từ điện thoại của bạn.
+          </template>
+        </p>
+
+        <!-- Simulated OTP Widget -->
+        <div v-if="simulatedOtpCode" class="bg-orange-50/70 border border-orange-200/50 rounded-xl p-4 mb-4 text-center">
+          <div class="text-[10px] uppercase font-bold tracking-wider text-orange-600/80 mb-1">Mã OTP Giả lập</div>
+          <div class="text-3xl font-extrabold tracking-[0.25em] text-[#CC8033]">{{ simulatedOtpCode }}</div>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs font-semibold text-espresso mb-1.5 block">Nhập mã OTP</label>
+            <input
+              v-model="otpInput"
+              type="text"
+              maxlength="6"
+              placeholder="Nhập 6 chữ số"
+              class="w-full h-12 text-center text-xl font-bold tracking-[0.5em] bg-background border border-cream-deep rounded-xl focus:outline-none focus:ring-2 focus:ring-caramel/20 focus:border-caramel transition-all"
+            />
+          </div>
+        </div>
+
+        <div class="flex gap-2 mt-5">
+          <button
+            @click="showOtpModal = false"
+            class="flex-1 h-10 rounded-lg border border-cream-deep text-sm font-semibold text-espresso hover:bg-background transition-colors"
+          >
+            Hủy
+          </button>
+          <button
+            @click="handleRedeemWithOtp"
+            :disabled="otpInput.length < 6"
+            class="flex-1 h-10 rounded-lg bg-[#CC8033] text-white text-sm font-bold hover:bg-brown transition-colors shadow-md shadow-[#CC8033]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Xác nhận
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   Search, Users, UserPlus, Eye, X, Clock,
   Star, Award, Gem, Crown, Pencil, Trash2,
-  Gift, Ticket, Percent, Coffee, Cookie, ChevronDown, Check
+  Gift, Ticket, Percent, Coffee, Cookie, ChevronDown, Check, Lock
 } from 'lucide-vue-next'
+import { loyaltyApi, type Customer, type Reward } from '@/services/loyalty'
+import { useToast } from '@/stores/toast'
+import { useAlert } from '@/stores/alert'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-interface Transaction {
-  date: string
-  note: string
-  points: number
-}
-
-interface Customer {
-  id: number
-  name: string
-  phone: string
-  note?: string
-  tier: string
-  points: number
-  totalSpend: number
-  lastVisit: string
-  visits: number
-  history: Transaction[]
-}
-
-interface Reward {
-  id: number
-  name: string
-  cost: number
-  icon: any
-}
+// ─── Composable Notifications ────────────────────────────────────────────────
+const toast = useToast()
+const alertStore = useAlert()
 
 // ─── State ───────────────────────────────────────────────────────────────────
 const searchQuery = ref('')
 const selectedTier = ref('Tất cả')
-const selectedCustomer = ref<Customer | null>(null)
+const selectedCustomer = ref<any | null>(null)
 const showBenefits = ref(true)
 const showFormModal = ref(false)
 const formMode = ref<'add' | 'edit'>('add')
 const editingId = ref<number | null>(null)
-const form = ref({ name: '', phone: '', note: '' })
+const form = ref({ name: '', phone: '', email: '', note: '' })
+const customers = ref<Customer[]>([])
+const backendRewards = ref<Reward[]>([])
+const loading = ref(false)
+
+// OTP Modal State
+const showOtpModal = ref(false)
+const otpInput = ref('')
+const currentRedeemCustomer = ref<Customer | null>(null)
+const currentRedeemReward = ref<any>(null)
+const simulatedOtpCode = ref<string | null>(null)
 
 // ─── Tier benefits ─────────────────────────────────────────────────────────────
 const tiers = [
@@ -441,62 +501,47 @@ const tiers = [
 ]
 
 // ─── Rewards catalog ───────────────────────────────────────────────────────────
-const rewards: Reward[] = [
-  { id: 1, name: 'Free 1 topping', cost: 100, icon: Cookie },
-  { id: 2, name: 'Giảm 10% hóa đơn', cost: 200, icon: Percent },
-  { id: 3, name: 'Tặng 1 ly cà phê', cost: 350, icon: Coffee },
-  { id: 4, name: 'Voucher 50.000đ', cost: 500, icon: Ticket },
-]
+const getRewardIcon = (name: string) => {
+  const nameLower = name.toLowerCase()
+  if (nameLower.includes('topping') || nameLower.includes('cookie') || nameLower.includes('bánh')) return Cookie
+  if (nameLower.includes('%') || nameLower.includes('giảm')) return Percent
+  if (nameLower.includes('cà phê') || nameLower.includes('nước') || nameLower.includes('coffee') || nameLower.includes('ly')) return Coffee
+  return Ticket
+}
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-const customers = ref<Customer[]>([
-  {
-    id: 1, name: 'Nguyễn Minh Châu', phone: '0901234567', tier: 'Kim cương',
-    points: 4850, totalSpend: 4850000, lastVisit: 'Hôm nay, 09:30', visits: 42,
-    history: [
-      { date: '04/06/2026', note: 'Mua Cappuccino × 2', points: 80 },
-      { date: '01/06/2026', note: 'Mua Latte × 3', points: 105 },
-      { date: '28/05/2026', note: 'Đổi điểm giảm giá', points: -200 },
-    ]
-  },
-  {
-    id: 2, name: 'Trần Hoàng Linh', phone: '0912345678', tier: 'Vàng',
-    points: 2100, totalSpend: 2100000, lastVisit: 'Hôm qua, 14:15', visits: 28,
-    history: [
-      { date: '03/06/2026', note: 'Mua Trà sữa matcha', points: 55 },
-      { date: '30/05/2026', note: 'Mua Bánh croissant', points: 30 },
-    ]
-  },
-  {
-    id: 3, name: 'Phạm Thị Hương', phone: '0923456789', tier: 'Bạc',
-    points: 980, totalSpend: 980000, lastVisit: '02/06/2026', visits: 14,
-    history: [
-      { date: '02/06/2026', note: 'Mua Cold brew', points: 45 },
-    ]
-  },
-  {
-    id: 4, name: 'Lê Văn Tuấn', phone: '0934567890', tier: 'Đồng',
-    points: 320, totalSpend: 320000, lastVisit: '01/06/2026', visits: 5,
-    history: [
-      { date: '01/06/2026', note: 'Mua Americano', points: 35 },
-    ]
-  },
-  {
-    id: 5, name: 'Võ Thị Mai', phone: '0945678901', tier: 'Vàng',
-    points: 1750, totalSpend: 1750000, lastVisit: '03/06/2026', visits: 21,
-    history: [
-      { date: '03/06/2026', note: 'Mua Combo 2 người', points: 120 },
-      { date: '29/05/2026', note: 'Đổi điểm giảm giá', points: -100 },
-    ]
-  },
-  {
-    id: 6, name: 'Đỗ Quang Huy', phone: '0956789012', tier: 'Bạc',
-    points: 860, totalSpend: 860000, lastVisit: '31/05/2026', visits: 11,
-    history: [
-      { date: '31/05/2026', note: 'Mua Espresso × 2', points: 60 },
-    ]
-  },
-])
+const rewards = computed(() => {
+  return backendRewards.value.map(r => ({
+    id: r.id,
+    name: r.name,
+    cost: r.cost,
+    icon: getRewardIcon(r.name)
+  }))
+})
+
+// ─── API Integration ──────────────────────────────────────────────────────────
+const loadCustomers = async () => {
+  loading.value = true
+  try {
+    customers.value = await loyaltyApi.list()
+  } catch (err: any) {
+    toast.error(err.message || 'Không thể tải danh sách khách hàng.')
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadRewards = async () => {
+  try {
+    backendRewards.value = await loyaltyApi.getRewards()
+  } catch (err: any) {
+    console.error('Không thể tải danh sách phần thưởng', err)
+  }
+}
+
+onMounted(() => {
+  loadCustomers()
+  loadRewards()
+})
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
 const filteredCustomers = computed(() => {
@@ -552,70 +597,110 @@ const nextTierPoints = (tier: string) => ({
   'Kim cương': 9999,
 }[tier] ?? 9999)
 
-const tierForPoints = (points: number) => {
-  if (points >= 3000) return 'Kim cương'
-  if (points >= 1500) return 'Vàng'
-  if (points >= 500) return 'Bạc'
-  return 'Đồng'
-}
-
-const today = () => new Date().toLocaleDateString('vi-VN')
-
 // ─── Actions ──────────────────────────────────────────────────────────────────
-const openDetail = (customer: Customer) => {
-  selectedCustomer.value = customer
+const openDetail = async (customer: Customer) => {
+  try {
+    const detail = await loyaltyApi.get(customer.id)
+    selectedCustomer.value = detail
+  } catch (err: any) {
+    toast.error(err.message || 'Không thể tải chi tiết khách hàng.')
+  }
 }
 
-const redeemReward = (customer: Customer, reward: Reward) => {
+const redeemReward = async (customer: Customer, reward: any) => {
   if (customer.points < reward.cost) return
-  if (!confirm(`Đổi ${reward.cost} điểm lấy "${reward.name}" cho ${customer.name}?`)) return
-  customer.points -= reward.cost
-  customer.tier = tierForPoints(customer.points)
-  customer.history.unshift({ date: today(), note: `Đổi thưởng: ${reward.name}`, points: -reward.cost })
+  const confirmed = await alertStore.confirm(
+    'Xác nhận đổi điểm',
+    `Bạn có chắc muốn đổi ${reward.cost} điểm lấy "${reward.name}" cho ${customer.name}?`
+  )
+  if (!confirmed) return
+  try {
+    const otpRes = await loyaltyApi.sendOtp(customer.id)
+    currentRedeemCustomer.value = customer
+    currentRedeemReward.value = reward
+    simulatedOtpCode.value = otpRes.otp
+    otpInput.value = ''
+    showOtpModal.value = true
+  } catch (err: any) {
+    toast.error(err.message || 'Không thể gửi mã OTP xác nhận.')
+  }
+}
+
+const handleRedeemWithOtp = async () => {
+  if (!otpInput.value || !currentRedeemCustomer.value || !currentRedeemReward.value) return
+  try {
+    await loyaltyApi.redeem(currentRedeemCustomer.value.id, currentRedeemReward.value.id, otpInput.value.trim())
+    toast.success('Đổi phần thưởng thành công!')
+    showOtpModal.value = false
+    await loadCustomers()
+    if (selectedCustomer.value && selectedCustomer.value.id === currentRedeemCustomer.value.id) {
+      await openDetail(currentRedeemCustomer.value)
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Mã OTP không chính xác hoặc đã hết hạn.')
+  }
 }
 
 const openAdd = () => {
   formMode.value = 'add'
   editingId.value = null
-  form.value = { name: '', phone: '', note: '' }
+  form.value = { name: '', phone: '', email: '', note: '' }
   showFormModal.value = true
 }
 
 const openEdit = (customer: Customer) => {
   formMode.value = 'edit'
   editingId.value = customer.id
-  form.value = { name: customer.name, phone: customer.phone, note: customer.note ?? '' }
+  form.value = { 
+    name: customer.name, 
+    phone: customer.phone, 
+    email: customer.email || '',
+    note: customer.note ?? '' 
+  }
   showFormModal.value = true
 }
 
-const handleSaveCustomer = () => {
+const handleSaveCustomer = async () => {
   const name = form.value.name.trim()
   const phone = form.value.phone.trim()
-  if (!name || !phone) return
-
-  if (formMode.value === 'edit' && editingId.value !== null) {
-    const target = customers.value.find(c => c.id === editingId.value)
-    if (target) {
-      target.name = name
-      target.phone = phone
-      target.note = form.value.note.trim()
-    }
-  } else {
-    customers.value.push({
-      id: Date.now(),
-      name, phone, note: form.value.note.trim(),
-      tier: 'Đồng', points: 0, totalSpend: 0,
-      lastVisit: 'Hôm nay', visits: 0, history: [],
-    })
+  const email = form.value.email.trim()
+  const note = form.value.note.trim()
+  
+  if (!name || !phone) {
+    toast.warning('Vui lòng điền họ tên và số điện thoại.')
+    return
   }
-  showFormModal.value = false
-  form.value = { name: '', phone: '', note: '' }
+
+  try {
+    if (formMode.value === 'edit' && editingId.value !== null) {
+      await loyaltyApi.update(editingId.value, { name, phone, email: email || undefined, note })
+      toast.success('Cập nhật khách hàng thành công!')
+    } else {
+      await loyaltyApi.create({ name, phone, email: email || undefined, note })
+      toast.success('Thêm khách hàng thành công!')
+    }
+    showFormModal.value = false
+    form.value = { name: '', phone: '', email: '', note: '' }
+    await loadCustomers()
+  } catch (err: any) {
+    toast.error(err.message || 'Lỗi khi lưu thông tin khách hàng.')
+  }
 }
 
-const deleteCustomer = (customer: Customer) => {
-  if (!confirm(`Xóa khách hàng "${customer.name}"? Hành động này không thể hoàn tác.`)) return
-  customers.value = customers.value.filter(c => c.id !== customer.id)
-  if (selectedCustomer.value?.id === customer.id) selectedCustomer.value = null
+const deleteCustomer = async (customer: Customer) => {
+  const confirmed = await alertStore.confirm(
+    'Xác nhận xóa',
+    `Xóa khách hàng "${customer.name}"? Hành động này không thể hoàn tác.`
+  )
+  if (!confirmed) return
+  try {
+    await loyaltyApi.remove(customer.id)
+    toast.success('Xóa khách hàng thành công!')
+    if (selectedCustomer.value?.id === customer.id) selectedCustomer.value = null
+    await loadCustomers()
+  } catch (err: any) {
+    toast.error(err.message || 'Có lỗi xảy ra khi xóa khách hàng.')
+  }
 }
 </script>
 

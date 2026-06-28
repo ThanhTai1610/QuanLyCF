@@ -9,8 +9,8 @@ public static class DbSeeder
     /// <summary>Tạo tài khoản Quản lý mặc định và các dữ liệu mẫu nếu chưa có.</summary>
     public static async Task SeedAsync(QuanLyCFDbContext db)
     {
-        // 1. Seed nhân viên quản trị mặc định
-        if (!await db.NhanViens.AnyAsync())
+        // 1. Seed nhân viên quản trị mặc định và các nhân viên mẫu
+        if (!await db.NhanViens.AnyAsync(x => x.Email == "admin@brew.vn"))
         {
             db.NhanViens.Add(new NhanVien
             {
@@ -20,9 +20,57 @@ public static class DbSeeder
                 MatKhauHash = PasswordHasher.Hash("demo1234"),
                 MaPinHash = PasswordHasher.Hash("2006"),
                 TrangThaiHoatDong = true,
+                ThoiGianTao = DateTime.UtcNow,
+                ThoiGianCapNhat = DateTime.UtcNow
             });
             await db.SaveChangesAsync();
         }
+
+        if (!await db.NhanViens.AnyAsync(x => x.Email == "phache@brew.vn"))
+        {
+            db.NhanViens.Add(new NhanVien
+            {
+                HoTen = "Nguyễn Văn Pha",
+                Email = "phache@brew.vn",
+                MaVaiTro = 2, // Pha chế
+                MatKhauHash = PasswordHasher.Hash("demo1234"),
+                MaPinHash = PasswordHasher.Hash("1234"),
+                TrangThaiHoatDong = true,
+                ThoiGianTao = DateTime.UtcNow,
+                ThoiGianCapNhat = DateTime.UtcNow
+            });
+        }
+
+        if (!await db.NhanViens.AnyAsync(x => x.Email == "thungan@brew.vn"))
+        {
+            db.NhanViens.Add(new NhanVien
+            {
+                HoTen = "Trần Thị Thu",
+                Email = "thungan@brew.vn",
+                MaVaiTro = 3, // Thu ngân
+                MatKhauHash = PasswordHasher.Hash("demo1234"),
+                MaPinHash = PasswordHasher.Hash("5678"),
+                TrangThaiHoatDong = true,
+                ThoiGianTao = DateTime.UtcNow,
+                ThoiGianCapNhat = DateTime.UtcNow
+            });
+        }
+
+        if (!await db.NhanViens.AnyAsync(x => x.Email == "phucvu@brew.vn"))
+        {
+            db.NhanViens.Add(new NhanVien
+            {
+                HoTen = "Lê Văn Phục",
+                Email = "phucvu@brew.vn",
+                MaVaiTro = 4, // Phục vụ
+                MatKhauHash = PasswordHasher.Hash("demo1234"),
+                MaPinHash = PasswordHasher.Hash("9012"),
+                TrangThaiHoatDong = true,
+                ThoiGianTao = DateTime.UtcNow,
+                ThoiGianCapNhat = DateTime.UtcNow
+            });
+        }
+        await db.SaveChangesAsync();
 
         // 2. Seed khu vực và bàn mẫu (nếu chưa có)
         if (!await db.KhuVucBans.AnyAsync())
@@ -348,6 +396,116 @@ public static class DbSeeder
             db.SanPhams.AddRange(menu);
             await db.SaveChangesAsync();
         }
+
+        // 4. Seed phần thưởng mẫu (nếu chưa có)
+        if (!await db.Set<PhanThuong>().AnyAsync())
+        {
+            db.Set<PhanThuong>().AddRange(
+                new PhanThuong { TenPhanThuong = "Free 1 topping", DiemCanDoi = 100, MoTa = "Đổi 100 điểm để nhận miễn phí 1 topping bất kỳ.", TrangThaiHoatDong = true },
+                new PhanThuong { TenPhanThuong = "Giảm 10% hóa đơn", DiemCanDoi = 200, MoTa = "Đổi 200 điểm để nhận voucher giảm 10% tổng hóa đơn.", TrangThaiHoatDong = true },
+                new PhanThuong { TenPhanThuong = "Tặng 1 ly cà phê", DiemCanDoi = 350, MoTa = "Đổi 350 điểm để nhận miễn phí 1 ly cà phê sữa/đen đá.", TrangThaiHoatDong = true },
+                new PhanThuong { TenPhanThuong = "Voucher 50.000đ", DiemCanDoi = 500, MoTa = "Đổi 500 điểm để nhận voucher trị giá 50.000đ.", TrangThaiHoatDong = true }
+            );
+            await db.SaveChangesAsync();
+        }
+
+        // 5. Seed khách hàng mẫu (nếu chưa có)
+        if (!await db.Set<KhachHang>().AnyAsync(x => x.SoDienThoai == "0901234567"))
+        {
+            var kh1 = new KhachHang
+            {
+                HoTen = "Nguyễn Minh Châu",
+                SoDienThoai = "0901234567",
+                Email = "chau.nguyen@gmail.com",
+                HangThanhVien = "Diamond",
+                DiemTichLuy = 4850,
+                TongTienDaTieu = 4850000,
+                LanGheThamCuoi = DateTime.UtcNow.AddDays(-2),
+                ThoiGianTao = DateTime.UtcNow.AddMonths(-3)
+            };
+            db.Set<KhachHang>().Add(kh1);
+            await db.SaveChangesAsync();
+
+            db.Set<LichSuDiem>().AddRange(
+                new LichSuDiem { MaKhachHang = kh1.MaKhachHang, LoaiBienDong = "Tich", SoDiem = 100, GhiChu = "Tích điểm mua hàng", ThoiGianTao = DateTime.UtcNow.AddDays(-2) },
+                new LichSuDiem { MaKhachHang = kh1.MaKhachHang, LoaiBienDong = "Doi", SoDiem = -200, GhiChu = "Đổi quà Giảm 10% hóa đơn", ThoiGianTao = DateTime.UtcNow.AddDays(-5) }
+            );
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.Set<KhachHang>().AnyAsync(x => x.SoDienThoai == "0912345678"))
+        {
+            var kh2 = new KhachHang
+            {
+                HoTen = "Trần Hoàng Linh",
+                SoDienThoai = "0912345678",
+                Email = "linh.tran@gmail.com",
+                HangThanhVien = "Gold",
+                DiemTichLuy = 2100,
+                TongTienDaTieu = 2100000,
+                LanGheThamCuoi = DateTime.UtcNow.AddDays(-5),
+                ThoiGianTao = DateTime.UtcNow.AddMonths(-2)
+            };
+            db.Set<KhachHang>().Add(kh2);
+            await db.SaveChangesAsync();
+
+            db.Set<LichSuDiem>().AddRange(
+                new LichSuDiem { MaKhachHang = kh2.MaKhachHang, LoaiBienDong = "Tich", SoDiem = 50, GhiChu = "Tích điểm mua hàng", ThoiGianTao = DateTime.UtcNow.AddDays(-5) }
+            );
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.Set<KhachHang>().AnyAsync(x => x.SoDienThoai == "0923456789"))
+        {
+            var kh3 = new KhachHang
+            {
+                HoTen = "Phạm Thị Hương",
+                SoDienThoai = "0923456789",
+                Email = "huong.pham@gmail.com",
+                HangThanhVien = "Silver",
+                DiemTichLuy = 980,
+                TongTienDaTieu = 980000,
+                LanGheThamCuoi = DateTime.UtcNow.AddDays(-10),
+                ThoiGianTao = DateTime.UtcNow.AddMonths(-1)
+            };
+            db.Set<KhachHang>().Add(kh3);
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.Set<KhachHang>().AnyAsync(x => x.SoDienThoai == "0934567890"))
+        {
+            var kh4 = new KhachHang
+            {
+                HoTen = "Lê Văn Tuấn",
+                SoDienThoai = "0934567890",
+                Email = "tuan.le@gmail.com",
+                HangThanhVien = "Member",
+                DiemTichLuy = 320,
+                TongTienDaTieu = 320000,
+                LanGheThamCuoi = DateTime.UtcNow.AddDays(-15),
+                ThoiGianTao = DateTime.UtcNow.AddDays(-20)
+            };
+            db.Set<KhachHang>().Add(kh4);
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.Set<KhachHang>().AnyAsync(x => x.SoDienThoai == "0372700326"))
+        {
+            var kh5 = new KhachHang
+            {
+                HoTen = "Nguyễn Văn Thực",
+                SoDienThoai = "0372700326",
+                Email = "thuc.nguyen@gmail.com",
+                HangThanhVien = "Gold",
+                DiemTichLuy = 1800,
+                TongTienDaTieu = 1800000,
+                LanGheThamCuoi = DateTime.UtcNow.AddDays(-2),
+                ThoiGianTao = DateTime.UtcNow.AddDays(-30)
+            };
+            db.Set<KhachHang>().Add(kh5);
+            await db.SaveChangesAsync();
+        }
     }
 }
+
 

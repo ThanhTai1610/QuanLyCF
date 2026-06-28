@@ -54,6 +54,8 @@ namespace BackEnd
             builder.Services.AddScoped<Features.Inventory.StockTakes.StockTakeService>();
             builder.Services.AddScoped<Features.Sales.Orders.OrderService>();
             builder.Services.AddScoped<Features.Sales.Promotions.PromotionService>();
+            builder.Services.AddScoped<Features.Customers.CustomerService>();
+            builder.Services.AddScoped<Shared.SmsService>();
             // System
             builder.Services.AddScoped<Features.System.SettingService>();
             builder.Services.AddScoped<Features.System.AuditLogService>();
