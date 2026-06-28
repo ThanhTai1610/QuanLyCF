@@ -13,6 +13,8 @@ export interface MenuItem {
   giaBan: number
   hinhAnh: string | null
   kieuMon: string
+  moTa: string | null
+  laMonNoiBat: boolean
   kichCos: MenuSize[]
 }
 

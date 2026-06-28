@@ -9,6 +9,8 @@ public record MenuItemDto(
     decimal GiaBan,
     string? HinhAnh,
     string KieuMon,
+    string? MoTa,
+    bool LaMonNoiBat,
     List<MenuSizeDto> KichCos);
 
 // ── Tạo đơn ──────────────────────────────────────────────────

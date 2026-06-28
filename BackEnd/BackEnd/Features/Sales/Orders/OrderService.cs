@@ -23,7 +23,7 @@ public class OrderService
             .OrderBy(x => x.TenSanPham)
             .Select(x => new MenuItemDto(
                 x.MaSanPham, x.TenSanPham, x.DanhMuc != null ? x.DanhMuc.TenDanhMuc : null,
-                x.GiaBan, x.HinhAnh, x.KieuMon,
+                x.GiaBan, x.HinhAnh, x.KieuMon, x.MoTa, x.LaMonNoiBat,
                 x.KichCos.Where(s => s.TrangThaiHoatDong)
                     .Select(s => new MenuSizeDto(s.MaKichCo, s.TenKichCo, s.GiaCongThem)).ToList()))
             .ToListAsync();
