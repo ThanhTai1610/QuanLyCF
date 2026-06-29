@@ -2,13 +2,13 @@ import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import vueDevTools from 'vite-plugin-vue-devtools'
+// import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
-    vueDevTools(),
+    // vueDevTools(),
   ],
   resolve: {
     alias: {
@@ -21,6 +21,10 @@ export default defineConfig({
     // Proxy /api -> backend: chi can 1 link public, cung origin nen khong dinh CORS
     proxy: {
       '/api': {
+        target: 'http://localhost:5124',
+        changeOrigin: true,
+      },
+      '/uploads': {
         target: 'http://localhost:5124',
         changeOrigin: true,
       },

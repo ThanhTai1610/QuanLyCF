@@ -29,7 +29,7 @@
           </div>
           
           <div class="space-y-3">
-            <h2 class="font-premium-serif text-3xl font-bold tracking-[0.1em] text-[#FDFBF7]">BREWMANAGER</h2>
+            <h2 class="font-premium-serif text-3xl font-bold tracking-[0.1em] text-[#FDFBF7]">{{ storeInfoStore.tenQuan.toUpperCase() }}</h2>
             <div class="w-10 h-[1px] bg-[#CC8033] mx-auto opacity-60"></div>
             <p class="text-[10px] uppercase tracking-[0.3em] text-[#8A8178] font-bold leading-relaxed">
               Hệ thống quản trị và <br/> vận hành toàn diện
@@ -52,24 +52,26 @@
       </div>
 
       <!-- Right Side: Admin Login Form -->
-      <div class="flex-1 p-8 md:p-12 bg-white flex flex-col justify-center relative animate-in slide-in-from-right-8 duration-1000 delay-300">
+      <div class="flex-1 p-8 md:p-12 lg:p-16 bg-white flex flex-col justify-center relative animate-in slide-in-from-right-8 duration-1000 delay-300">
         <!-- Nút Trở về Trang Chính -->
         <router-link to="/" class="absolute top-6 right-6 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[#8A8178] hover:text-[#CC8033] hover:bg-[#CC8033]/10 transition-colors text-[9px] font-bold uppercase tracking-widest border border-transparent hover:border-[#CC8033]/20">
           <Home class="w-3.5 h-3.5" stroke-width="2.5" /> Trang chính
         </router-link>
 
         <div class="mb-8">
-          <div class="inline-flex items-center gap-2 mb-4 px-2.5 py-1 rounded-md bg-[#CC8033]/8 border border-[#CC8033]/15">
-            <Lock class="w-2.5 h-2.5 text-[#CC8033]" stroke-width="2.5" />
-            <span class="text-[8px] uppercase tracking-[0.2em] text-[#CC8033] font-black">Truy cập hạn chế</span>
+          <div class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 rounded-lg bg-[#CC8033]/10 border border-[#CC8033]/20">
+            <Lock class="w-3 h-3 text-[#CC8033]" stroke-width="2.5" />
+            <span class="text-[9px] uppercase tracking-[0.2em] text-[#CC8033] font-black">Truy cập hạn chế</span>
           </div>
-          <h1 class="font-premium-serif text-4xl font-semibold text-[#1A1512] tracking-tight">Cổng Đăng Nhập<br/>Hệ Thống</h1>
+          <h1 class="font-premium-serif text-4xl lg:text-5xl font-bold text-[#1A1512] tracking-tight leading-[1.1] mb-3">Đăng Nhập<br/>Hệ Thống</h1>
+          <p class="text-sm font-medium text-[#8A8178]">Vui lòng nhập thông tin để tiếp tục.</p>
         </div>
 
         <!-- Tabs -->
         <div class="flex items-center gap-6 border-b border-[#EAE3D9] mb-8">
           <button 
             @click="activeTab = 'admin'"
+            type="button"
             :class="[
               'pb-3 text-[10px] font-black uppercase tracking-widest transition-all duration-300 relative',
               activeTab === 'admin' ? 'text-[#CC8033]' : 'text-[#8A8178] hover:text-[#2A231E]'
@@ -80,6 +82,7 @@
           </button>
           <button 
             @click="activeTab = 'staff'"
+            type="button"
             :class="[
               'pb-3 text-[10px] font-black uppercase tracking-widest transition-all duration-300 relative',
               activeTab === 'staff' ? 'text-[#CC8033]' : 'text-[#8A8178] hover:text-[#2A231E]'
@@ -90,133 +93,85 @@
           </button>
         </div>
 
-        <!-- Admin/Staff Form -->
+        <!-- Form -->
         <form :key="activeTab" @submit.prevent="handleSubmit" class="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-          <!-- Email Input -->
-          <div class="space-y-1.5 group">
-            <label for="email" class="text-[9px] uppercase tracking-widest text-[#8A8178] font-black group-focus-within:text-[#CC8033] transition-colors duration-300">Tài khoản Email</label>
-            <div class="relative">
-              <input
-                id="email"
-                type="email"
-                v-model="email"
-                class="w-full bg-transparent border-0 border-b border-[#EAE3D9] rounded-none px-0 focus:outline-none focus:ring-0 focus:border-[#CC8033] h-10 text-sm font-medium shadow-none transition-all duration-500 placeholder:text-[#D5CEC4] placeholder:font-normal"
-                placeholder="admin@brew.vn"
-                required
-              />
-              <div class="absolute bottom-0 left-0 h-[1.5px] bg-[#CC8033] w-0 group-focus-within:w-full transition-all duration-700"></div>
-            </div>
+          <!-- Email -->
+          <div class="space-y-2 group">
+            <label for="email" class="text-[10px] uppercase tracking-widest text-[#5C544E] font-black group-focus-within:text-[#CC8033] transition-colors ml-1">Tài khoản Email</label>
+            <input
+              id="email"
+              type="email"
+              v-model="email"
+              class="w-full bg-[#FAF6F0] border border-[#EAE3D9] rounded-2xl px-4 h-14 focus:outline-none focus:ring-4 focus:ring-[#CC8033]/10 focus:border-[#CC8033] text-[15px] font-semibold text-[#1A1512] transition-all duration-300 placeholder:text-[#C5BEB8] placeholder:font-medium"
+              placeholder="admin@brew.vn"
+              required
+            />
           </div>
 
-          <!-- Password Input -->
-          <div class="space-y-1.5 group">
-            <div class="flex justify-between items-end">
-              <label for="password" class="text-[9px] uppercase tracking-widest text-[#8A8178] font-black group-focus-within:text-[#CC8033] transition-colors duration-300">Mật khẩu</label>
-              <a href="#" class="text-[9px] font-bold text-[#CC8033] hover:text-[#1A1512] transition-colors">Quên mật khẩu?</a>
-            </div>
+          <!-- Password -->
+          <div class="space-y-2 group">
+            <label for="password" class="text-[10px] uppercase tracking-widest text-[#5C544E] font-black group-focus-within:text-[#CC8033] transition-colors ml-1">Mật khẩu</label>
             <div class="relative">
               <input
                 id="password"
                 :type="showPwd ? 'text' : 'password'"
                 v-model="password"
-                class="w-full bg-transparent border-0 border-b border-[#EAE3D9] rounded-none px-0 focus:outline-none focus:ring-0 h-10 text-sm font-medium shadow-none transition-all duration-500 pr-10 placeholder:text-[#D5CEC4]"
+                class="w-full bg-[#FAF6F0] border border-[#EAE3D9] rounded-2xl px-4 h-14 pr-12 focus:outline-none focus:ring-4 focus:ring-[#CC8033]/10 focus:border-[#CC8033] text-[15px] font-semibold text-[#1A1512] transition-all duration-300 placeholder:text-[#C5BEB8] placeholder:font-medium"
                 placeholder="••••••••"
                 required
               />
-              <div class="absolute bottom-0 left-0 h-[1.5px] bg-[#CC8033] w-0 group-focus-within:w-full transition-all duration-700"></div>
               <button
                 type="button"
                 @click="showPwd = !showPwd"
-                class="absolute right-0 top-1/2 -translate-y-1/2 text-[#D5CEC4] hover:text-[#CC8033] transition-all"
+                class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-[#A89F95] hover:text-[#CC8033] hover:bg-white rounded-xl transition-all"
               >
-                <EyeOff v-if="showPwd" class="w-3.5 h-3.5" stroke-width="1.2" />
-                <Eye v-else class="w-3.5 h-3.5" stroke-width="1.2" />
+                <EyeOff v-if="showPwd" class="w-4 h-4" stroke-width="2" />
+                <Eye v-else class="w-4 h-4" stroke-width="2" />
               </button>
             </div>
           </div>
 
-          <!-- Remember me -->
           <div class="flex items-center justify-between pt-1">
-            <label class="flex items-center gap-2 cursor-pointer group/check">
+            <label class="flex items-center gap-2.5 cursor-pointer group/check">
               <div class="relative flex items-center justify-center">
                 <input type="checkbox" v-model="rememberMe" class="sr-only peer" />
-                <div class="w-3.5 h-3.5 border border-[#EAE3D9] rounded bg-white peer-checked:bg-[#CC8033] peer-checked:border-[#CC8033] transition-all duration-300"></div>
-                <Check class="w-2.5 h-2.5 text-white absolute opacity-0 peer-checked:opacity-100 transition-opacity" stroke-width="4" />
+                <div class="w-5 h-5 border-2 border-[#EAE3D9] rounded-md bg-white peer-checked:bg-[#CC8033] peer-checked:border-[#CC8033] transition-all duration-300 shadow-sm"></div>
+                <Check class="w-3.5 h-3.5 text-white absolute opacity-0 peer-checked:opacity-100 transition-opacity" stroke-width="4" />
               </div>
-              <span class="text-[10px] font-bold text-[#8A8178] group-hover/check:text-[#2A231E] transition-colors">Ghi nhớ đăng nhập</span>
+              <span class="text-xs font-bold text-[#8A8178] group-hover/check:text-[#2A231E] transition-colors">Ghi nhớ tài khoản</span>
             </label>
           </div>
 
-          <!-- Thong bao loi -->
-          <p v-if="errorMsg" class="text-[11px] font-semibold text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+          <p v-if="errorMsg" class="text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
             {{ errorMsg }}
           </p>
 
-          <!-- Submit Button -->
-          <div class="pt-3 space-y-3">
+          <div class="pt-4">
             <button
               type="submit"
               :disabled="isLoading"
-              class="w-full h-12 bg-[#2A231E] hover:bg-[#1A1512] text-[#FDFBF7] text-[10px] uppercase tracking-[0.25em] font-bold rounded-md shadow-[0_15px_30px_-5px_rgba(42,35,30,0.3)] transition-all duration-700 active:scale-[0.98] group relative overflow-hidden disabled:opacity-70"
+              class="w-full h-14 bg-[#2A231E] hover:bg-[#1A1512] text-[#FDFBF7] text-sm uppercase tracking-[0.15em] font-bold rounded-2xl shadow-[0_20px_40px_-10px_rgba(42,35,30,0.3)] transition-all duration-300 active:scale-[0.98] group relative overflow-hidden disabled:opacity-70 flex items-center justify-center"
             >
-              <span class="relative z-10 flex items-center justify-center gap-2">
-                <span v-if="isLoading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                <span v-else>Đăng nhập</span>
-                <ArrowRight v-if="!isLoading" class="w-3.5 h-3.5 group-hover:translate-x-1.5 transition-transform duration-500" stroke-width="2" />
+              <span class="relative z-10 flex items-center gap-3">
+                <span v-if="isLoading" class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                <span v-else>Đăng nhập vào hệ thống</span>
+                <ArrowRight v-if="!isLoading" class="w-4 h-4 group-hover:translate-x-1 transition-transform" stroke-width="2.5" />
               </span>
-              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]"></div>
+              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]"></div>
             </button>
-
-            <!-- Divider -->
-            <div class="flex items-center gap-3">
-              <div class="flex-1 h-px bg-[#EAE3D9]"></div>
-              <span class="text-[9px] uppercase tracking-widest text-[#C5BEB8] font-bold">hoặc</span>
-              <div class="flex-1 h-px bg-[#EAE3D9]"></div>
-            </div>
-
-            <!-- Google SSO Button -->
-            <button
-              type="button"
-              @click="handleGoogleLogin"
-              class="w-full h-11 bg-white hover:bg-[#FDFBF7] border border-[#EAE3D9] hover:border-[#D5CEC4] text-[#2A231E] text-[10px] uppercase tracking-[0.15em] font-bold rounded-md transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-3 shadow-sm"
-            >
-              <!-- Google icon -->
-              <svg class="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-              </svg>
-              <span>Đăng nhập với Google</span>
-            </button>
-
-            <!-- Cổng đăng nhập ca làm cho nhân viên (PIN) -->
-            <router-link
-              to="/staff-login"
-              class="w-full h-11 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.15em] font-bold text-[#8A8178] hover:text-[#CC8033] transition-colors"
-            >
-              <Users class="w-3.5 h-3.5" stroke-width="2" />
-              <span>Đăng nhập ca làm (nhân viên)</span>
-            </router-link>
           </div>
         </form>
-
-        <div class="mt-8 text-center animate-in slide-in-from-bottom-2 duration-500 delay-200">
-          <p class="text-[9px] uppercase tracking-widest text-[#8A8178] font-bold">
-            Chưa được cấp quyền?
-            <a href="#" class="ml-1 text-[#CC8033] border-b border-[#CC8033]/30 hover:border-[#CC8033] transition-all">Yêu cầu tài khoản ngay</a>
-          </p>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Coffee, Eye, EyeOff, ArrowRight, Check, Lock, Shield, Users, Home } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { useStoreInfoStore } from '@/stores/storeInfo'
 
 const activeTab = ref<'admin'|'staff'>('admin')
 const showPwd = ref(false)
@@ -224,11 +179,10 @@ const email = ref('admin@brew.vn')
 const password = ref('demo1234')
 const rememberMe = ref(false)
 const isLoading = ref(false)
-const router = useRouter()
-const authStore = useAuthStore()
+const router         = useRouter()
+const authStore      = useAuthStore()
+const storeInfoStore = useStoreInfoStore()
 
-// Watch for tab change to update placeholders
-import { watch } from 'vue'
 watch(activeTab, (newTab) => {
   if (newTab === 'admin') {
     email.value = 'admin@brew.vn'
@@ -236,6 +190,16 @@ watch(activeTab, (newTab) => {
   } else {
     email.value = 'staff@brew.vn'
     password.value = 'staff1234'
+  }
+})
+
+onMounted(() => {
+  const savedEmail = localStorage.getItem('brew_remember_email')
+  const savedPwd = localStorage.getItem('brew_remember_pwd')
+  if (savedEmail && savedPwd) {
+    email.value = savedEmail
+    password.value = atob(savedPwd)
+    rememberMe.value = true
   }
 })
 
@@ -252,17 +216,22 @@ const handleSubmit = async () => {
   errorMsg.value = ''
   try {
     await authStore.login(email.value, password.value)
+    
+    // Ghi nhớ tài khoản
+    if (rememberMe.value) {
+      localStorage.setItem('brew_remember_email', email.value)
+      localStorage.setItem('brew_remember_pwd', btoa(password.value))
+    } else {
+      localStorage.removeItem('brew_remember_email')
+      localStorage.removeItem('brew_remember_pwd')
+    }
+
     router.push('/revenue-report')
   } catch (e) {
     errorMsg.value = e instanceof Error ? e.message : 'Đăng nhập thất bại, vui lòng thử lại.'
   } finally {
     isLoading.value = false
   }
-}
-
-const handleGoogleLogin = () => {
-  // Placeholder for Google OAuth
-  alert('Chức năng Google SSO sẽ được tích hợp sau.')
 }
 </script>
 

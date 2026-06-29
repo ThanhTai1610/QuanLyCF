@@ -8,7 +8,7 @@
           <Coffee class="w-5 h-5 text-[#0F0A07]" stroke-width="1.5" />
         </div>
         <div>
-          <h1 class="font-premium-serif text-xl font-bold tracking-wide">BrewManager <span class="text-[#CC8033] ml-1">·</span> KDS</h1>
+          <h1 class="font-premium-serif text-xl font-bold tracking-wide">{{ storeInfoStore.tenQuan }} <span class="text-[#CC8033] ml-1">·</span> KDS</h1>
           <p class="text-[9px] uppercase tracking-[0.3em] text-[#8A8178] font-bold">Màn hình điều phối bếp realtime</p>
         </div>
       </div>
@@ -338,6 +338,7 @@ import {
   User, X, AlertTriangle
 } from 'lucide-vue-next'
 import { useOrderStore } from '@/stores/orders'
+import { useStoreInfoStore } from '@/stores/storeInfo'
 import type { Order } from '@/data/orders'
 
 // ── Types ──────────────────────────────────────────────────────
@@ -348,7 +349,8 @@ interface KDone    { id: string; table: string; items: KItem[]; duration: number
 const staffList = ['Minh', 'Lan', 'Huy', 'Trang', 'Phúc']
 
 // ── Store đơn hàng (nguồn dữ liệu chung) ────────────────────────
-const orderStore = useOrderStore()
+const orderStore     = useOrderStore()
+const storeInfoStore = useStoreInfoStore()
 
 // Đơn đang làm = các đơn ở trạng thái chờ xác nhận / đang pha chế
 const activeOrders = computed(() =>

@@ -60,6 +60,14 @@ async function request<T>(method: string, endpoint: string, body?: unknown, daTh
     throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
   }
 
+  // Hệ thống đang bảo trì → chuyển hướng về trang bảo trì
+  if (res.status === 503 && !endpoint.includes('/api/settings/maintenance')) {
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/maintenance')) {
+      window.location.href = '/maintenance'
+    }
+    throw new Error('Hệ thống đang bảo trì. Vui lòng quay lại sau.')
+  }
+
   // 204 No Content (PUT/DELETE) — khong co body
   if (res.status === 204) return undefined as T
 

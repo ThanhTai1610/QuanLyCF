@@ -8,7 +8,7 @@
           <div class="w-9 h-9 flex items-center justify-center bg-[#2A231E] text-[#FDFBF7] rounded-lg shadow-md">
             <Coffee class="w-4 h-4" stroke-width="1.5" />
           </div>
-          <span class="font-premium-serif text-xl font-bold tracking-wide text-[#2A231E]">BrewManager</span>
+          <span class="font-premium-serif text-xl font-bold tracking-wide text-[#2A231E]">{{ storeInfoStore.tenQuan }}</span>
         </router-link>
         <div class="flex items-center gap-3">
           <button v-if="isLoggedIn" @click="logout"
@@ -291,11 +291,13 @@ import {
   CheckCircle2, Clock, CheckCheck, XCircle, Loader2
 } from 'lucide-vue-next'
 import { useOrderStore } from '@/stores/orders'
+import { useStoreInfoStore } from '@/stores/storeInfo'
 import { formatVND } from '@/data/menu'
 import type { Order, OrderStatus } from '@/data/orders'
 
 const STORAGE_KEY = 'brewCustomerProfile'
-const orderStore = useOrderStore()
+const orderStore     = useOrderStore()
+const storeInfoStore = useStoreInfoStore()
 
 // ── Auth ──
 const isLoggedIn = ref(false)

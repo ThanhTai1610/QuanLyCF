@@ -4,6 +4,15 @@ import { routePermission } from './permissions'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior(to, from, savedPosition) {
+    if (to.hash) {
+      return {
+        el: to.hash,
+        behavior: 'smooth',
+      }
+    }
+    return savedPosition || { top: 0 }
+  },
   routes: [
     {
       path: '/login',
@@ -96,6 +105,11 @@ const router = createRouter({
       ]
     },
     {
+      path: '/maintenance',
+      name: 'maintenance',
+      component: () => import('../pages/Maintenance.vue')
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('../pages/NotFound.vue')
@@ -104,8 +118,41 @@ const router = createRouter({
 })
 
 // Global auth + permission guard
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
+
+  // 1. Kiểm tra chế độ bảo trì hệ thống
+  const isMaintPage = to.name === 'maintenance' || to.path === '/maintenance'
+  const isLoginPage = to.name === 'login' || to.path === '/login' || to.name === 'staff-login' || to.path === '/staff-login'
+
+  if (!isMaintPage && !isLoginPage) {
+    try {
+      const res = await fetch('/api/settings/maintenance')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.isMaintenance) {
+          // Nếu đang bảo trì, chỉ cho phép tài khoản có quyền CAIDAT_QUANLY (Quản lý) đi qua
+          if (!authStore.isAuthenticated || !authStore.coQuyen('CAIDAT_QUANLY')) {
+            return { name: 'maintenance' }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Không thể kiểm tra bảo trì hệ thống:', e)
+    }
+  } else if (isMaintPage) {
+    try {
+      const res = await fetch('/api/settings/maintenance')
+      if (res.ok) {
+        const data = await res.json()
+        if (!data.isMaintenance) {
+          return '/'
+        }
+      }
+    } catch (e) {}
+  }
+
+  // 2. Kiểm tra quyền truy cập thông thường
   const perm = routePermission[to.path]
   const needAuth = to.meta.requiresAuth || perm !== undefined
 

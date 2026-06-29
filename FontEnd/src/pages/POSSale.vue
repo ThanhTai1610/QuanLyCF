@@ -212,7 +212,7 @@
             </div>
 
             <!-- Đường & Đá -->
-            <div class="grid grid-cols-2 gap-4">
+            <div v-if="selectedItem?.kieuMon !== 'MonKem' && selectedItem?.tenDanhMuc !== 'Bánh'" class="grid grid-cols-2 gap-4">
               <div class="space-y-2">
                 <h3 class="text-[10px] uppercase tracking-widest font-bold text-[#8A8178]">Lượng đường</h3>
                 <div class="flex flex-wrap gap-1.5">
@@ -232,7 +232,7 @@
             </div>
 
             <!-- Topping -->
-            <div v-if="toppingList.length" class="space-y-3">
+            <div v-if="selectedItem?.kieuMon !== 'MonKem' && selectedItem?.tenDanhMuc !== 'Bánh' && toppingList.length" class="space-y-3">
               <h3 class="text-[10px] uppercase tracking-widest font-bold text-[#8A8178]">Topping</h3>
               <div class="grid grid-cols-3 gap-3">
                 <div v-for="t in toppingList" :key="t.maSanPham"

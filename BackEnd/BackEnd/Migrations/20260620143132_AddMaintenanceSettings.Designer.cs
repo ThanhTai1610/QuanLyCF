@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(QuanLyCFDbContext))]
-    partial class QuanLyCFDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260620143132_AddMaintenanceSettings")]
+    partial class AddMaintenanceSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1605,7 +1608,8 @@ namespace BackEnd.Migrations
                         .HasColumnType("decimal(10,2)");
 
                     b.Property<string>("HinhAnh")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("KieuMon")
                         .IsRequired()
