@@ -17,6 +17,12 @@ export const useOrderStore = defineStore('orders', () => {
   let seq = 2042
   const nextId = () => `DH-${seq++}`
 
+  // Cờ báo hiệu gọi POS (Bếp pha xong)
+  const posNotification = ref<{ table: string; time: number } | null>(null)
+  
+  // Danh sách các món đang báo hết trên toàn hệ thống
+  const globalOutOfStock = ref<Set<string>>(new Set())
+
   const getById = (id: string) => orders.value.find(o => o.id === id)
 
   /** Tạo đơn mới (mặc định: chờ xác nhận, chưa thanh toán) */
@@ -27,12 +33,21 @@ export const useOrderStore = defineStore('orders', () => {
     status?: OrderStatus
     paid?: boolean
     paymentMethod?: string
+    isPriority?: boolean
   }): Order {
     const now = new Date()
     const items = payload.items.map(i => ({ ...i }))
+    const newId = nextId()
+    
+    // Xử lý đơn mang về không hiện bàn mà hiện số riêng (lấy theo mã đơn hoặc id)
+    let displayTable = payload.table
+    if (!displayTable || displayTable.toLowerCase() === 'mang về' || displayTable.toLowerCase() === 'takeaway') {
+       displayTable = `Mang về - #${newId.replace('DH-', '')}`
+    }
+
     const order: Order = {
-      id: nextId(),
-      table: payload.table,
+      id: newId,
+      table: displayTable,
       items,
       total: items.reduce((s, i) => s + i.price * i.qty, 0),
       status: payload.status ?? 'pending',
@@ -41,6 +56,7 @@ export const useOrderStore = defineStore('orders', () => {
       customer: payload.customer,
       paid: payload.paid ?? false,
       paymentMethod: payload.paymentMethod,
+      isPriority: payload.isPriority ?? false,
     }
     orders.value.unshift(order)
     return order
@@ -75,7 +91,18 @@ export const useOrderStore = defineStore('orders', () => {
     const it = getById(id)?.items[idx]
     if (!it) return
     it.outOfStock = !it.outOfStock
-    if (it.outOfStock) it.done = false
+    if (it.outOfStock) {
+       it.done = false
+       globalOutOfStock.value.add(it.name)
+    } else {
+       globalOutOfStock.value.delete(it.name)
+    }
+    // Kích hoạt reactivity cho Set
+    globalOutOfStock.value = new Set(globalOutOfStock.value)
+  }
+
+  function notifyPos(table: string) {
+    posNotification.value = { table, time: Date.now() }
   }
 
   return {
@@ -87,5 +114,8 @@ export const useOrderStore = defineStore('orders', () => {
     toggleItemDone,
     setAssignee,
     toggleOutOfStock,
+    notifyPos,
+    globalOutOfStock,
+    posNotification,
   }
 })

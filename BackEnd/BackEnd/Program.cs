@@ -14,7 +14,9 @@ namespace BackEnd
     {
         public static async Task Main(string[] args)
         {
+            DotNetEnv.Env.Load();
             var builder = WebApplication.CreateBuilder(args);
+            builder.Configuration.AddEnvironmentVariables();
 
             // ── EF Core ─────────────────────────────────────────
             builder.Services.AddDbContext<QuanLyCFDbContext>(opt =>
@@ -54,6 +56,8 @@ namespace BackEnd
             builder.Services.AddScoped<Features.Inventory.StockTakes.StockTakeService>();
             builder.Services.AddScoped<Features.Sales.Orders.OrderService>();
             builder.Services.AddScoped<Features.Sales.Promotions.PromotionService>();
+            builder.Services.AddScoped<Features.Sales.Dashboard.DashboardService>();
+            builder.Services.AddScoped<Features.Catalog.Categories.CategoryService>();
             // System
             builder.Services.AddScoped<Features.System.SettingService>();
             builder.Services.AddScoped<Features.System.AuditLogService>();

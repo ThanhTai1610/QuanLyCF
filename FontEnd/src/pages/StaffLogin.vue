@@ -154,6 +154,7 @@ import { useRouter } from 'vue-router'
 import { Coffee, Delete, ArrowLeft } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useStoreInfoStore } from '@/stores/storeInfo'
+import { api } from '@/services/api'
 
 const router         = useRouter()
 const authStore      = useAuthStore()
@@ -163,23 +164,31 @@ interface Staff {
   id: number
   name: string
   initials: string
-  pin: string
   role: string
-  redirect: string
+  maVaiTro: number
 }
 
-const staffOnShift: Staff[] = [
-  { id: 1, name: 'Nguyễn Hà', initials: 'NH', pin: '1234', role: 'Barista', redirect: '/orders' },
-  { id: 2, name: 'Trần Minh', initials: 'TM', pin: '5678', role: 'Thu Ngân', redirect: '/orders' },
-  { id: 3, name: 'Lê Thu', initials: 'LT', pin: '9012', role: 'Phục vụ', redirect: '/orders' },
-  { id: 4, name: 'Phạm An', initials: 'PA', pin: '3456', role: 'Bếp', redirect: '/kitchen' },
-  { id: 5, name: 'Võ Lan', initials: 'VL', pin: '7890', role: 'Barista', redirect: '/orders' },
-  { id: 6, name: 'Đỗ Hùng', initials: 'DH', pin: '2468', role: 'Bếp', redirect: '/kitchen' },
-  { id: 7, name: 'Bùi Mai', initials: 'BM', pin: '1357', role: 'Phục vụ', redirect: '/orders' },
-  { id: 8, name: 'Hoàng Bảo', initials: 'HB', pin: '8642', role: 'Thu Ngân', redirect: '/orders' },
-]
+const staffOnShift = ref<Staff[]>([])
+const loading = ref(true)
 
-const pinLength = 4
+const loadStaff = async () => {
+  try {
+    const data = await api.get<{ id: number, name: string, role: string, maVaiTro: number }[]>('/api/auth/staff-list')
+    staffOnShift.value = data.map(x => ({
+      id: x.id,
+      name: x.name,
+      initials: x.name.split(/\s+/).slice(-2).map(w => w[0]?.toUpperCase() ?? '').join('') || '?',
+      role: x.role,
+      maVaiTro: x.maVaiTro
+    }))
+  } catch (e) {
+    errorMsg.value = 'Không tải được danh sách nhân viên.'
+  } finally {
+    loading.value = false
+  }
+}
+
+const pinLength = 6
 const selectedStaff = ref<Staff | null>(null)
 const pin = ref('')
 const errorMsg = ref('')
@@ -197,6 +206,7 @@ const updateTime = () => {
 onMounted(() => {
   updateTime()
   timer = setInterval(updateTime, 1000)
+  loadStaff()
 })
 
 onUnmounted(() => clearInterval(timer))
@@ -234,7 +244,9 @@ const verifyPin = async () => {
   const staff = selectedStaff.value!
   try {
     await authStore.loginPin(staff.id, pin.value)
-    router.push(staff.redirect)
+    // Điều hướng dựa theo Vai trò: Vai trò Bếp (ID=3) hoặc Pha chế (ID=4) -> /kitchen. Còn lại -> /orders
+    const redirect = (staff.maVaiTro === 3 || staff.maVaiTro === 4) ? '/kitchen' : '/orders'
+    router.push(redirect)
   } catch (e) {
     errorMsg.value = e instanceof Error ? e.message : 'Mã PIN không đúng. Vui lòng thử lại!'
     pin.value = ''

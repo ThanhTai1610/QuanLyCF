@@ -13,6 +13,16 @@ public class DanhMuc
     public string? MoTa { get; set; }
     public bool TrangThaiHoatDong { get; set; } = true;
 
+    public string LoaiDanhMuc { get; set; } = "MAIN"; // MAIN hoặc TOPPING
+    public bool ApDungKhungGio { get; set; } = false;
+    public TimeSpan? GioBatDau { get; set; }
+    public TimeSpan? GioKetThuc { get; set; }
+
+    // Cấu hình riêng cho Topping
+    public int? ToiThieuChon { get; set; }
+    public int? ToiDaChon { get; set; }
+    public bool LaNhomKichThuoc { get; set; } = false;
+
     public ICollection<DanhMuc> DanhMucCon { get; set; } = new List<DanhMuc>();
     public ICollection<SanPham> SanPhams { get; set; } = new List<SanPham>();
 }

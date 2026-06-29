@@ -16,17 +16,46 @@ public class OrderService
         _db = db; _promo = promo;
     }
 
-    /// <summary>Danh sách món đang bán (kèm size) cho màn hình đặt món.</summary>
-    public async Task<List<MenuItemDto>> LayMenuAsync() =>
-        await _db.SanPhams.Where(x => x.TrangThaiBan)
+    public async Task<List<MenuItemDto>> LayMenuAsync() 
+    {
+        var rawMenu = await _db.SanPhams.Where(x => x.TrangThaiBan)
             .Include(x => x.DanhMuc).Include(x => x.KichCos)
             .OrderBy(x => x.TenSanPham)
-            .Select(x => new MenuItemDto(
-                x.MaSanPham, x.TenSanPham, x.DanhMuc != null ? x.DanhMuc.TenDanhMuc : null,
+            .ToListAsync();
+
+        // Lấy giờ hiện tại (múi giờ VN UTC+7)
+        var currentTime = DateTime.UtcNow.AddHours(7).TimeOfDay;
+
+        var filtered = rawMenu.Where(x => 
+        {
+            if (x.DanhMuc == null) return true;
+            if (!x.DanhMuc.TrangThaiHoatDong) return false;
+            
+            if (x.DanhMuc.ApDungKhungGio && x.DanhMuc.GioBatDau.HasValue && x.DanhMuc.GioKetThuc.HasValue)
+            {
+                var start = x.DanhMuc.GioBatDau.Value;
+                var end = x.DanhMuc.GioKetThuc.Value;
+                
+                if (start <= end)
+                {
+                    if (currentTime < start || currentTime > end) return false;
+                }
+                else 
+                {
+                    // Khung giờ qua đêm (VD: 22:00 -> 06:00)
+                    if (currentTime < start && currentTime > end) return false;
+                }
+            }
+            return true;
+        });
+
+        return filtered.Select(x => new MenuItemDto(
+                x.MaSanPham, x.TenSanPham, x.DanhMuc?.TenDanhMuc,
                 x.GiaBan, x.HinhAnh, x.KieuMon,
                 x.KichCos.Where(s => s.TrangThaiHoatDong)
                     .Select(s => new MenuSizeDto(s.MaKichCo, s.TenKichCo, s.GiaCongThem)).ToList()))
-            .ToListAsync();
+            .ToList();
+    }
 
     /// <summary>Tất cả đơn đang hoạt động (để hiển thị trên bàn).</summary>
     public async Task<List<OrderDto>> LayDonActiveAsync()
@@ -284,7 +313,7 @@ public class OrderService
     }
 
     private static OrderDto Map(DonHang d) => new(
-        d.MaDonHang, d.MaBan, d.Ban?.TenBan, d.LoaiDonHang, d.TrangThaiDon, d.ThanhTien,
+        d.MaDonHang, d.MaBan, d.LoaiDonHang == "TakeAway" ? $"Mang về - #{d.MaDonHang:D3}" : d.Ban?.TenBan, d.LoaiDonHang, d.TrangThaiDon, d.ThanhTien,
         d.ChiTiets.Sum(c => c.SoLuong), d.ThoiGianTao,
         d.ChiTiets.Select(c => new OrderItemDto(
             c.MaChiTiet, c.MaSanPham, c.SanPham?.TenSanPham ?? "(món)", c.KichCo?.TenKichCo,

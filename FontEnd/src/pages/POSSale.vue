@@ -27,14 +27,19 @@
         <p v-if="loadingMenu" class="text-sm text-[#8A8178]">Đang tải thực đơn...</p>
         <p v-else-if="menu.length===0" class="text-sm text-[#8A8178]">Chưa có món nào đang bán. Hãy thêm sản phẩm ở mục Thực đơn.</p>
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-          <button v-for="item in filteredMenu" :key="item.maSanPham" @click="openOptions(item)"
-            class="group bg-white rounded-2xl border border-[#EAE3D9] overflow-hidden hover:shadow-xl hover:shadow-[#CC8033]/10 hover:-translate-y-1 hover:border-[#CC8033]/40 transition-all duration-200 text-left relative">
+          <button v-for="item in filteredMenu" :key="item.maSanPham" @click="!orderStore.globalOutOfStock.has(item.tenSanPham) && openOptions(item)"
+            class="group bg-white rounded-2xl border border-[#EAE3D9] overflow-hidden hover:shadow-xl hover:shadow-[#CC8033]/10 hover:-translate-y-1 hover:border-[#CC8033]/40 transition-all duration-200 text-left relative"
+            :class="orderStore.globalOutOfStock.has(item.tenSanPham) ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : ''">
+            
             <div class="relative h-28 overflow-hidden bg-[#F5F2ED]">
+              <div v-if="orderStore.globalOutOfStock.has(item.tenSanPham)" class="absolute inset-0 bg-black/10 z-20 flex flex-col items-center justify-center">
+                <span class="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-md uppercase tracking-widest border border-red-600">Tạm hết</span>
+              </div>
               <img v-if="item.hinhAnh" :src="item.hinhAnh" :alt="item.tenSanPham" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
               <div v-else class="w-full h-full flex items-center justify-center text-[#C5BEB8]"><Coffee class="w-8 h-8" /></div>
               <div class="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent"></div>
-              <div v-if="cartQty(item.maSanPham)>0" class="absolute top-2 left-2 min-w-[20px] h-5 px-1.5 rounded-full bg-[#CC8033] text-white text-[10px] font-bold flex items-center justify-center shadow-md ring-2 ring-white">{{ cartQty(item.maSanPham) }}</div>
-              <div class="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-white/90 backdrop-blur text-[#CC8033] flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all">
+              <div v-if="cartQty(item.maSanPham)>0" class="absolute top-2 left-2 min-w-[20px] h-5 px-1.5 rounded-full bg-[#CC8033] text-white text-[10px] font-bold flex items-center justify-center shadow-md ring-2 ring-white z-10">{{ cartQty(item.maSanPham) }}</div>
+              <div class="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-white/90 backdrop-blur text-[#CC8033] flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all z-10">
                 <Plus class="w-4 h-4" stroke-width="2.5" />
               </div>
             </div>
@@ -158,6 +163,12 @@
           <textarea v-model="note" rows="2" placeholder="Ghi chú đơn..."
             class="w-full pl-8 pr-3 py-2.5 border border-[#EAE3D9] rounded-xl text-xs font-medium resize-none focus:border-[#CC8033] outline-none"></textarea>
         </div>
+        
+        <label class="flex items-center gap-2 cursor-pointer bg-purple-500/5 border border-purple-500/10 p-2.5 rounded-xl transition-colors select-none hover:bg-purple-500/10" :class="isPriority ? 'bg-purple-500/15 border-purple-500/30 shadow-inner' : ''">
+          <input type="checkbox" v-model="isPriority" class="w-4 h-4 accent-purple-500 rounded cursor-pointer" />
+          <span class="text-xs font-bold text-purple-700 flex items-center gap-1"><Zap class="w-3.5 h-3.5" /> Đánh dấu KHẨN CẤP (Ưu tiên Bếp)</span>
+        </label>
+
         <div class="flex justify-between items-center px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-[#FDF7EF] to-[#F9F1E6] border border-[#F0E4D2]">
           <span class="text-sm font-bold text-[#5C544E]">Tổng cộng</span>
           <span class="text-xl font-premium-serif font-bold text-[#CC8033]">{{ formatVND(cartTotal) }}</span>
@@ -372,19 +383,41 @@
         <CheckCircle class="w-5 h-5 text-emerald-400" stroke-width="2.5" />
         <div>
           <p class="text-sm font-bold">Thanh toán thành công!</p>
-          <p class="text-[10px] text-white/60 font-medium">{{ toastChange > 0 ? 'Tiền thối: ' + formatVND(toastChange) : 'Đơn đã ghi nhận' }}</p>
+          <p class="text-[10px] text-white/60 font-medium">
+            <span v-if="isTakeawayResponse" class="text-[#CC8033] font-bold mr-1">Mang về - #{{ String(orderIdResponse).padStart(3, '0') }}</span>
+            <span v-else-if="orderIdResponse" class="mr-1">Mã đơn: #{{ orderIdResponse }}</span>
+            <span v-if="toastChange > 0">· Tiền thối: {{ formatVND(toastChange) }}</span>
+            <span v-else>· Đã ghi nhận</span>
+          </p>
         </div>
+      </div>
+    </Transition>
+
+    <!-- Ready Toast -->
+    <Transition name="toast">
+      <div v-if="showReadyToast" class="fixed top-6 right-6 z-[200] flex items-center gap-3 bg-emerald-500 text-white px-5 py-4 rounded-2xl shadow-[0_10px_40px_rgba(16,185,129,0.3)] border border-emerald-400">
+        <Bell class="w-6 h-6 animate-[bounce_1s_ease-in-out_infinite]" stroke-width="2.5" />
+        <div>
+          <p class="text-base font-bold tracking-wide">Đồ đã sẵn sàng!</p>
+          <p class="text-xs font-medium text-emerald-50 mt-0.5">Vui lòng phục vụ <span class="font-bold bg-white/20 px-1.5 py-0.5 rounded">{{ readyTable }}</span></p>
+        </div>
+        <button @click="showReadyToast = false" class="w-8 h-8 flex items-center justify-center rounded-full bg-black/10 hover:bg-black/20 ml-2 transition-colors">
+          <X class="w-4 h-4" />
+        </button>
       </div>
     </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { Search, ShoppingCart, Trash2, X, MessageSquare, CheckCircle, Plus, Coffee, Store, ShoppingBag, Banknote, Smartphone, Wallet, Landmark } from 'lucide-vue-next'
+import { ref, computed, onMounted, watch } from 'vue'
+import { Search, ShoppingCart, Trash2, X, MessageSquare, CheckCircle, Plus, Coffee, Store, ShoppingBag, Banknote, Smartphone, Wallet, Landmark, Zap, Bell } from 'lucide-vue-next'
 import { ordersApi, type MenuItem } from '@/services/orders'
 import { tablesApi, type TableItem } from '@/services/tables'
 import { promotionsApi, type Promotion, type ApplyResult } from '@/services/promotions'
+import { useOrderStore } from '@/stores/orders'
+
+const orderStore = useOrderStore()
 
 const formatVND = (n: number) => (n || 0).toLocaleString('vi-VN') + 'đ'
 
@@ -540,7 +573,28 @@ const cashReceived = ref<number | null>(null)
 const paying = ref(false)
 const showToast = ref(false)
 const toastChange = ref(0)
+const orderIdResponse = ref<number | null>(null)
+const isTakeawayResponse = ref(false)
+const isPriority = ref(false)
+const showReadyToast = ref(false)
+const readyTable = ref('')
 const quickAmounts = [50000, 100000, 200000, 500000]
+
+watch(() => orderStore.posNotification, (newVal) => {
+  if (newVal) {
+     try {
+       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+       const osc = ctx.createOscillator()
+       osc.frequency.value = 1000
+       osc.connect(ctx.destination)
+       osc.start()
+       osc.stop(ctx.currentTime + 0.1)
+     } catch(e) {}
+     readyTable.value = newVal.table
+     showReadyToast.value = true
+     setTimeout(() => { showReadyToast.value = false }, 8000)
+  }
+})
 
 const payMethods: { id: 'TienMat' | 'ChuyenKhoan'; label: string; icon: unknown }[] = [
   { id: 'TienMat', label: 'Tiền mặt', icon: Banknote },
@@ -609,13 +663,26 @@ async function confirmPay() {
       soTienKhachTra: payMethod.value === 'TienMat' ? (cashReceived.value || finalTotal.value) : null,
       maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null,
     })
+    
+    // Đẩy đơn ảo vào store Bếp KDS (Dành cho bản Demo Local)
+    const tbName = orderType.value === 'dine-in' ? tables.value.find(t => t.maBan === selectedTableId.value)?.tenBan || '' : 'Mang về'
+    orderStore.createOrder({
+      table: tbName,
+      items: cart.value.map(i => ({ name: i.name, qty: i.qty, price: i.unitPrice, note: i.ghiChuMon || undefined })),
+      isPriority: isPriority.value
+    })
+
     toastChange.value = res.tienThoiLai
+    orderIdResponse.value = res.maDonHang
+    isTakeawayResponse.value = orderType.value === 'takeaway'
+    
     clearCart()
+    isPriority.value = false
     selectedTableId.value = null
     payOpen.value = false
     tables.value = await tablesApi.list()
     showToast.value = true
-    setTimeout(() => (showToast.value = false), 3000)
+    setTimeout(() => (showToast.value = false), 5000)
   } catch (e) {
     posError.value = e instanceof Error ? e.message : 'Thanh toán thất bại.'
   } finally {

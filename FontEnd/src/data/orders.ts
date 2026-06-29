@@ -1,4 +1,4 @@
-export type OrderStatus = "pending" | "preparing" | "done" | "cancelled";
+export type OrderStatus = "pending" | "preparing" | "ready" | "done" | "cancelled";
 
 export interface OrderItem {
   name: string;
@@ -28,6 +28,8 @@ export interface Order {
   paid?: boolean;
   /** Phương thức thanh toán */
   paymentMethod?: string;
+  /** Đơn ưu tiên / Khẩn cấp */
+  isPriority?: boolean;
 }
 
 /** Mốc thời gian gốc để seed dữ liệu mẫu (cố định theo lúc khởi tạo app) */
@@ -72,7 +74,7 @@ export const mockOrders: Order[] = [
   },
   {
     id: "DH-2038",
-    table: "Bàn 8",
+    table: "Mang về - #038",
     items: [
       { name: "Trà đào cam sả", qty: 2, price: 45000 },
       { name: "Cheesecake dâu", qty: 1, price: 45000 },
@@ -84,7 +86,7 @@ export const mockOrders: Order[] = [
   },
   {
     id: "DH-2037",
-    table: "Bàn 1",
+    table: "Mang về - #037",
     items: [
       { name: "Espresso", qty: 1, price: 35000 },
     ],
@@ -121,6 +123,7 @@ export const mockOrders: Order[] = [
 export const statusMeta: Record<OrderStatus, { label: string; className: string }> = {
   pending:    { label: "Chờ xác nhận", className: "bg-warning/15 text-warning border border-warning/30" },
   preparing:  { label: "Đang pha chế", className: "bg-caramel/15 text-caramel border border-caramel/30" },
+  ready:      { label: "Sẵn sàng (Chờ lấy)", className: "bg-success/15 text-success border border-success/30 animate-pulse" },
   done:       { label: "Hoàn thành",   className: "bg-success/15 text-success border border-success/30" },
   cancelled:  { label: "Đã hủy",       className: "bg-destructive/15 text-destructive border border-destructive/30" },
 };

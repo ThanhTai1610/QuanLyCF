@@ -34,6 +34,25 @@ public class AuthController : ControllerBase
         return r.Data is null ? Unauthorized(new { message = r.Error }) : Ok(r.Data);
     }
 
+    /// <summary>Lấy danh sách nhân viên để hiển thị ngoài màn hình StaffLogin.</summary>
+    [HttpGet("staff-list")]
+    public async Task<IActionResult> StaffList()
+    {
+        var data = await _db.NhanViens
+            .Include(x => x.VaiTro)
+            .Where(x => x.TrangThaiHoatDong && x.MaVaiTro != 1) // 1 là Quản lý, quản lý dùng mật khẩu web
+            .OrderBy(x => x.HoTen)
+            .Select(x => new
+            {
+                id = x.MaNhanVien,
+                name = x.HoTen,
+                role = x.VaiTro.TenVaiTro,
+                maVaiTro = x.MaVaiTro
+            })
+            .ToListAsync();
+        return Ok(data);
+    }
+
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh(RefreshRequest req)
     {
