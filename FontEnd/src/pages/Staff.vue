@@ -221,12 +221,14 @@
           </div>
         </div>
 
-        <!-- Mật khẩu -->
+        <!-- Xác thực (Mật khẩu / PIN) -->
         <div class="rounded-xl border border-cream-deep bg-cream/30 px-4 py-3">
-          <p class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-2">Mật khẩu đăng nhập</p>
+          <p class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-2">
+            {{ detailTarget?.maVaiTro === 1 ? 'Mật khẩu đăng nhập (Web)' : 'Mã PIN đăng nhập (POS)' }}
+          </p>
           <div class="flex items-center justify-between gap-3">
             <p class="text-sm font-mono tracking-widest text-espresso select-none">
-              {{ showPwd ? '(Mật khẩu đã mã hoá — không thể hiển thị)' : '••••••••••••' }}
+              {{ showPwd ? (detailTarget?.maVaiTro === 1 ? '(Mật khẩu đã mã hoá bảo mật)' : '(Mã PIN đã mã hoá bảo mật)') : '••••••••••••' }}
             </p>
             <button @click="showPwd = !showPwd"
               class="flex items-center gap-1.5 text-xs font-semibold text-caramel hover:text-espresso transition-colors shrink-0">
@@ -235,8 +237,8 @@
             </button>
           </div>
           <p v-if="showPwd" class="text-[11px] text-muted-foreground mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-            Vì lý do bảo mật, mật khẩu được mã hoá một chiều (BCrypt) và không thể khôi phục.
-            Nếu nhân viên quên mật khẩu, dùng chức năng <b>Đặt lại mật khẩu</b>.
+            Vì lý do bảo mật, {{ detailTarget?.maVaiTro === 1 ? 'mật khẩu' : 'Mã PIN' }} được mã hoá một chiều (BCrypt) và không thể xem lại.
+            Nếu nhân viên quên, vui lòng dùng chức năng <b>Đặt lại {{ detailTarget?.maVaiTro === 1 ? 'mật khẩu' : 'Mã PIN' }}</b>.
           </p>
         </div>
       </div>
@@ -244,7 +246,8 @@
       <template #footer>
         <Button variant="outline" @click="detailOpen = false" class="border-cream-deep rounded-xl text-espresso">Đóng</Button>
         <Button @click="detailOpen = false; openReset(detailTarget!)" class="bg-espresso text-cream rounded-xl gap-2">
-          <KeyRound class="w-3.5 h-3.5" /> Đặt lại mật khẩu
+          <KeyRound class="w-3.5 h-3.5" /> 
+          Đặt lại {{ detailTarget?.maVaiTro === 1 ? 'mật khẩu' : 'Mã PIN' }}
         </Button>
       </template>
     </Modal>
@@ -311,25 +314,38 @@
             <AlertCircle class="w-3.5 h-3.5 shrink-0" /> {{ fieldErrors.soDienThoai }}
           </p>
         </div>
-        <!-- Mật khẩu (chỉ khi tạo mới) -->
-        <div v-if="!editing">
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Mật khẩu khởi tạo <span class="text-red-500">*</span></label>
-            <span class="text-[11px] text-muted-foreground">{{ form.matKhau.length }}/50</span>
+        <!-- Mật khẩu và PIN (chỉ khi tạo mới) -->
+        <div v-if="!editing" class="mt-4">
+          <div v-if="form.maVaiTro === 1">
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Mật khẩu khởi tạo (Web) <span class="text-red-500">*</span></label>
+            </div>
+            <div class="relative">
+              <Input v-model="form.matKhau" :type="showMatKhau ? 'text' : 'password'" maxlength="50"
+                placeholder="Tối thiểu 6 ký tự"
+                @input="fieldErrors.matKhau = ''"
+                :class="['bg-card h-10 rounded-xl pr-10', fieldErrors.matKhau ? 'border-red-400 focus-visible:ring-red-400/30' : 'border-cream-deep']" />
+              <button type="button" @click="showMatKhau = !showMatKhau"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-espresso transition-colors">
+                <component :is="showMatKhau ? EyeOff : Eye" class="w-4 h-4" />
+              </button>
+            </div>
+            <p v-if="fieldErrors.matKhau" class="flex items-center gap-1 mt-1.5 text-xs text-red-600 font-medium">
+              <AlertCircle class="w-3.5 h-3.5 shrink-0" /> {{ fieldErrors.matKhau }}
+            </p>
           </div>
-          <div class="relative">
-            <Input v-model="form.matKhau" :type="showMatKhau ? 'text' : 'password'" maxlength="50"
-              placeholder="Tối thiểu 6 ký tự"
-              @input="fieldErrors.matKhau = ''"
-              :class="['bg-card h-10 rounded-xl pr-10', fieldErrors.matKhau ? 'border-red-400 focus-visible:ring-red-400/30' : 'border-cream-deep']" />
-            <button type="button" @click="showMatKhau = !showMatKhau"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-espresso transition-colors">
-              <component :is="showMatKhau ? EyeOff : Eye" class="w-4 h-4" />
-            </button>
+          <div v-else>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Mã PIN khởi tạo (POS) <span class="text-red-500">*</span></label>
+            </div>
+            <Input v-model="form.pin" type="text" maxlength="6"
+              placeholder="Đúng 6 chữ số"
+              @input="fieldErrors.pin = ''; form.pin = form.pin.replace(/\D/g, '')"
+              :class="['bg-card h-10 rounded-xl font-mono tracking-widest', fieldErrors.pin ? 'border-red-400 focus-visible:ring-red-400/30' : 'border-cream-deep']" />
+            <p v-if="fieldErrors.pin" class="flex items-center gap-1 mt-1.5 text-xs text-red-600 font-medium">
+              <AlertCircle class="w-3.5 h-3.5 shrink-0" /> {{ fieldErrors.pin }}
+            </p>
           </div>
-          <p v-if="fieldErrors.matKhau" class="flex items-center gap-1 mt-1.5 text-xs text-red-600 font-medium">
-            <AlertCircle class="w-3.5 h-3.5 shrink-0" /> {{ fieldErrors.matKhau }}
-          </p>
         </div>
       </div>
       <template #footer>
@@ -340,28 +356,45 @@
       </template>
     </Modal>
 
-    <!-- ── Modal Đặt lại mật khẩu ── -->
+    <!-- ── Modal Đặt lại mật khẩu / PIN ── -->
     <Modal v-model="resetOpen">
       <template #header>
-        <h2 class="font-display text-xl text-espresso font-bold">Đặt lại mật khẩu</h2>
+        <h2 class="font-display text-xl text-espresso font-bold">
+          Đặt lại {{ resetTarget?.maVaiTro === 1 ? 'mật khẩu' : 'Mã PIN' }}
+        </h2>
         <p class="text-sm text-muted-foreground">{{ resetTarget?.hoTen }} · {{ resetTarget?.email }}</p>
       </template>
-      <div class="space-y-3">
-        <div class="flex items-center justify-between mb-1">
-          <label class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Mật khẩu mới <span class="text-red-500">*</span></label>
-          <span class="text-[11px] text-muted-foreground">{{ newPassword.length }}/50</span>
+      <div class="space-y-4">
+        <!-- Đặt lại Mật khẩu (Web) -->
+        <div v-if="resetTarget?.maVaiTro === 1">
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Mật khẩu mới (Web) <span class="text-red-500">*</span></label>
+            <span class="text-[11px] text-muted-foreground">{{ newPassword.length }}/50</span>
+          </div>
+          <div class="relative">
+            <Input v-model="newPassword" :type="showResetPwd ? 'text' : 'password'" maxlength="50"
+              placeholder="Tối thiểu 6 ký tự"
+              @input="resetError = ''"
+              :class="['bg-card h-10 rounded-xl pr-10', resetError ? 'border-red-400' : 'border-cream-deep']" />
+            <button type="button" @click="showResetPwd = !showResetPwd"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-espresso transition-colors">
+              <component :is="showResetPwd ? EyeOff : Eye" class="w-4 h-4" />
+            </button>
+          </div>
         </div>
-        <div class="relative">
-          <Input v-model="newPassword" :type="showResetPwd ? 'text' : 'password'" maxlength="50"
-            placeholder="Tối thiểu 6 ký tự"
-            @input="resetError = ''"
-            :class="['bg-card h-10 rounded-xl pr-10', resetError ? 'border-red-400' : 'border-cream-deep']" />
-          <button type="button" @click="showResetPwd = !showResetPwd"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-espresso transition-colors">
-            <component :is="showResetPwd ? EyeOff : Eye" class="w-4 h-4" />
-          </button>
+
+        <!-- Đặt lại Mã PIN (POS) -->
+        <div v-else>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Mã PIN mới (POS) <span class="text-red-500">*</span></label>
+          </div>
+          <Input v-model="newPin" type="text" maxlength="6"
+            placeholder="Đúng 6 số"
+            @input="resetError = ''; newPin = newPin.replace(/\D/g, '')"
+            :class="['bg-card h-10 rounded-xl font-mono tracking-widest', resetError ? 'border-red-400' : 'border-cream-deep']" />
         </div>
-        <p v-if="resetError" class="flex items-center gap-1 text-xs text-red-600 font-medium">
+
+        <p v-if="resetError" class="flex items-center gap-1 mt-1 text-xs text-red-600 font-medium">
           <AlertCircle class="w-3.5 h-3.5 shrink-0" /> {{ resetError }}
         </p>
       </div>
@@ -515,7 +548,7 @@ watch([search, roleFilter], () => { currentPage.value = 1 })
 const modalOpen = ref(false)
 const editing = ref<Account | null>(null)
 const saving = ref(false)
-const fieldErrors = ref({ hoTen: '', email: '', maVaiTro: '', soDienThoai: '', matKhau: '' })
+const fieldErrors = ref({ hoTen: '', email: '', maVaiTro: '', soDienThoai: '', matKhau: '', pin: '' })
 const showMatKhau = ref(false)
 const showResetPwd = ref(false)
 const form = ref<{ hoTen: string; email: string; maVaiTro: number; trangThaiHoatDong: boolean; matKhau: string; pin: string; soDienThoai: string }>(
@@ -524,20 +557,20 @@ const form = ref<{ hoTen: string; email: string; maVaiTro: number; trangThaiHoat
 function openAdd() {
   editing.value = null
   form.value = { hoTen: '', email: '', maVaiTro: roles.value[0]?.maVaiTro ?? 0, trangThaiHoatDong: true, matKhau: '', pin: '', soDienThoai: '' }
-  fieldErrors.value = { hoTen: '', email: '', maVaiTro: '', soDienThoai: '', matKhau: '' }
+  fieldErrors.value = { hoTen: '', email: '', maVaiTro: '', soDienThoai: '', matKhau: '', pin: '' }
   showMatKhau.value = false
   modalOpen.value = true
 }
 function openEdit(a: Account) {
   editing.value = a
   form.value = { hoTen: a.hoTen, email: a.email, maVaiTro: a.maVaiTro, trangThaiHoatDong: a.trangThaiHoatDong, matKhau: '', pin: '', soDienThoai: a.soDienThoai || '' }
-  fieldErrors.value = { hoTen: '', email: '', maVaiTro: '', soDienThoai: '', matKhau: '' }
+  fieldErrors.value = { hoTen: '', email: '', maVaiTro: '', soDienThoai: '', matKhau: '', pin: '' }
   showMatKhau.value = false
   modalOpen.value = true
 }
 
 function validate(): boolean {
-  fieldErrors.value = { hoTen: '', email: '', maVaiTro: '', soDienThoai: '', matKhau: '' }
+  fieldErrors.value = { hoTen: '', email: '', maVaiTro: '', soDienThoai: '', matKhau: '', pin: '' }
   let ok = true
   const ten = form.value.hoTen.trim()
   if (!ten) { fieldErrors.value.hoTen = 'Vui lòng nhập họ và tên.'; ok = false }
@@ -551,10 +584,19 @@ function validate(): boolean {
   const sdt = form.value.soDienThoai.trim()
   if (sdt && !/^0[35789]\d{8}$/.test(sdt)) { fieldErrors.value.soDienThoai = 'Số điện thoại không hợp lệ (10 số, bắt đầu 03/05/07/08/09).'; ok = false }
   if (!editing.value) {
-    const pwd = form.value.matKhau
-    if (!pwd) { fieldErrors.value.matKhau = 'Vui lòng nhập mật khẩu khởi tạo.'; ok = false }
-    else if (pwd.length < 6) { fieldErrors.value.matKhau = 'Mật khẩu tối thiểu 6 ký tự.'; ok = false }
-    else if (pwd.length > 50) { fieldErrors.value.matKhau = 'Mật khẩu tối đa 50 ký tự.'; ok = false }
+    if (form.value.maVaiTro === 1) {
+      const pwd = form.value.matKhau
+      if (!pwd) { fieldErrors.value.matKhau = 'Vui lòng nhập mật khẩu.'; ok = false }
+      else if (pwd.length < 6) { fieldErrors.value.matKhau = 'Mật khẩu tối thiểu 6 ký tự.'; ok = false }
+      else if (pwd.length > 50) { fieldErrors.value.matKhau = 'Mật khẩu tối đa 50 ký tự.'; ok = false }
+      form.value.pin = '' // Quản lý không dùng PIN POS
+    } else {
+      // Dummy web password for non-admin roles to satisfy backend requirement
+      form.value.matKhau = form.value.pin || '123456'
+      const pin = form.value.pin
+      if (!pin) { fieldErrors.value.pin = 'Vui lòng nhập Mã PIN.'; ok = false }
+      else if (!/^\d{6}$/.test(pin)) { fieldErrors.value.pin = 'Mã PIN phải đúng 6 số.'; ok = false }
+    }
   }
   return ok
 }
@@ -622,20 +664,36 @@ function openDetail(a: Account) { detailTarget.value = a; showPwd.value = false;
 const resetOpen = ref(false)
 const resetTarget = ref<Account | null>(null)
 const newPassword = ref('')
+const newPin = ref('')
 const resetError = ref('')
-function openReset(a: Account) { resetTarget.value = a; newPassword.value = ''; resetError.value = ''; showResetPwd.value = false; resetOpen.value = true }
+function openReset(a: Account) { resetTarget.value = a; newPassword.value = ''; newPin.value = ''; resetError.value = ''; showResetPwd.value = false; resetOpen.value = true }
 async function doReset() {
   resetError.value = ''
   const pwd = newPassword.value
-  if (!pwd) { resetError.value = 'Vui lòng nhập mật khẩu mới.'; return }
-  if (pwd.length < 6) { resetError.value = 'Mật khẩu tối thiểu 6 ký tự.'; return }
-  if (pwd.length > 50) { resetError.value = 'Mật khẩu tối đa 50 ký tự.'; return }
+  const pin = newPin.value
+
+  if (resetTarget.value!.maVaiTro === 1) {
+    if (!pwd) { resetError.value = 'Vui lòng nhập Mật khẩu mới.'; return }
+    if (pwd.length < 6) { resetError.value = 'Mật khẩu phải từ 6 ký tự.'; return }
+  } else {
+    if (!pin) { resetError.value = 'Vui lòng nhập Mã PIN mới.'; return }
+    if (pin.length !== 6) { resetError.value = 'Mã PIN phải đúng 6 số.'; return }
+  }
+
   saving.value = true
   try {
-    await accountsApi.resetPassword(resetTarget.value!.maNhanVien, newPassword.value)
+    const p: Promise<any>[] = []
+    if (resetTarget.value!.maVaiTro === 1) {
+      p.push(accountsApi.resetPassword(resetTarget.value!.maNhanVien, pwd))
+    } else {
+      p.push(accountsApi.setPin(resetTarget.value!.maNhanVien, pin))
+      p.push(accountsApi.resetPassword(resetTarget.value!.maNhanVien, pin)) // Sync web password with PIN just in case
+    }
+    
+    await Promise.all(p)
     resetOpen.value = false
   } catch (e) {
-    resetError.value = e instanceof Error ? e.message : 'Không đặt lại được mật khẩu.'
+    resetError.value = e instanceof Error ? e.message : 'Không lưu được thay đổi.'
   } finally { saving.value = false }
 }
 

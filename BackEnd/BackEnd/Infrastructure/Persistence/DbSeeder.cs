@@ -349,7 +349,112 @@ public static class DbSeeder
             await db.SaveChangesAsync();
         }
 
-        // 4. Seed một số đơn hàng mẫu cho Bàn số 5 để kiểm thử giao diện
+        // 4. Seed random orders and invoices for the last 7 days (including today)
+        if (!await db.DonHangs.AnyAsync())
+        {
+            var r = new Random();
+            var sanPhams = await db.SanPhams.Include(x => x.KichCos).ToListAsync();
+            var bans = await db.Bans.ToListAsync();
+            var nvThuNgan = await db.NhanViens.FirstOrDefaultAsync();
+            var maNV = nvThuNgan?.MaNhanVien ?? 1;
+
+            if (sanPhams.Any() && bans.Any())
+            {
+                var donHangs = new List<DonHang>();
+                var hoaDons = new List<HoaDon>();
+                var today = DateTime.UtcNow.Date;
+
+                // Tạo 7 ngày, mỗi ngày 10-30 đơn
+                for (int i = 6; i >= 0; i--)
+                {
+                    var date = today.AddDays(-i);
+                    int ordersCount = r.Next(10, 30);
+                    
+                    for (int j = 0; j < ordersCount; j++)
+                    {
+                        var time = date.AddHours(r.Next(7, 22)).AddMinutes(r.Next(0, 59));
+                        
+                        var dh = new DonHang
+                        {
+                            ThoiGianTao = time,
+                            ThoiGianCapNhat = time,
+                            TrangThaiDon = "HoanThanh",
+                            LoaiDonHang = r.Next(10) > 2 ? "DineIn" : "TakeAway",
+                            MaBan = bans[r.Next(bans.Count)].MaBan,
+                            MaNhanVien = maNV,
+                            ChiTiets = new List<ChiTietDonHang>()
+                        };
+
+                        if (dh.LoaiDonHang == "TakeAway") dh.MaBan = null;
+
+                        int itemsCount = r.Next(1, 5);
+                        decimal tongTien = 0;
+                        for (int k = 0; k < itemsCount; k++)
+                        {
+                            var sp = sanPhams[r.Next(sanPhams.Count)];
+                            if (sp.KieuMon == "Topping") { k--; continue; } // ignore topping as main item
+
+                            var size = sp.KichCos?.FirstOrDefault();
+                            decimal donGia = sp.GiaBan + (size?.GiaCongThem ?? 0);
+                            int soLuong = r.Next(1, 3);
+                            decimal thanhTien = donGia * soLuong;
+                            tongTien += thanhTien;
+
+                            dh.ChiTiets.Add(new ChiTietDonHang
+                            {
+                                MaSanPham = sp.MaSanPham,
+                                MaKichCo = size?.MaKichCo,
+                                SoLuong = soLuong,
+                                DonGia = donGia,
+                                ThanhTien = thanhTien,
+                                TrangThaiBep = "HoanThanh",
+                                ThoiGianBaoBep = time,
+                                ThoiGianLamXong = time.AddMinutes(r.Next(2, 10))
+                            });
+                        }
+
+                        if (dh.ChiTiets.Count > 0)
+                        {
+                            dh.TongTienHang = tongTien;
+                            dh.ThanhTien = tongTien;
+                            donHangs.Add(dh);
+                        }
+                    }
+                }
+
+                db.DonHangs.AddRange(donHangs);
+                await db.SaveChangesAsync(); // save to generate IDs
+
+                foreach (var dh in donHangs)
+                {
+                    var payTime = dh.ThoiGianCapNhat.AddMinutes(r.Next(5, 30));
+                    hoaDons.Add(new HoaDon
+                    {
+                        MaDonHang = dh.MaDonHang,
+                        MaNhanVienThuNgan = dh.MaNhanVien,
+                        TongThanhTien = dh.ThanhTien,
+                        SoTienKhachTra = dh.ThanhTien,
+                        TienThoiLai = 0,
+                        TrangThai = "DaThanhToan",
+                        ThoiGianThanhToan = payTime,
+                        ChiTietThanhToans = new List<ThanhToanChiTiet>
+                        {
+                            new ThanhToanChiTiet
+                            {
+                                PhuongThuc = r.Next(10) > 3 ? "TienMat" : "ChuyenKhoan",
+                                SoTien = dh.ThanhTien,
+                                ThoiGianThanhToan = payTime
+                            }
+                        }
+                    });
+                }
+                
+                db.HoaDons.AddRange(hoaDons);
+                await db.SaveChangesAsync();
+            }
+        }
+
+        // 5. Seed một số đơn hàng mẫu cho Bàn số 5 để kiểm thử giao diện
         if (!await db.DonHangs.AnyAsync(d => d.MaBan == 5))
         {
             var ban5 = await db.Bans.FirstOrDefaultAsync(b => b.MaBan == 5 || b.TenBan == "Bàn 05");
@@ -449,4 +554,3 @@ public static class DbSeeder
         }
     }
 }
-

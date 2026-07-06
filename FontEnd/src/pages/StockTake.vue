@@ -109,27 +109,27 @@
         Chưa có yêu cầu kiểm kê nào.
       </div>
 
-      <div v-for="req in requests" :key="req.id" class="bg-white rounded-xl border border-[#EAE3D9] shadow-sm overflow-hidden">
+      <div v-for="req in requests" :key="req.maPhieu" class="bg-white rounded-xl border border-[#EAE3D9] shadow-sm overflow-hidden">
         <div class="px-5 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-[#EAE3D9] bg-[#FDFBF7]">
           <div class="flex items-center gap-4">
-            <span class="font-mono text-xs font-bold text-[#2A231E]">{{ req.id }}</span>
-            <span class="text-xs text-[#5C544E]">{{ req.by }} • {{ req.time }}</span>
-            <span class="px-2.5 py-1 rounded-full bg-[#EAE3D9]/60 text-[#5C544E] text-[10px] font-bold uppercase tracking-wider">{{ req.items.length }} mặt hàng</span>
+            <span class="font-mono text-xs font-bold text-[#2A231E]">#{{ req.maPhieu }}</span>
+            <span class="text-xs text-[#5C544E]">{{ new Date(req.thoiGianTao).toLocaleString('vi-VN') }}</span>
+            <span class="px-2.5 py-1 rounded-full bg-[#EAE3D9]/60 text-[#5C544E] text-[10px] font-bold uppercase tracking-wider">{{ req.chiTiets.length }} mặt hàng</span>
           </div>
           <div class="flex items-center gap-2">
-            <span :class="['inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wider', statusBadge[req.status].cls]">
-              <component :is="statusBadge[req.status].icon" class="w-3 h-3" /> {{ statusBadge[req.status].label }}
+            <span v-if="statusBadge[req.trangThai as keyof typeof statusBadge]" :class="['inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wider', statusBadge[req.trangThai as keyof typeof statusBadge].cls]">
+              <component :is="statusBadge[req.trangThai as keyof typeof statusBadge].icon" class="w-3 h-3" /> {{ statusBadge[req.trangThai as keyof typeof statusBadge].label }}
             </span>
-            <template v-if="req.status === 'pending'">
+            <template v-if="req.trangThai === 'ChoDuyet'">
               <button @click="approve(req)" class="px-3 py-1.5 rounded-md bg-[#4A7C59] text-white text-[10px] font-bold uppercase tracking-wider hover:bg-[#3B6347] transition-colors shadow-sm">Duyệt</button>
               <button @click="reject(req)" class="px-3 py-1.5 rounded-md bg-white border border-red-200 text-red-500 text-[10px] font-bold uppercase tracking-wider hover:bg-red-50 transition-colors">Từ chối</button>
             </template>
           </div>
         </div>
         <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          <div v-for="(it, i) in req.items" :key="i" class="flex items-center justify-between bg-[#FDFBF7] border border-[#EAE3D9] rounded-lg px-3 py-2">
-            <span class="text-xs font-bold text-[#2A231E]">{{ it.name }}</span>
-            <span class="text-xs font-bold" :class="it.diff > 0 ? 'text-[#4A7C59]' : 'text-red-500'">{{ it.diff > 0 ? '+' : '' }}{{ formatNumber(it.diff) }} {{ it.unit }}</span>
+          <div v-for="(it, i) in req.chiTiets" :key="i" class="flex items-center justify-between bg-[#FDFBF7] border border-[#EAE3D9] rounded-lg px-3 py-2">
+            <span class="text-xs font-bold text-[#2A231E]">{{ it.tenNguyenLieu }}</span>
+            <span class="text-xs font-bold" :class="it.chenhLech > 0 ? 'text-[#4A7C59]' : 'text-red-500'">{{ it.chenhLech > 0 ? '+' : '' }}{{ formatNumber(it.chenhLech) }}</span>
           </div>
         </div>
       </div>
@@ -153,27 +153,41 @@ import {
 } from 'lucide-vue-next'
 
 // ── Types ───────────────────────────────────────────────
-interface Row { id: string; name: string; unit: string; system: number; actual: number | undefined; note: string }
-interface ReqItem { name: string; unit: string; diff: number }
-interface Request { id: string; by: string; time: string; status: 'pending' | 'approved' | 'rejected'; items: ReqItem[] }
+interface Row { id: number; name: string; sku: string | null; unit: string; system: number; actual: number | undefined; note: string }
 
-// ── Master rows (tồn hệ thống lấy từ kho) ───────────────
-const baseRows: Omit<Row, 'actual' | 'note'>[] = [
-  { id: 'RAW-CF-001', name: 'Hạt cà phê Robusta', unit: 'g', system: 10450 },
-  { id: 'SEM-TC-012', name: 'Trân châu đen nấu sẵn', unit: 'g', system: 4200 },
-  { id: 'RAW-MK-005', name: 'Sữa đặc Ngôi sao', unit: 'Lon', system: 293 },
-  { id: 'RAW-MK-002', name: 'Sữa tươi thanh trùng', unit: 'Hộp', system: 48 },
-  { id: 'SUP-CUP-01', name: 'Ly giấy Takeaway 450ml', unit: 'Chiếc', system: 0 },
-]
+import { materialsApi } from '@/services/materials'
+import { stockTakeApi, type StockTakeListItem, type StockTakeDetail } from '@/services/stockTakes'
+import { onMounted } from 'vue'
 
-const staff = ['Lan Trần', 'Khoa Phạm', 'Minh Nguyễn', 'Vy Hoàng']
-
+const loading = ref(false)
+const rows = ref<Row[]>([])
+const staff = ['Hệ thống'] // We could fetch users, but let's just use current user or mock string. We can leave the mock staff list for now.
 const activeTab = ref<'create' | 'history'>('create')
 const takeDate = ref(new Date().toISOString().slice(0, 10))
 const takeBy = ref(staff[0]!)
 const takeZone = ref('Toàn bộ kho')
 
-const rows = ref<Row[]>(baseRows.map(r => ({ ...r, actual: undefined, note: '' })))
+const fetchMaterials = async () => {
+  try {
+    const list = await materialsApi.list()
+    rows.value = list.map(m => ({
+      id: m.maNguyenLieu,
+      name: m.tenNguyenLieu,
+      sku: m.maVach_SKU,
+      unit: m.donViTinh,
+      system: m.soLuongTon,
+      actual: undefined,
+      note: ''
+    }))
+  } catch (err) {
+    toast('Lỗi khi tải danh sách nguyên liệu')
+  }
+}
+
+onMounted(() => {
+  fetchMaterials()
+  fetchRequests()
+})
 
 // ── Diff helpers ────────────────────────────────────────
 const formatNumber = (n: number) => (n || 0).toLocaleString('vi-VN')
@@ -189,17 +203,24 @@ const countedRows = computed(() => rows.value.filter(r => r.actual !== undefined
 const diffRows = computed(() => rows.value.filter(r => r.actual !== undefined && diff(r) !== 0).length)
 
 // ── Requests ────────────────────────────────────────────
-const requests = ref<Request[]>([
-  { id: 'KK-023', by: 'Khoa Phạm', time: '08/06/2026 17:40', status: 'approved', items: [{ name: 'Hạt cà phê Robusta', unit: 'g', diff: -150 }, { name: 'Sữa đặc Ngôi sao', unit: 'Lon', diff: 2 }] },
-  { id: 'KK-022', by: 'Lan Trần', time: '07/06/2026 21:10', status: 'rejected', items: [{ name: 'Ly giấy Takeaway 450ml', unit: 'Chiếc', diff: -50 }] },
-])
-let reqCounter = 24
-const pendingCount = computed(() => requests.value.filter(r => r.status === 'pending').length)
+const requests = ref<StockTakeDetail[]>([])
+const pendingCount = computed(() => requests.value.filter(r => r.trangThai === 'ChoDuyet').length)
+
+const fetchRequests = async () => {
+  try {
+    const list = await stockTakeApi.list()
+    // Load full details for each
+    const fullList = await Promise.all(list.map(r => stockTakeApi.get(r.maPhieu)))
+    requests.value = fullList
+  } catch (err) {
+    toast('Lỗi khi tải lịch sử kiểm kê')
+  }
+}
 
 const statusBadge = {
-  pending: { label: 'Chờ duyệt', cls: 'bg-orange-50 text-orange-600 border-orange-100', icon: Clock },
-  approved: { label: 'Đã duyệt', cls: 'bg-green-50 text-green-600 border-green-100', icon: CheckCircle2 },
-  rejected: { label: 'Từ chối', cls: 'bg-red-50 text-red-500 border-red-100', icon: XCircle },
+  ChoDuyet: { label: 'Chờ duyệt', cls: 'bg-orange-50 text-orange-600 border-orange-100', icon: Clock },
+  DaDuyet: { label: 'Đã duyệt', cls: 'bg-green-50 text-green-600 border-green-100', icon: CheckCircle2 },
+  TuChoi: { label: 'Từ chối', cls: 'bg-red-50 text-red-500 border-red-100', icon: XCircle },
 } as const
 
 // ── Toast ───────────────────────────────────────────────
@@ -214,24 +235,53 @@ const toast = (msg: string) => {
 // ── Actions ─────────────────────────────────────────────
 const saveDraft = () => toast('Đã lưu nháp phiếu kiểm kê')
 
-const submitRequest = () => {
+const submitRequest = async () => {
   const changed = rows.value.filter(r => r.actual !== undefined && diff(r) !== 0)
   if (changed.length === 0) { toast('Chưa có chênh lệch nào để gửi'); return }
-  const id = `KK-${String(reqCounter++).padStart(3, '0')}`
-  const d = new Date(takeDate.value)
-  requests.value.unshift({
-    id, by: takeBy.value,
-    time: d.toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-    status: 'pending',
-    items: changed.map(r => ({ name: r.name, unit: r.unit, diff: diff(r) })),
-  })
-  rows.value = baseRows.map(r => ({ ...r, actual: undefined, note: '' }))
-  activeTab.value = 'history'
-  toast(`Đã gửi yêu cầu ${id} (${changed.length} mặt hàng)`)
+  
+  loading.value = true
+  try {
+    await stockTakeApi.create({
+      ghiChu: `Kiểm kê khu vực: ${takeZone.value}`,
+      chiTiets: changed.map(r => ({
+        maNguyenLieu: r.id,
+        soLuongThucTe: r.actual!,
+        lyDoLech: r.note || null
+      }))
+    })
+    
+    // reset form
+    rows.value.forEach(r => { r.actual = undefined; r.note = '' })
+    activeTab.value = 'history'
+    toast(`Đã gửi yêu cầu kiểm kê (${changed.length} mặt hàng)`)
+    await fetchRequests()
+  } catch (err) {
+    toast(err instanceof Error ? err.message : 'Lỗi khi gửi yêu cầu')
+  } finally {
+    loading.value = false
+  }
 }
 
-const approve = (req: Request) => { req.status = 'approved'; toast(`Đã duyệt ${req.id} — kho được cập nhật`) }
-const reject = (req: Request) => { req.status = 'rejected'; toast(`Đã từ chối ${req.id}`) }
+const approve = async (req: StockTakeDetail) => { 
+  try {
+    await stockTakeApi.approve(req.maPhieu)
+    toast(`Đã duyệt mã phiếu #${req.maPhieu} — kho được cập nhật`) 
+    await fetchRequests()
+    if (activeTab.value === 'create') await fetchMaterials() // Update stock numbers
+  } catch (err) {
+    toast(err instanceof Error ? err.message : 'Lỗi khi duyệt phiếu')
+  }
+}
+
+const reject = async (req: StockTakeDetail) => { 
+  try {
+    await stockTakeApi.reject(req.maPhieu)
+    toast(`Đã từ chối phiếu #${req.maPhieu}`) 
+    await fetchRequests()
+  } catch (err) {
+    toast(err instanceof Error ? err.message : 'Lỗi khi từ chối phiếu')
+  }
+}
 </script>
 
 <style scoped>

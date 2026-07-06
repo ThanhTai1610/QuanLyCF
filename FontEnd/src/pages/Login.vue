@@ -70,31 +70,22 @@
         <!-- Tabs -->
         <div class="flex items-center gap-6 border-b border-[#EAE3D9] mb-8">
           <button 
-            @click="activeTab = 'admin'"
             type="button"
-            :class="[
-              'pb-3 text-[10px] font-black uppercase tracking-widest transition-all duration-300 relative',
-              activeTab === 'admin' ? 'text-[#CC8033]' : 'text-[#8A8178] hover:text-[#2A231E]'
-            ]"
+            class="pb-3 text-[10px] font-black uppercase tracking-widest transition-all duration-300 relative text-[#CC8033]"
           >
             Tài khoản Admin
-            <div v-if="activeTab === 'admin'" class="absolute bottom-0 left-0 w-full h-[2px] bg-[#CC8033]"></div>
+            <div class="absolute bottom-0 left-0 w-full h-[2px] bg-[#CC8033]"></div>
           </button>
-          <button 
-            @click="activeTab = 'staff'"
-            type="button"
-            :class="[
-              'pb-3 text-[10px] font-black uppercase tracking-widest transition-all duration-300 relative',
-              activeTab === 'staff' ? 'text-[#CC8033]' : 'text-[#8A8178] hover:text-[#2A231E]'
-            ]"
+          <router-link 
+            to="/staff-login"
+            class="pb-3 text-[10px] font-black uppercase tracking-widest transition-all duration-300 relative text-[#8A8178] hover:text-[#2A231E]"
           >
             Nhân viên ca trực
-            <div v-if="activeTab === 'staff'" class="absolute bottom-0 left-0 w-full h-[2px] bg-[#CC8033]"></div>
-          </button>
+          </router-link>
         </div>
 
         <!-- Form -->
-        <form :key="activeTab" @submit.prevent="handleSubmit" class="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+        <form @submit.prevent="handleSubmit" class="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
           <!-- Email -->
           <div class="space-y-2 group">
             <label for="email" class="text-[10px] uppercase tracking-widest text-[#5C544E] font-black group-focus-within:text-[#CC8033] transition-colors ml-1">Tài khoản Email</label>
@@ -173,25 +164,14 @@ import { Coffee, Eye, EyeOff, ArrowRight, Check, Lock, Shield, Users, Home } fro
 import { useAuthStore } from '@/stores/auth'
 import { useStoreInfoStore } from '@/stores/storeInfo'
 
-const activeTab = ref<'admin'|'staff'>('admin')
 const showPwd = ref(false)
-const email = ref('admin@brew.vn')
-const password = ref('demo1234')
+const email = ref('')
+const password = ref('')
 const rememberMe = ref(false)
 const isLoading = ref(false)
 const router         = useRouter()
 const authStore      = useAuthStore()
 const storeInfoStore = useStoreInfoStore()
-
-watch(activeTab, (newTab) => {
-  if (newTab === 'admin') {
-    email.value = 'admin@brew.vn'
-    password.value = 'demo1234'
-  } else {
-    email.value = 'staff@brew.vn'
-    password.value = 'staff1234'
-  }
-})
 
 onMounted(() => {
   const savedEmail = localStorage.getItem('brew_remember_email')

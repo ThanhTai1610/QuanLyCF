@@ -41,28 +41,48 @@
     </header>
 
     <!-- ===== TAB BAR ===== -->
-    <div class="shrink-0 flex items-center gap-1 px-6 pt-4 pb-0">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        @click="activeTab = tab.id"
-        :class="[
-          'flex items-center gap-2 px-5 py-2.5 rounded-t-lg text-xs font-bold uppercase tracking-[0.15em] transition-all duration-200 border-b-2',
-          activeTab === tab.id
-            ? 'bg-[#1A1512] text-[#CC8033] border-[#CC8033]'
-            : 'text-[#8A8178] border-transparent hover:text-white hover:bg-white/5'
-        ]"
-      >
-        <component :is="tab.icon" class="w-3.5 h-3.5" stroke-width="2" />
-        {{ tab.label }}
-        <span
-          v-if="tab.count !== undefined"
+    <div class="shrink-0 flex items-center justify-between px-6 pt-4 pb-0">
+      <div class="flex items-center gap-1">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          @click="activeTab = tab.id"
           :class="[
-            'px-2 py-0.5 rounded-full text-[9px] font-black',
-            activeTab === tab.id ? 'bg-[#CC8033]/20 text-[#CC8033]' : 'bg-white/10 text-[#8A8178]'
+            'flex items-center gap-2 px-5 py-2.5 rounded-t-lg text-xs font-bold uppercase tracking-[0.15em] transition-all duration-200 border-b-2',
+            activeTab === tab.id
+              ? 'bg-[#1A1512] text-[#CC8033] border-[#CC8033]'
+              : 'text-[#8A8178] border-transparent hover:text-white hover:bg-white/5'
           ]"
-        >{{ tab.count }}</span>
-      </button>
+        >
+          <component :is="tab.icon" class="w-3.5 h-3.5" stroke-width="2" />
+          {{ tab.label }}
+          <span
+            v-if="tab.count !== undefined"
+            :class="[
+              'px-2 py-0.5 rounded-full text-[9px] font-black',
+              activeTab === tab.id ? 'bg-[#CC8033]/20 text-[#CC8033]' : 'bg-white/10 text-[#8A8178]'
+            ]"
+          >{{ tab.count }}</span>
+        </button>
+      </div>
+
+      <div v-if="activeTab === 'active'" class="flex items-center gap-3 mb-2">
+        <!-- Bộ lọc Trạm pha chế -->
+        <div class="flex items-center bg-black/40 rounded-lg border border-white/10 p-1">
+          <button @click="stationFilter = 'all'" :class="stationFilter === 'all' ? 'bg-[#CC8033] text-white shadow-sm' : 'text-[#8A8178] hover:text-white'" class="px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all">Tất cả trạm</button>
+          <button @click="stationFilter = 'bar'" :class="stationFilter === 'bar' ? 'bg-[#CC8033] text-white shadow-sm' : 'text-[#8A8178] hover:text-white'" class="px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all">Quầy Pha Chế</button>
+          <button @click="stationFilter = 'kitchen'" :class="stationFilter === 'kitchen' ? 'bg-[#CC8033] text-white shadow-sm' : 'text-[#8A8178] hover:text-white'" class="px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all">Quầy Bánh</button>
+        </div>
+        <!-- Chế độ Xem -->
+        <div class="flex items-center bg-black/40 rounded-lg border border-white/10 p-1">
+          <button @click="viewMode = 'table'" :class="viewMode === 'table' ? 'bg-white/15 text-white shadow-sm' : 'text-[#8A8178] hover:text-white'" class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all">
+            <LayoutGrid class="w-3.5 h-3.5" /> Bàn
+          </button>
+          <button @click="viewMode = 'item'" :class="viewMode === 'item' ? 'bg-white/15 text-white shadow-sm' : 'text-[#8A8178] hover:text-white'" class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all">
+            <List class="w-3.5 h-3.5" /> Gom Món
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- ===== DIVIDER ===== -->
@@ -70,19 +90,52 @@
 
     <!-- ===== PANEL: ĐANG LÀM ===== -->
     <main v-if="activeTab === 'active'" class="p-6 flex-1 overflow-y-auto">
-      <!-- Grid orders -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      
+      <!-- Chế độ Xem: GOM THEO MÓN -->
+      <div v-if="viewMode === 'item'" class="space-y-4 max-w-4xl mx-auto">
+        <div v-if="aggregatedItems.length === 0" class="text-center py-20 text-[#8A8178] text-sm">
+          Không có món nào đang chờ ở trạm này.
+        </div>
+        <div v-for="group in aggregatedItems" :key="group.name" class="bg-[#1A1512] rounded-xl border border-white/10 p-5 flex items-center justify-between shadow-card hover:border-white/20 transition-all">
+          <div class="flex items-center gap-5">
+            <div class="w-14 h-14 rounded-xl bg-[#CC8033]/15 border border-[#CC8033]/30 flex items-center justify-center text-[#CC8033] font-premium-sans text-2xl font-bold shadow-inner">
+              {{ group.qty }}
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-white tracking-wide">{{ group.name }}</h3>
+              <p class="text-[11px] text-[#8A8178] mt-1.5 font-medium flex items-center gap-2">
+                <span class="text-[#CC8033] font-bold">Bàn: {{ group.tables.join(', ') }}</span>
+                <span v-if="group.done > 0" class="text-emerald-400">· Đã xong {{ group.done }}/{{ group.qty }}</span>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+             <div class="text-right">
+               <div class="text-[10px] uppercase tracking-wider font-bold text-[#8A8178]">Tiến độ</div>
+               <div class="text-base font-bold text-white">{{ Math.round(group.done / group.qty * 100) }}%</div>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chế độ Xem: THEO BÀN (Grid) -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         <article
           v-for="o in paginatedActive"
           :key="o.id"
           class="rounded-lg border bg-[#1A1512] shadow-card flex flex-col relative overflow-hidden transition-all duration-300"
-          :class="isAllDone(o) ? 'border-emerald-500/50 shadow-[0_0_20px_rgba(52,211,153,0.08)]' : 'border-white/10'"
+          :class="o.isPriority ? 'border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] animate-[pulse_2s_ease-in-out_infinite]' : (isAllDone(o) ? 'border-emerald-500/50 shadow-[0_0_20px_rgba(52,211,153,0.08)]' : ((now - o.createdTs) / 60000 >= 20 ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 'border-white/10'))"
         >
           <!-- Card Header -->
           <div class="p-4 border-b-2 border-white/10 flex justify-between items-start bg-black/30">
             <div>
               <div class="font-premium-sans text-3xl font-bold tracking-tight">{{ o.table }}</div>
-              <div class="text-[9px] uppercase tracking-widest text-[#8A8178] font-bold mt-0.5">Order #{{ o.id }}</div>
+              <div class="flex items-center gap-2 mt-1.5">
+                <span v-if="o.table.toLowerCase().includes('mang về') || o.table.toLowerCase().includes('takeaway')" class="px-2 py-0.5 rounded-md bg-red-500/20 text-red-400 border border-red-500/30 text-[9px] font-bold uppercase tracking-widest shadow-sm">Mang đi</span>
+                <span v-else class="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[9px] font-bold uppercase tracking-widest shadow-sm">Tại quán</span>
+                <span class="text-[9px] uppercase tracking-widest text-[#8A8178] font-bold">#{{ o.id }}</span>
+                <span v-if="o.isPriority" class="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-400 border border-purple-500/30 text-[9px] font-bold uppercase tracking-widest shadow-sm flex items-center gap-0.5"><Zap class="w-3 h-3" />Khẩn</span>
+              </div>
             </div>
             <!-- Timer badge -->
             <div :class="['flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold tabular-nums', colorByMin(o.createdTs)]">
@@ -94,6 +147,7 @@
           <!-- Items List -->
           <div class="flex-1 p-4 space-y-3">
             <div v-for="(it, i) in o.items" :key="i"
+              v-show="stationFilter === 'all' || getStation(it.name) === stationFilter"
               :class="['rounded-lg transition-all duration-200', it.outOfStock ? 'bg-red-500/5 border border-red-500/20 p-2 -mx-1' : '']">
               <button @click="toggle(o.id, i)" :disabled="it.outOfStock" class="w-full flex items-start gap-3 text-left group disabled:cursor-not-allowed">
                 <!-- Checkbox -->
@@ -175,7 +229,8 @@
           <!-- Action Button -->
           <div class="p-4 pt-2">
             <button
-              @click="complete(o)"
+              v-if="o.status !== 'ready'"
+              @click="markReady(o)"
               :disabled="!isAllDone(o)"
               class="w-full h-10 rounded-lg font-bold text-[10px] uppercase tracking-[0.2em] border transition-all duration-300"
               :class="isAllDone(o)
@@ -184,7 +239,17 @@
             >
               <span class="flex items-center justify-center gap-2">
                 <CheckCircle2 v-if="isAllDone(o)" class="w-3.5 h-3.5" stroke-width="2.5" />
-                Hoàn tất phục vụ
+                Báo Pha Xong
+              </span>
+            </button>
+            <button
+              v-else
+              @click="complete(o)"
+              class="w-full h-10 rounded-lg font-bold text-[10px] uppercase tracking-[0.2em] border border-emerald-500 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/40 shadow-[0_0_15px_rgba(52,211,153,0.3)] transition-all animate-pulse"
+            >
+              <span class="flex items-center justify-center gap-2">
+                <Bell class="w-3.5 h-3.5" />
+                Đang gọi phục vụ... (Giao Đồ)
               </span>
             </button>
           </div>
@@ -192,10 +257,10 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="activeOrders.length > itemsPerPage" class="flex items-center justify-between mt-6 p-4 bg-[#1A1512] rounded-lg border border-white/10">
+      <div v-if="viewMode === 'table' && filteredActiveOrders.length > itemsPerPage" class="flex items-center justify-between mt-6 p-4 bg-[#1A1512] rounded-lg border border-white/10">
         <div class="text-[10px] uppercase tracking-widest font-bold text-[#8A8178]">
           Trang <span class="text-[#CC8033]">{{ currentPage }}</span> / <span class="text-[#CC8033]">{{ totalPages }}</span>
-          &nbsp;·&nbsp; <span class="text-[#CC8033]">{{ activeOrders.length }}</span> yêu cầu
+          &nbsp;·&nbsp; <span class="text-[#CC8033]">{{ filteredActiveOrders.length }}</span> yêu cầu
         </div>
         <div class="flex items-center gap-3">
           <button @click="currentPage--" :disabled="currentPage === 1"
@@ -210,7 +275,7 @@
       </div>
 
       <!-- Empty State -->
-      <div v-if="activeOrders.length === 0" class="text-center py-32">
+      <div v-if="filteredActiveOrders.length === 0" class="text-center py-32">
         <div class="w-20 h-20 rounded-lg border border-white/10 flex items-center justify-center mx-auto mb-6 bg-[#1A1512]">
           <Coffee class="w-8 h-8 text-white/10" stroke-width="1" />
         </div>
@@ -331,11 +396,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import {
   Volume2, VolumeX, Coffee, ChevronLeft, ChevronRight, ChevronDown,
   Check, CheckCircle2, Search, Clock, Trash2, History, ClipboardList,
-  User, X, AlertTriangle
+  User, X, AlertTriangle, LayoutGrid, List, Bell, Zap
 } from 'lucide-vue-next'
 import { useOrderStore } from '@/stores/orders'
 import { useStoreInfoStore } from '@/stores/storeInfo'
@@ -352,9 +417,9 @@ const staffList = ['Minh', 'Lan', 'Huy', 'Trang', 'Phúc']
 const orderStore     = useOrderStore()
 const storeInfoStore = useStoreInfoStore()
 
-// Đơn đang làm = các đơn ở trạng thái chờ xác nhận / đang pha chế
+// Đơn đang làm = các đơn ở trạng thái chờ xác nhận / đang pha chế / chờ lấy (ready)
 const activeOrders = computed(() =>
-  orderStore.orders.filter(o => o.status === 'pending' || o.status === 'preparing')
+  orderStore.orders.filter(o => o.status === 'pending' || o.status === 'preparing' || o.status === 'ready')
 )
 
 // ── State ──────────────────────────────────────────────────────
@@ -367,6 +432,41 @@ const itemsPerPage     = 8
 const historySearch    = ref('')
 const expandedHistory  = ref<Set<string>>(new Set())
 const openAssign       = ref<string | null>(null)
+const viewMode         = ref<'table' | 'item'>('table')
+const stationFilter    = ref<'all' | 'bar' | 'kitchen'>('all')
+
+const getStation = (name: string) => {
+  const n = name.toLowerCase()
+  if (n.includes('bánh') || n.includes('cheesecake') || n.includes('croissant') || n.includes('tiramisu')) return 'kitchen'
+  return 'bar'
+}
+
+const filteredActiveOrders = computed(() => {
+  return activeOrders.value.filter(o => 
+    stationFilter.value === 'all' || o.items.some(it => getStation(it.name) === stationFilter.value)
+  ).sort((a, b) => {
+    if (a.isPriority && !b.isPriority) return -1;
+    if (!a.isPriority && b.isPriority) return 1;
+    return 0;
+  })
+})
+
+const aggregatedItems = computed(() => {
+  const map = new Map<string, { qty: number; done: number; outOfStock: number; tables: string[] }>()
+  filteredActiveOrders.value.forEach(o => {
+    const validItems = o.items.filter(it => stationFilter.value === 'all' || getStation(it.name) === stationFilter.value)
+    validItems.forEach(it => {
+      const key = it.name
+      if (!map.has(key)) map.set(key, { qty: 0, done: 0, outOfStock: 0, tables: [] })
+      const group = map.get(key)!
+      group.qty += it.qty
+      if (it.done) group.done += it.qty
+      if (it.outOfStock) group.outOfStock += it.qty
+      if (!group.tables.includes(o.table)) group.tables.push(o.table)
+    })
+  })
+  return Array.from(map.entries()).map(([name, data]) => ({ name, ...data })).sort((a, b) => b.qty - a.qty)
+})
 
 // Pre-seed a few history entries for demo
 completedOrders.value = [
@@ -376,9 +476,42 @@ completedOrders.value = [
   { id: '1041', table: 'Bàn 11', duration: 18 * 60 * 1000, completedAt: '10:25', items: [{ name: 'Matcha đá xay', qty: 2, done: true }, { name: 'Croissant bơ', qty: 2, done: true }, { name: 'Nước cam ép', qty: 1, done: true }] },
 ]
 
-// ── Timer ──────────────────────────────────────────────────────
+// ── Timer & Audio ──────────────────────────────────────────────
 let timer: ReturnType<typeof setInterval> | null = null
-onMounted (() => { timer = setInterval(() => { now.value = Date.now() }, 1000) })
+
+const playSound = (type: 'new' | 'alarm' | 'vip') => {
+  if (muted.value) return
+  try {
+     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+     const osc = ctx.createOscillator()
+     const gain = ctx.createGain()
+     osc.connect(gain)
+     gain.connect(ctx.destination)
+     if (type === 'new') { osc.frequency.value = 800; gain.gain.setValueAtTime(0.1, ctx.currentTime); osc.start(); osc.stop(ctx.currentTime + 0.2) }
+     else if (type === 'vip') { osc.frequency.value = 1200; gain.gain.setValueAtTime(0.1, ctx.currentTime); osc.type='square'; osc.start(); osc.stop(ctx.currentTime + 0.3) }
+     else if (type === 'alarm') { osc.frequency.value = 400; gain.gain.setValueAtTime(0.2, ctx.currentTime); osc.type='sawtooth'; osc.start(); osc.stop(ctx.currentTime + 0.5) }
+  } catch(e) {}
+}
+
+watch(() => activeOrders.value.length, (newVal, oldVal) => {
+  if (newVal > oldVal) {
+     const latest = activeOrders.value[0]
+     if (latest?.isPriority) playSound('vip')
+     else playSound('new')
+  }
+})
+
+onMounted (() => { 
+  timer = setInterval(() => { 
+    now.value = Date.now() 
+    if (!muted.value && Math.floor(now.value / 1000) % 10 === 0) {
+       // Báo động mỗi 10s cho đơn đỏ
+       if (activeOrders.value.some(o => (now.value - o.createdTs) > 20*60000 && !o.isPriority && o.status !== 'ready')) {
+          playSound('alarm')
+       }
+    }
+  }, 1000) 
+})
 onUnmounted(() => { if (timer) clearInterval(timer) })
 
 // ── Tabs ───────────────────────────────────────────────────────
@@ -395,10 +528,10 @@ const timeString = computed(() =>
 const inProgress  = computed(() => activeOrders.value.filter(o => !isAllDone(o)).length)
 const readyCount  = computed(() => activeOrders.value.filter(o => isAllDone(o)).length)
 
-const totalPages  = computed(() => Math.ceil(activeOrders.value.length / itemsPerPage) || 1)
+const totalPages  = computed(() => Math.ceil(filteredActiveOrders.value.length / itemsPerPage) || 1)
 const paginatedActive = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
-  return activeOrders.value.slice(start, start + itemsPerPage)
+  return filteredActiveOrders.value.slice(start, start + itemsPerPage)
 })
 
 const filteredHistory = computed(() => {
@@ -436,8 +569,8 @@ const fmtDuration = (ms: number) => {
 const colorByMin = (started: number) => {
   const m = (now.value - started) / 60000
   if (m < 10) return 'text-emerald-400 border-emerald-500/30 bg-emerald-500/5'
-  if (m < 15) return 'text-amber-400 border-amber-500/30 bg-amber-500/5'
-  return 'text-red-400 border-red-500/30 bg-red-500/5'
+  if (m < 20) return 'text-amber-400 border-amber-500/30 bg-amber-500/5'
+  return 'text-red-400 border-red-500/60 bg-red-500/10 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.4)]'
 }
 
 const durationColor = (ms: number) => {
@@ -462,8 +595,14 @@ const assign = (oid: string, idx: number, name: string) => {
 
 const reportOutOfStock = (oid: string, idx: number) => orderStore.toggleOutOfStock(oid, idx)
 
-const complete = (o: Order) => {
+const markReady = (o: Order) => {
   if (!isAllDone(o)) return
+  orderStore.updateStatus(o.id, 'ready')
+  orderStore.notifyPos(o.table)
+}
+
+const complete = (o: Order) => {
+  if (o.status !== 'ready') return
   const duration = Date.now() - o.createdTs
   const completedAt = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
   completedOrders.value.unshift({
@@ -473,7 +612,6 @@ const complete = (o: Order) => {
     duration,
     completedAt,
   })
-  // Đẩy đơn sang trạng thái hoàn thành → biến mất khỏi danh sách bếp, cập nhật ở trang Đơn hàng
   orderStore.updateStatus(o.id, 'done')
   if (currentPage.value > totalPages.value && currentPage.value > 1) currentPage.value--
 }

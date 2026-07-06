@@ -36,7 +36,7 @@
               </h2>
 
               <!-- Message -->
-              <p v-if="store.options.message" class="text-base leading-relaxed opacity-75" :class="messageColorClass">
+              <p v-if="store.options.message" class="text-base leading-relaxed opacity-75 whitespace-pre-wrap text-left" :class="messageColorClass">
                 {{ store.options.message }}
               </p>
 

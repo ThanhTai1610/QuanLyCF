@@ -73,10 +73,16 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(o, i) in mockOrders" :key="o.id" class="border-b border-[#EAE3D9]/60 hover:bg-[#F5F2ED] transition-colors group">
-              <td class="px-8 py-5 font-bold text-[#2A231E]">{{ o.id }}</td>
+            <tr v-if="loading" class="border-b border-[#EAE3D9]/60">
+              <td colspan="6" class="px-8 py-8 text-center text-gray-500 font-medium">Đang tải dữ liệu...</td>
+            </tr>
+            <tr v-else-if="realOrders.length === 0" class="border-b border-[#EAE3D9]/60">
+              <td colspan="6" class="px-8 py-8 text-center text-gray-500 font-medium">Hôm nay chưa có đơn hàng nào</td>
+            </tr>
+            <tr v-else v-for="o in realOrders" :key="o.id" class="border-b border-[#EAE3D9]/60 hover:bg-[#F5F2ED] transition-colors group">
+              <td class="px-8 py-5 font-bold text-[#2A231E]">#{{ o.id.toString().padStart(3, '0') }}</td>
               <td class="px-6 py-5 font-semibold text-[#5C544E]">{{ o.table }}</td>
-              <td class="px-6 py-5 text-[#8A8178] font-medium">{{ o.items.reduce((s, item) => s + item.qty, 0) }} món</td>
+              <td class="px-6 py-5 text-[#8A8178] font-medium">{{ o.itemsCount }} món</td>
               <td class="px-6 py-5 font-bold text-[#CC8033]">{{ formatVND(o.total) }}</td>
               <td class="px-6 py-5">
                 <span :class="['px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wide border', statusMeta[o.status]?.className || 'bg-gray-50 text-gray-600 border-gray-200']">
@@ -93,7 +99,8 @@
 </template>
 
 <script setup lang="ts">
-import { TrendingUp, ShoppingBag, Users, Coffee, ArrowUpRight, ChevronRight } from 'lucide-vue-next'
+import { ref, computed, onMounted } from 'vue'
+import { TrendingUp, ShoppingBag, Users, Coffee, ArrowUpRight, ChevronRight, ArrowDownRight, Minus } from 'lucide-vue-next'
 import { Line, Bar } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -106,8 +113,8 @@ import {
   Tooltip,
   Legend
 } from 'chart.js'
-import { mockOrders, statusMeta } from '../data/orders'
 import { formatVND } from '../data/menu'
+import { dashboardApi, type DashboardDataDto } from '@/services/dashboard'
 
 ChartJS.register(
   CategoryScale,
@@ -120,39 +127,69 @@ ChartJS.register(
   Legend
 )
 
-const currentRevenue = "26.330.000₫"
+const statusMeta: Record<string, { label: string, className: string }> = {
+  ChoXacNhan: { label: 'Chờ nhận', className: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+  DangPha: { label: 'Đang pha', className: 'bg-blue-50 text-blue-700 border-blue-200' },
+  HoanThanh: { label: 'Hoàn thành', className: 'bg-green-50 text-green-700 border-green-200' },
+  Huy: { label: 'Đã hủy', className: 'bg-red-50 text-red-700 border-red-200' }
+}
 
-const stats = [
-  { label: "Doanh thu hôm nay", value: "4.280.000₫", delta: "+12.4%", icon: TrendingUp },
-  { label: "Đơn hàng", value: "87", delta: "+8 đơn", icon: ShoppingBag },
-  { label: "Khách phục vụ", value: "142", delta: "+18%", icon: Users },
-  { label: "Món bán chạy nhất", value: "Cappuccino", delta: "32 ly", icon: Coffee },
-]
+const loading = ref(true)
+const dashboardData = ref<DashboardDataDto | null>(null)
 
-const revenueData = [
-  { day: "T2", revenue: 2800000 },
-  { day: "T3", revenue: 3200000 },
-  { day: "T4", revenue: 2950000 },
-  { day: "T5", revenue: 3800000 },
-  { day: "T6", revenue: 4200000 },
-  { day: "T7", revenue: 5100000 },
-  { day: "CN", revenue: 4280000 },
-]
+onMounted(async () => {
+  try {
+    loading.value = true
+    dashboardData.value = await dashboardApi.getDashboardData()
+  } catch (error) {
+    console.error('Lỗi khi tải dữ liệu dashboard:', error)
+  } finally {
+    loading.value = false
+  }
+})
 
-const topItems = [
-  { name: "Cappuccino", qty: 32 },
-  { name: "Cà phê sữa đá", qty: 28 },
-  { name: "Trà sữa trân châu", qty: 24 },
-  { name: "Matcha đá xay", qty: 19 },
-  { name: "Tiramisu", qty: 14 },
-]
+const currentRevenue = computed(() => formatVND(dashboardData.value?.stats.todayRevenue || 0))
 
-const lineChartData = {
-  labels: revenueData.map(d => d.day),
+const stats = computed(() => {
+  const d = dashboardData.value?.stats
+  return [
+    { 
+      label: "Doanh thu hôm nay", 
+      value: formatVND(d?.todayRevenue || 0), 
+      delta: d?.revenueDelta ? (d.revenueDelta > 0 ? `+${d.revenueDelta}%` : `${d.revenueDelta}%`) : "0%", 
+      icon: TrendingUp 
+    },
+    { 
+      label: "Đơn hàng", 
+      value: (d?.todayOrders || 0).toString(), 
+      delta: d?.ordersDelta ? (d.ordersDelta > 0 ? `+${d.ordersDelta} đơn` : `${d.ordersDelta} đơn`) : "0 đơn", 
+      icon: ShoppingBag 
+    },
+    { 
+      label: "Khách phục vụ", 
+      value: (d?.customers || 0).toString(), 
+      delta: d?.customersDelta ? (d.customersDelta > 0 ? `+${d.customersDelta}%` : `${d.customersDelta}%`) : "0%", 
+      icon: Users 
+    },
+    { 
+      label: "Món bán chạy nhất", 
+      value: d?.bestItemName || "Chưa có", 
+      delta: d?.bestItemQty ? `${d.bestItemQty} phần` : "0 phần", 
+      icon: Coffee 
+    },
+  ]
+})
+
+const revenueData = computed(() => dashboardData.value?.revenueData || [])
+const topItems = computed(() => dashboardData.value?.topItems || [])
+const realOrders = computed(() => dashboardData.value?.recentOrders || [])
+
+const lineChartData = computed(() => ({
+  labels: revenueData.value.map(d => d.day),
   datasets: [
     {
       label: 'Doanh thu',
-      data: revenueData.map(d => d.revenue),
+      data: revenueData.value.map(d => d.revenue),
       borderColor: '#CC8033',
       backgroundColor: 'rgba(204, 128, 51, 0.1)',
       borderWidth: 3,
@@ -165,7 +202,7 @@ const lineChartData = {
       fill: true
     }
   ]
-}
+}))
 
 const lineChartOptions = {
   responsive: true,
@@ -197,24 +234,29 @@ const lineChartOptions = {
       ticks: {
         font: { family: 'Be Vietnam Pro', weight: 'bold' },
         color: '#8A8178',
-        callback: (value: any) => `${value / 1000000}M`
+        callback: (value: any) => {
+            if (value === 0) return '0'
+            if (value >= 1000000) return `${value / 1000000}M`
+            if (value >= 1000) return `${value / 1000}k`
+            return value
+        }
       }
     }
   }
 }
 
-const barChartData = {
-  labels: topItems.map(d => d.name),
+const barChartData = computed(() => ({
+  labels: topItems.value.map(d => d.name),
   datasets: [
     {
       label: 'Số lượng',
-      data: topItems.map(d => d.qty),
+      data: topItems.value.map(d => d.qty),
       backgroundColor: '#CC8033',
       borderRadius: 6,
       barThickness: 24
     }
   ]
-}
+}))
 
 const barChartOptions = {
   responsive: true,

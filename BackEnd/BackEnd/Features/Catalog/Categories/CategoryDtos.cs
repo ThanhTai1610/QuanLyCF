@@ -8,7 +8,14 @@ public record CategoryItem(
     int ThuTuHienThi,
     string? MoTa,
     bool TrangThaiHoatDong,
-    int SoSanPham);
+    int SoSanPham,
+    string LoaiDanhMuc,
+    bool ApDungKhungGio,
+    TimeSpan? GioBatDau,
+    TimeSpan? GioKetThuc,
+    int? ToiThieuChon,
+    int? ToiDaChon,
+    bool LaNhomKichThuoc);
 
 public record CreateCategoryRequest(
     string TenDanhMuc,
@@ -16,7 +23,14 @@ public record CreateCategoryRequest(
     string? HinhAnh,
     int ThuTuHienThi,
     string? MoTa,
-    bool TrangThaiHoatDong);
+    bool TrangThaiHoatDong,
+    string LoaiDanhMuc,
+    bool ApDungKhungGio,
+    TimeSpan? GioBatDau,
+    TimeSpan? GioKetThuc,
+    int? ToiThieuChon,
+    int? ToiDaChon,
+    bool LaNhomKichThuoc);
 
 public record UpdateCategoryRequest(
     string TenDanhMuc,
@@ -24,4 +38,18 @@ public record UpdateCategoryRequest(
     string? HinhAnh,
     int ThuTuHienThi,
     string? MoTa,
-    bool TrangThaiHoatDong);
+    bool TrangThaiHoatDong,
+    string LoaiDanhMuc,
+    bool ApDungKhungGio,
+    TimeSpan? GioBatDau,
+    TimeSpan? GioKetThuc,
+    int? ToiThieuChon,
+    int? ToiDaChon,
+    bool LaNhomKichThuoc);
+
+public record AssignProductsRequest(
+    List<int> ProductIds);
+
+public record CategoryOrderRequest(
+    int MaDanhMuc,
+    int ThuTuHienThi);
