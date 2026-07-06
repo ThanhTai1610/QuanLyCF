@@ -30,6 +30,7 @@ export interface Order {
   paymentMethod?: string;
   /** Đơn ưu tiên / Khẩn cấp */
   isPriority?: boolean;
+  cancelReason?: string;
 }
 
 /** Mốc thời gian gốc để seed dữ liệu mẫu (cố định theo lúc khởi tạo app) */

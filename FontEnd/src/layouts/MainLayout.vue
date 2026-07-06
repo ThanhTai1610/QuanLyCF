@@ -116,11 +116,55 @@
           <h1 class="font-display text-lg font-bold text-espresso">{{ currentLabel }}</h1>
           <p class="text-xs text-muted-foreground mt-0.5">Hôm nay, {{ todayDate }}</p>
         </div>
-        <div class="flex items-center gap-3">
-          <button class="relative w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-cream-deep shadow-sm hover:bg-cream-deep transition-colors text-espresso">
+        <div class="flex items-center gap-3 relative">
+          <!-- Notification Bell -->
+          <button @click="showNotifications = !showNotifications"
+            class="relative w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-cream-deep shadow-sm hover:bg-cream-deep transition-colors text-espresso">
             <Bell class="w-4 h-4" />
-            <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-destructive rounded-full border border-white"></span>
+            <span v-if="serviceRequests.length > 0"
+              class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-destructive text-white text-[8px] font-extrabold rounded-full border border-white animate-pulse">
+              {{ serviceRequests.length }}
+            </span>
           </button>
+
+          <!-- Notifications Dropdown -->
+          <div v-if="showNotifications"
+            class="absolute right-0 top-10 w-[320px] bg-white rounded-2xl border border-cream-deep shadow-xl z-50 p-4 space-y-3">
+            <div class="flex items-center justify-between border-b border-cream-deep pb-2">
+              <span class="text-xs font-bold text-espresso uppercase tracking-wider">Yêu cầu hỗ trợ ({{ serviceRequests.length }})</span>
+              <button @click="showNotifications = false" class="text-muted-foreground hover:text-espresso">
+                <X class="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div class="max-h-[240px] overflow-y-auto space-y-2 custom-scrollbar pr-1">
+              <div v-if="serviceRequests.length === 0" class="text-center py-6 text-xs text-muted-foreground font-medium">
+                Không có yêu cầu mới
+              </div>
+              <div v-else v-for="req in serviceRequests" :key="req.id"
+                class="flex items-start justify-between gap-2 p-2.5 rounded-lg bg-cream/30 border border-cream-deep/60">
+                <div class="min-w-0">
+                  <p class="text-xs font-bold text-espresso">
+                    {{ req.tenBan }} yêu cầu 
+                    <span class="text-caramel font-extrabold">
+                      {{
+                        req.loaiYeuCau === 'GoiPhucVu'
+                          ? 'gọi phục vụ'
+                          : req.loaiYeuCau === 'ThanhToanTienMat'
+                          ? 'thanh toán tiền mặt'
+                          : 'thanh toán chuyển khoản'
+                      }}
+                    </span>
+                  </p>
+                  <p class="text-[10px] text-muted-foreground mt-0.5" v-if="req.ghiChu">Ghi chú: {{ req.ghiChu }}</p>
+                </div>
+                <button @click="resolveRequest(req.id)"
+                  class="h-6 px-2 rounded bg-caramel hover:bg-brown text-cream text-[10px] font-bold transition-all shadow-xs active:scale-95 shrink-0">
+                  Xử lý
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -132,14 +176,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useStoreInfoStore } from '../stores/storeInfo'
+import { ordersApi } from '@/services/orders'
 import {
   LayoutDashboard, ShoppingBag, Coffee, Users, Settings, LogOut,
   QrCode, FileText, FolderTree, Package, ClipboardCheck, CalendarDays, BookOpen, ChefHat, Bell, ShieldCheck,
-  ChevronDown, Wallet, Heart, Star, Gift, Wrench
+  ChevronDown, Wallet, Heart, Star, Gift, Wrench, X, Check
 } from 'lucide-vue-next'
 
 import { routePermission } from '@/router/permissions'
@@ -292,6 +337,38 @@ const handleLogout = () => {
   authStore.logout()
   router.push('/login')
 }
+
+// ── Service Requests Notifications ──
+const showNotifications = ref(false)
+const serviceRequests = ref<any[]>([])
+
+async function loadServiceRequests() {
+  try {
+    if (authStore.token) {
+      serviceRequests.value = await ordersApi.getActiveServiceRequests()
+    }
+  } catch (e) {
+    console.error('Lỗi tải yêu cầu phục vụ ở layout:', e)
+  }
+}
+
+async function resolveRequest(id: string) {
+  try {
+    await ordersApi.resolveServiceRequest(id)
+    serviceRequests.value = serviceRequests.value.filter(r => r.id !== id)
+  } catch (e) {
+    console.error('Lỗi hoàn tất yêu cầu ở layout:', e)
+  }
+}
+
+let serviceRequestsInterval: any = null
+onMounted(() => {
+  loadServiceRequests()
+  serviceRequestsInterval = setInterval(loadServiceRequests, 4000)
+})
+onUnmounted(() => {
+  if (serviceRequestsInterval) clearInterval(serviceRequestsInterval)
+})
 </script>
 
 <style scoped>

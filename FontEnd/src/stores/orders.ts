@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { mockOrders, type Order, type OrderItem, type OrderStatus } from '@/data/orders'
+
+const LOCAL_STORAGE_KEY = 'brew_orders_store_data'
 
 /**
  * Store đơn hàng trung tâm — nguồn dữ liệu DUY NHẤT cho toàn bộ luồng:
@@ -8,13 +10,30 @@ import { mockOrders, type Order, type OrderItem, type OrderStatus } from '@/data
  * và bán tại quầy (POSSale). Mọi trang đọc/ghi qua store này thay vì giữ mock riêng.
  */
 export const useOrderStore = defineStore('orders', () => {
-  // Nhân bản sâu seed để không sửa trực tiếp dữ liệu mẫu
+  // Load from localStorage if present, otherwise use mockOrders
+  const saved = localStorage.getItem(LOCAL_STORAGE_KEY)
   const orders = ref<Order[]>(
-    mockOrders.map(o => ({ ...o, items: o.items.map(i => ({ ...i })) }))
+    saved ? JSON.parse(saved) : mockOrders.map(o => ({ ...o, items: o.items.map(i => ({ ...i })) }))
   )
 
-  // Bộ sinh mã đơn nối tiếp seed (seed cao nhất là DH-2041)
-  let seq = 2042
+  // Watch for changes and save to localStorage
+  watch(orders, (newVal) => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newVal))
+  }, { deep: true })
+
+  // Bộ sinh mã đơn nối tiếp seed động dựa trên mã cao nhất hiện có
+  const getNextSeq = () => {
+    if (orders.value.length === 0) return 2042
+    const ids = orders.value
+      .map(o => {
+        const match = o.id.match(/DH-(\d+)/)
+        return match ? parseInt(match[1]) : 0
+      })
+      .filter(id => !isNaN(id))
+    const maxId = Math.max(...ids, 2041)
+    return maxId + 1
+  }
+  let seq = getNextSeq()
   const nextId = () => `DH-${seq++}`
 
   // Cờ báo hiệu gọi POS (Bếp pha xong)
@@ -62,9 +81,16 @@ export const useOrderStore = defineStore('orders', () => {
     return order
   }
 
-  function updateStatus(id: string, status: OrderStatus) {
+  function updateStatus(id: string, status: OrderStatus, cancelReason?: string) {
     const o = getById(id)
-    if (o) o.status = status
+    if (o) {
+      o.status = status
+      if (status === 'cancelled' && cancelReason) {
+        o.cancelReason = cancelReason
+      } else if (status !== 'cancelled') {
+        o.cancelReason = undefined
+      }
+    }
   }
 
   /** Đánh dấu đã thanh toán (đồng thời coi như hoàn thành nếu còn đang xử lý) */

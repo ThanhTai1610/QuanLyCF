@@ -12,7 +12,7 @@
               class="pl-9 bg-background border border-cream-deep h-10 rounded-lg shadow-card"
             />
           </div>
-          <Button variant="outline" size="icon" class="border border-cream-deep h-10 w-10 rounded-lg shadow-card">
+          <Button @click="resetFilters" variant="outline" size="icon" class="border border-cream-deep h-10 w-10 rounded-lg shadow-card" title="Đặt lại tất cả bộ lọc">
             <Filter class="w-4 h-4 text-espresso" />
           </Button>
         </div>
@@ -44,18 +44,35 @@
             :key="o.id"
             @click="selected = o"
             :class="[
-              'px-5 py-4 cursor-pointer border-l-4',
+              'px-5 py-4 cursor-pointer border-l-4 transition-all relative',
               selected?.id === o.id 
                 ? 'bg-caramel-light/50 border-caramel' 
-                : 'border-transparent'
+                : 'border-transparent',
+              isLate(o)
+                ? 'bg-red-50/40 border-red-500/80 ring-2 ring-red-500/10 shadow-[0_0_12px_rgba(239,68,68,0.1)]'
+                : ''
             ]"
           >
             <div class="flex justify-between items-start gap-3">
               <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-semibold text-espresso">{{ o.id }}</span>
                   <span :class="['px-3 py-1 rounded-lg text-xs font-medium', statusMeta[o.status].className]">
                     {{ statusMeta[o.status].label }}
+                  </span>
+                  <!-- Cancel Reason Button -->
+                  <button v-if="o.status === 'cancelled'"
+                    @click.stop="toast.info(`Lý do: ${o.cancelReason || 'Hủy nhanh (không lưu lý do)'}`, `Đơn ${o.id}`)"
+                    class="px-2 py-0.5 rounded bg-red-100 hover:bg-red-200 text-red-800 text-[10px] font-bold transition-all border border-red-200 shadow-sm active:scale-95 shrink-0"
+                    title="Bấm để xem lý do hủy">
+                    Lý do hủy
+                  </button>
+                  <!-- Waiting time or Late warning badge -->
+                  <span v-if="isLate(o)" class="px-2 py-0.5 rounded-lg bg-red-100 text-red-700 text-[10px] font-extrabold flex items-center gap-1 border border-red-200 animate-pulse">
+                    <Clock class="w-3 h-3 text-red-600" /> Trễ {{ getElapsedTime(o) }}p
+                  </span>
+                  <span v-else-if="o.status === 'pending' || o.status === 'preparing'" class="px-2 py-0.5 rounded-lg bg-[#FAF6F0] text-[#CC8033] text-[10px] font-bold flex items-center gap-1 border border-[#EAE3D9]">
+                    <Clock class="w-3 h-3 text-[#CC8033]" /> {{ getElapsedTime(o) }}p
                   </span>
                 </div>
                 <div class="text-sm text-muted-foreground mt-1 truncate">
@@ -139,6 +156,15 @@
             <span class="text-caramel">{{ formatVND(selected.total) }}</span>
           </div>
 
+          <!-- Cancel Reason Display -->
+          <div v-if="selected.status === 'cancelled'" class="p-3.5 bg-red-50 border border-red-200/60 rounded-xl text-xs text-red-700 font-semibold space-y-1">
+            <div class="flex items-center gap-1.5 text-red-800">
+              <AlertTriangle class="w-4 h-4 shrink-0 animate-pulse" />
+              <span>Lý do hủy đơn:</span>
+            </div>
+            <p class="italic text-red-600 font-medium pl-5.5">"{{ selected.cancelReason || 'Hủy nhanh (không có lý do)' }}"</p>
+          </div>
+
           <div class="grid grid-cols-2 gap-3">
             <template v-if="selected.status !== 'done' && selected.status !== 'cancelled'">
               <Button
@@ -149,7 +175,7 @@
                 {{ selected.status === 'pending' ? 'Bắt đầu pha' : 'Hoàn thành' }}
               </Button>
               <Button
-                @click="updateStatus(selected.id, 'cancelled')"
+                @click="openCancelDialog(selected.id)"
                 variant="outline"
                 class="border-destructive/40 text-destructive rounded-lg border shadow-card"
               >
@@ -172,22 +198,109 @@
 
       <div v-else class="flex-1 flex items-center justify-center text-muted-foreground p-8 text-center">
         Chọn một đơn hàng để xem chi tiết
+    </div>
+
+    <!-- Cancel Reason Modal -->
+    <div v-if="showCancelModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-[100] p-4">
+      <div class="bg-white rounded-2xl border border-[#EAE3D9] shadow-2xl p-6 max-w-sm w-full space-y-4">
+        <div>
+          <h3 class="font-display text-lg text-espresso font-bold">Xác nhận lý do hủy đơn</h3>
+          <p class="text-xs text-muted-foreground mt-1">Vui lòng chọn hoặc nhập lý do để đối soát doanh thu.</p>
+        </div>
+
+        <div class="space-y-2">
+          <label v-for="r in presetReasons" :key="r" class="flex items-center gap-2.5 p-2.5 rounded-lg border border-[#EAE3D9] hover:bg-[#FAF6F0] cursor-pointer text-xs font-semibold text-espresso">
+            <input type="radio" v-model="selectedReason" :value="r" class="text-[#CC8033] focus:ring-[#CC8033]" />
+            <span>{{ r }}</span>
+          </label>
+          <label class="flex items-center gap-2.5 p-2.5 rounded-lg border border-[#EAE3D9] hover:bg-[#FAF6F0] cursor-pointer text-xs font-semibold text-espresso">
+            <input type="radio" v-model="selectedReason" value="Khác" class="text-[#CC8033] focus:ring-[#CC8033]" />
+            <span>Lý do khác...</span>
+          </label>
+        </div>
+
+        <div v-if="selectedReason === 'Khác'" class="mt-2">
+          <textarea v-model="customReason" placeholder="Nhập lý do chi tiết..." class="w-full text-xs font-semibold p-3 border border-[#EAE3D9] rounded-lg focus:border-[#CC8033] focus:outline-none bg-[#FAF6F0] text-espresso h-20 resize-none"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2.5 pt-2">
+          <Button @click="closeCancelModal" variant="outline" class="h-9 text-xs rounded-lg text-espresso border-cream-deep">Hủy bỏ</Button>
+          <Button @click="submitCancel" class="h-9 text-xs rounded-lg bg-red-600 hover:bg-red-700 text-white" :disabled="selectedReason === 'Khác' && !customReason.trim()">Xác nhận hủy</Button>
+        </div>
       </div>
+    </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { Search, Filter, CheckCircle, X, Coffee, Clock, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { Search, Filter, CheckCircle, X, Coffee, Clock, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-vue-next'
 import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
 import { statusMeta, type Order, type OrderStatus } from '@/data/orders'
 import { formatVND } from '@/data/menu'
 import { useOrderStore } from '@/stores/orders'
+import { useToast } from '@/stores/toast'
 
 const orderStore = useOrderStore()
-const toast = { success: (msg: string) => alert('Thành công: ' + msg) }
+const toast = useToast()
+
+// ── Timeouts & Waiting Time (Timer) ──
+const currentTime = ref(Date.now())
+let timeInterval: any = null
+
+onMounted(() => {
+  timeInterval = setInterval(() => {
+    currentTime.value = Date.now()
+  }, 10000) // update every 10s
+})
+
+onUnmounted(() => {
+  if (timeInterval) clearInterval(timeInterval)
+})
+
+function getElapsedTime(o: Order): number {
+  return Math.floor((currentTime.value - o.createdTs) / 60000)
+}
+
+function isLate(o: Order): boolean {
+  if (o.status === 'done' || o.status === 'cancelled') return false
+  return getElapsedTime(o) >= 15
+}
+
+// ── Cancel Reason Modal ──
+const showCancelModal = ref(false)
+const cancelOrderId = ref('')
+const selectedReason = ref('Khách đổi món')
+const customReason = ref('')
+const presetReasons = [
+  'Khách đổi món',
+  'Hết nguyên liệu',
+  'Đợi lâu khách về',
+  'Khách nhập nhầm đơn'
+]
+
+function openCancelDialog(id: string) {
+  cancelOrderId.value = id
+  selectedReason.value = 'Khách đổi món'
+  customReason.value = ''
+  showCancelModal.value = true
+}
+
+function closeCancelModal() {
+  showCancelModal.value = false
+}
+
+function submitCancel() {
+  const finalReason = selectedReason.value === 'Khác'
+    ? customReason.value.trim()
+    : selectedReason.value
+  
+  orderStore.updateStatus(cancelOrderId.value, 'cancelled', finalReason)
+  toast.success(`Đã hủy đơn ${cancelOrderId.value}: ${finalReason}`)
+  showCancelModal.value = false
+}
 
 const filters: { id: OrderStatus | "all"; label: string }[] = [
   { id: "all", label: "Tất cả" },
@@ -232,6 +345,13 @@ const counts = computed(() => ({
   done: orders.value.filter((o) => o.status === "done").length,
   cancelled: orders.value.filter((o) => o.status === "cancelled").length,
 }))
+
+const resetFilters = () => {
+  search.value = ""
+  filter.value = "all"
+  toast.info("Đã đặt lại tất cả bộ lọc")
+}
+
 
 const updateStatus = (id: string, status: OrderStatus) => {
   orderStore.updateStatus(id, status)
