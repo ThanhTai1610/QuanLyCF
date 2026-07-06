@@ -348,6 +348,105 @@ public static class DbSeeder
             db.SanPhams.AddRange(menu);
             await db.SaveChangesAsync();
         }
+
+        // 4. Seed một số đơn hàng mẫu cho Bàn số 5 để kiểm thử giao diện
+        if (!await db.DonHangs.AnyAsync(d => d.MaBan == 5))
+        {
+            var ban5 = await db.Bans.FirstOrDefaultAsync(b => b.MaBan == 5 || b.TenBan == "Bàn 05");
+            var spBacXiu = await db.SanPhams.Include(s => s.KichCos).FirstOrDefaultAsync(s => s.TenSanPham == "Bạc xỉu");
+            var spCaPheSua = await db.SanPhams.Include(s => s.KichCos).FirstOrDefaultAsync(s => s.TenSanPham == "Cà phê sữa đá");
+            var spThachPhoMai = await db.SanPhams.FirstOrDefaultAsync(s => s.TenSanPham == "Thạch phô mai");
+
+            if (ban5 != null && spBacXiu != null && spCaPheSua != null)
+            {
+                // Đơn hàng 1: Đã hoàn thành
+                var don1 = new DonHang
+                {
+                    MaBan = ban5.MaBan,
+                    LoaiDonHang = "DineIn",
+                    TrangThaiDon = "HoanThanh",
+                    TongTienHang = 54000,
+                    TienGiamGia = 0,
+                    PhiDichVu = 0,
+                    ThueVAT = 0,
+                    ThanhTien = 54000,
+                    GhiChuDonHang = "Ít đá ít đường",
+                    ThoiGianTao = DateTime.UtcNow.AddMinutes(-45),
+                    ThoiGianCapNhat = DateTime.UtcNow.AddMinutes(-30)
+                };
+                don1.ChiTiets.Add(new ChiTietDonHang
+                {
+                    MaSanPham = spBacXiu.MaSanPham,
+                    MaKichCo = spBacXiu.KichCos.FirstOrDefault()?.MaKichCo,
+                    SoLuong = 1,
+                    DonGia = 29000,
+                    ThanhTien = 29000,
+                    GhiChuMon = "Ít đường",
+                    TrangThaiBep = "DaTraKhach"
+                });
+                don1.ChiTiets.Add(new ChiTietDonHang
+                {
+                    MaSanPham = spCaPheSua.MaSanPham,
+                    MaKichCo = spCaPheSua.KichCos.FirstOrDefault()?.MaKichCo,
+                    SoLuong = 1,
+                    DonGia = 25000,
+                    ThanhTien = 25000,
+                    TrangThaiBep = "DaTraKhach"
+                });
+                db.DonHangs.Add(don1);
+
+                // Đơn hàng 2: Đang pha chế
+                var don2 = new DonHang
+                {
+                    MaBan = ban5.MaBan,
+                    LoaiDonHang = "DineIn",
+                    TrangThaiDon = "DangPha",
+                    TongTienHang = 35000,
+                    TienGiamGia = 0,
+                    PhiDichVu = 0,
+                    ThueVAT = 0,
+                    ThanhTien = 35000,
+                    ThoiGianTao = DateTime.UtcNow.AddMinutes(-5),
+                    ThoiGianCapNhat = DateTime.UtcNow
+                };
+                don2.ChiTiets.Add(new ChiTietDonHang
+                {
+                    MaSanPham = spCaPheSua.MaSanPham,
+                    MaKichCo = spCaPheSua.KichCos.FirstOrDefault()?.MaKichCo,
+                    SoLuong = 1,
+                    DonGia = 25000,
+                    ThanhTien = 25000,
+                    TrangThaiBep = "DangLam"
+                });
+                if (spThachPhoMai != null)
+                {
+                    don2.ChiTiets.Add(new ChiTietDonHang
+                    {
+                        MaSanPham = spThachPhoMai.MaSanPham,
+                        SoLuong = 1,
+                        DonGia = 10000,
+                        ThanhTien = 10000,
+                        TrangThaiBep = "ChoLam"
+                    });
+                }
+                db.DonHangs.Add(don2);
+
+                await db.SaveChangesAsync();
+
+                // Sinh hóa đơn cho đơn 1
+                var hd = new HoaDon
+                {
+                    MaDonHang = don1.MaDonHang,
+                    TongThanhTien = don1.ThanhTien,
+                    SoTienKhachTra = 100000,
+                    TienThoiLai = 46000,
+                    TrangThai = "DaThanhToan",
+                    ThoiGianThanhToan = DateTime.UtcNow.AddMinutes(-30)
+                };
+                db.HoaDons.Add(hd);
+                await db.SaveChangesAsync();
+            }
+        }
     }
 }
 

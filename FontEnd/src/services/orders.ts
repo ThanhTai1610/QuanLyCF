@@ -89,4 +89,11 @@ export const ordersApi = {
   reopenTable: (maBan: number) => api.post<void>(`/api/orders/reopen-table/${maBan}`),
   history: (maBan: number) => api.get<OrderDto[]>(`/api/orders/history/${maBan}`),
   restore: (maDon: number) => api.post<void>(`/api/orders/${maDon}/restore`),
+
+  // Guest order history and service request calls
+  guestHistory: (maBan: number) => api.get<OrderDto[]>(`/api/orders/guest/history/${maBan}`),
+  createServiceRequest: (body: { maBan: number; loaiYeuCau: string; ghiChu: string | null }) =>
+    api.post<any>('/api/service-requests', body),
+  getActiveServiceRequests: () => api.get<any[]>('/api/service-requests/active'),
+  resolveServiceRequest: (id: string) => api.post<void>(`/api/service-requests/${id}/resolve`),
 }

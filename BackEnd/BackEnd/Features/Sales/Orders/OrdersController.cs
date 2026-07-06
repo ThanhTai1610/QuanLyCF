@@ -82,6 +82,11 @@ public class OrdersController : ControllerBase
     [Authorize(Policy = Quyens.DonHangXem)]
     public async Task<IActionResult> History(int maBan) => Ok(await _svc.LichSuBanAsync(maBan));
 
+    /// <summary>Lịch sử đơn của 1 bàn dành cho khách hàng (không cần token đăng nhập).</summary>
+    [HttpGet("guest/history/{maBan:int}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GuestHistory(int maBan) => Ok(await _svc.LichSuBanAsync(maBan));
+
     /// <summary>Khôi phục 1 đơn (đã hoàn tất/huỷ) về hoạt động.</summary>
     [HttpPost("{id:int}/restore")]
     [Authorize(Policy = Quyens.DonHangXuLy)]

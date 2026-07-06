@@ -26,7 +26,8 @@ public record OrderItemDto(
     int SoLuong,
     decimal DonGia,
     decimal ThanhTien,
-    string? GhiChuMon);
+    string? GhiChuMon,
+    string TrangThaiBep);
 
 public record OrderDto(
     int MaDonHang,

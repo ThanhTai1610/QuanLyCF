@@ -14,15 +14,21 @@
         </router-link>
         
         <!-- Right actions -->
-        <div class="flex items-center gap-5">
-          <div class="hidden sm:flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#EAE3D9] shadow-xl">
+        <div class="flex items-center gap-3">
+          <div class="hidden sm:flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#EAE3D9] shadow-sm">
             <span class="w-2 h-2 rounded-full bg-[#CC8033]"></span>
-            <span class="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#5C544E]">Bàn số {{ tableId }}</span>
+            <span class="text-[10px] uppercase tracking-[0.2em] font-bold text-[#5C544E]">Bàn số {{ tableId }}</span>
           </div>
+
+          <!-- Lịch sử đơn button -->
+          <router-link to="/lich-su-don" class="h-9 px-3 rounded-xl bg-white border border-[#EAE3D9] hover:bg-[#FAF6F0] flex items-center justify-center gap-1.5 text-xs font-bold text-[#5C544E] transition-colors shadow-sm" title="Lịch sử gọi món">
+            <History class="w-4 h-4 text-[#CC8033]" />
+            <span>Lịch sử đơn</span>
+          </router-link>
          
-          <button @click="open = true" class="relative w-11 h-11 bg-white rounded-lg border border-[#EAE3D9] shadow-xl flex items-center justify-center text-[#2A231E] lg:hidden">
-            <ShoppingBag class="w-5 h-5" stroke-width="1.5" />
-            <span v-if="cart.count() > 0" class="absolute -top-1 -right-1 w-5 h-5 rounded-lg bg-[#CC8033] text-white text-[10px] font-bold flex items-center justify-center shadow-xl border border-[#FDFBF7]">
+          <button @click="open = true" class="relative w-9 h-9 bg-white rounded-lg border border-[#EAE3D9] shadow-sm flex items-center justify-center text-[#2A231E] lg:hidden">
+            <ShoppingBag class="w-4 h-4" stroke-width="1.5" />
+            <span v-if="cart.count() > 0" class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#CC8033] text-white text-[9px] font-bold flex items-center justify-center border border-white">
               {{ cart.count() }}
             </span>
           </button>
@@ -323,9 +329,17 @@
 
             <!-- Items -->
             <div v-for="l in cart.lines" :key="l.cartLineId" class="flex gap-3.5 p-3 rounded-2xl bg-white shadow-[0_2px_10px_rgba(42,35,30,0.04)] border border-[#EAE3D9] relative">
-              <div class="w-[68px] h-[68px] rounded-xl overflow-hidden flex-shrink-0">
+              <div @click="openItemOptions(l.item, l, true)" class="w-[68px] h-[68px] rounded-xl overflow-hidden flex-shrink-0 cursor-pointer relative group/avatar hover:opacity-90 active:scale-95 transition-all" title="Xem chi tiết">
                 <img v-if="l.item.hinhAnh" :src="l.item.hinhAnh" :alt="l.item.tenSanPham" class="w-full h-full object-cover" />
                 <div v-else class="w-full h-full flex items-center justify-center bg-[#F5F2ED] text-[#C5BEB8]"><Coffee class="w-6 h-6" /></div>
+                <!-- Hover overlay (desktop) -->
+                <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                  <Eye class="w-5 h-5 text-white" />
+                </div>
+                <!-- Always visible tiny badge (mobile/fallback) -->
+                <div class="absolute bottom-1 right-1 w-5 h-5 rounded-md bg-black/60 backdrop-blur-xs flex items-center justify-center text-white transition-opacity sm:group-hover/avatar:opacity-0">
+                  <Eye class="w-3 h-3" />
+                </div>
               </div>
               <div class="flex-1 min-w-0 flex flex-col justify-between">
                 <div class="flex justify-between items-start gap-2 pr-5">
@@ -359,12 +373,9 @@
                       </button>
                     </div>
 
-                    <div class="flex items-center gap-1.5 ml-1">
-                      <button @click="openItemOptions(l.item, l, true)" class="w-7 h-7 rounded-lg flex items-center justify-center bg-[#F5F2ED] text-[#8A8178] hover:bg-[#EAE3D9] hover:text-[#2A231E] transition-all" title="Xem chi tiết">
-                        <Eye class="w-3.5 h-3.5" />
-                      </button>
-                      <button @click="openItemOptions(l.item, l)" class="w-7 h-7 rounded-lg flex items-center justify-center bg-[#FFF9F2] text-[#CC8033] hover:bg-[#CC8033] hover:text-white transition-all shadow-sm" title="Chỉnh sửa">
-                        <Settings2 class="w-3.5 h-3.5" />
+                    <div class="flex items-center ml-1">
+                      <button @click="openItemOptions(l.item, l)" class="h-7 px-3.5 rounded-lg text-[10px] font-bold tracking-wide uppercase bg-[#FFF9F2] text-[#CC8033] border border-[#CC8033]/25 hover:bg-[#CC8033] hover:text-white hover:border-[#CC8033] transition-all shadow-sm">
+                        Chỉnh sửa món
                       </button>
                     </div>
                   </div>
@@ -463,9 +474,17 @@
         </div>
 
         <div v-for="l in cart.lines" :key="l.cartLineId" class="flex gap-3 p-3 rounded-2xl bg-white border border-[#EAE3D9] relative">
-          <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0">
+          <div @click="openItemOptions(l.item, l, true)" class="w-16 h-16 rounded-xl overflow-hidden shrink-0 cursor-pointer relative group/avatar hover:opacity-90 active:scale-95 transition-all" title="Xem chi tiết">
             <img v-if="l.item.hinhAnh" :src="l.item.hinhAnh" :alt="l.item.tenSanPham" class="w-full h-full object-cover" />
             <div v-else class="w-full h-full flex items-center justify-center bg-[#F5F2ED] text-[#C5BEB8] text-xs"><Coffee class="w-4 h-4" /></div>
+            <!-- Hover overlay (desktop) -->
+            <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+              <Eye class="w-4 h-4 text-white" />
+            </div>
+            <!-- Always visible tiny badge (mobile/fallback) -->
+            <div class="absolute bottom-1 right-1 w-4.5 h-4.5 rounded bg-black/60 backdrop-blur-xs flex items-center justify-center text-white transition-opacity sm:group-hover/avatar:opacity-0">
+              <Eye class="w-2.5 h-2.5" />
+            </div>
           </div>
           <div class="flex-1 min-w-0 flex flex-col justify-between">
             <div class="flex justify-between items-start gap-2 pr-5">
@@ -488,9 +507,10 @@
                   <span class="w-7 text-center text-xs font-bold text-[#2A231E]">{{ l.qty }}</span>
                   <button @click="cart.setQty(l.cartLineId, l.qty + 1)" class="w-6 h-6 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white transition-all"><Plus class="w-3 h-3" stroke-width="2.5" /></button>
                 </div>
-                <div class="flex items-center gap-1">
-                  <button @click="openItemOptions(l.item, l, true)" class="w-7 h-7 rounded-lg bg-[#F5F2ED] text-[#8A8178] flex items-center justify-center"><Eye class="w-3 h-3" /></button>
-                  <button @click="openItemOptions(l.item, l)" class="w-7 h-7 rounded-lg bg-[#FFF9F2] text-[#CC8033] flex items-center justify-center"><Settings2 class="w-3 h-3" /></button>
+                <div class="flex items-center ml-1">
+                  <button @click="openItemOptions(l.item, l)" class="h-7 px-3 rounded-lg text-[10px] font-bold tracking-wide uppercase bg-[#FFF9F2] text-[#CC8033] border border-[#CC8033]/25 hover:bg-[#CC8033] hover:text-white hover:border-[#CC8033] transition-all shadow-sm">
+                    Chỉnh sửa món
+                  </button>
                 </div>
               </div>
               <span class="text-sm font-bold text-[#2A231E]">{{ formatVND((l.item.giaBan + (l.options?.extraPrice || 0)) * l.qty) }}</span>
@@ -535,6 +555,7 @@
 
     <!-- Chatbot Widget -->
     <ChatbotWidget />
+    <ServiceRequestFAB :table-id="tableId" />
 
     <!-- Customer Login Modal (form nhỏ căn giữa) -->
     <Transition name="login-modal">
@@ -629,7 +650,8 @@
         
         <!-- Header Image -->
         <div class="relative h-48 sm:h-56 shrink-0 bg-[#F5F2ED]">
-          <img :src="selectedItem?.image" class="w-full h-full object-cover" />
+          <img v-if="selectedItem?.hinhAnh" :src="selectedItem.hinhAnh" class="w-full h-full object-cover" />
+          <div v-else class="w-full h-full flex items-center justify-center text-[#C5BEB8]"><Coffee class="w-16 h-16" /></div>
           <div class="absolute inset-0 bg-gradient-to-t from-[#FDFBF7] via-black/10 to-transparent"></div>
           <button @click="itemOptionsOpen = false" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/30 backdrop-blur-md border border-white/40 flex items-center justify-center text-white shadow-lg hover:bg-white/40 transition-colors">
             <X class="w-4 h-4" stroke-width="2.5" />
@@ -913,12 +935,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ShoppingBag, Plus, Minus, Trash2, Coffee, X, ChevronLeft, ChevronRight, Gift, CheckCircle2, User, Check, AlertCircle, Search, Star, Settings2, Sparkles, Eye } from 'lucide-vue-next'
+import { ShoppingBag, Plus, Minus, Trash2, Coffee, X, ChevronLeft, ChevronRight, Gift, CheckCircle2, User, Check, AlertCircle, Search, Star, Settings2, Sparkles, Eye, History } from 'lucide-vue-next'
 import { ordersApi, type MenuItem, type MenuSize } from '@/services/orders'
 import { useCartStore } from '@/stores/cart'
 import { useStoreInfoStore } from '@/stores/storeInfo'
 import Button from '@/components/ui/Button.vue'
 import ChatbotWidget from '@/components/ChatbotWidget.vue'
+import ServiceRequestFAB from '@/components/ServiceRequestFAB.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -938,6 +961,7 @@ const loading = ref(false)
 const formatVND = (n: number) => (n || 0).toLocaleString('vi-VN') + 'đ'
 
 onMounted(async () => {
+  localStorage.setItem('customerTableId', tableId.toString())
   loading.value = true
   try {
     menu.value = await ordersApi.menu()

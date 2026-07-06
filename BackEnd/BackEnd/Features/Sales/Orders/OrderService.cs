@@ -288,5 +288,5 @@ public class OrderService
         d.ChiTiets.Sum(c => c.SoLuong), d.ThoiGianTao,
         d.ChiTiets.Select(c => new OrderItemDto(
             c.MaChiTiet, c.MaSanPham, c.SanPham?.TenSanPham ?? "(món)", c.KichCo?.TenKichCo,
-            c.SoLuong, c.DonGia, c.ThanhTien, c.GhiChuMon)).ToList());
+            c.SoLuong, c.DonGia, c.ThanhTien, c.GhiChuMon, c.TrangThaiBep)).ToList());
 }     

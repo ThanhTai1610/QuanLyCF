@@ -1,5 +1,41 @@
 <template>
   <div class="space-y-5 p-6">
+    <!-- Service Requests Alerts -->
+    <TransitionGroup name="fade-list" tag="div" v-if="serviceRequests.length > 0" class="space-y-3 mb-5">
+      <div
+        v-for="req in serviceRequests"
+        :key="req.id"
+        class="flex items-center justify-between p-4 rounded-xl bg-amber-50 border border-amber-200 shadow-sm transition-all duration-300"
+      >
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 animate-pulse">
+            <Bell class="w-5 h-5" />
+          </div>
+          <div>
+            <p class="text-sm font-bold text-[#2A231E]">
+              {{ req.tenBan }} yêu cầu
+              <span class="text-amber-700 font-extrabold">
+                {{
+                  req.loaiYeuCau === 'GoiPhucVu'
+                    ? 'gọi phục vụ'
+                    : req.loaiYeuCau === 'ThanhToanTienMat'
+                    ? 'thanh toán tiền mặt'
+                    : 'thanh toán chuyển khoản'
+                }}
+              </span>
+            </p>
+            <p class="text-xs text-[#8A8178] mt-0.5" v-if="req.ghiChu">Ghi chú: {{ req.ghiChu }}</p>
+          </div>
+        </div>
+        <button
+          @click="resolveRequest(req.id)"
+          class="h-9 px-4 rounded-lg bg-[#CC8033] hover:bg-[#B8722D] text-white text-xs font-bold transition-all shadow-sm active:scale-95 shrink-0"
+        >
+          Hoàn tất
+        </button>
+      </div>
+    </TransitionGroup>
+
     <!-- Summary cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <button
@@ -788,14 +824,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import QrcodeVue from 'qrcode.vue'
 import {
   Printer, Download, Plus, Trash2, Pencil, Search, RefreshCw, LayoutGrid,
   ChevronLeft, ChevronRight, Coffee, Wrench, CheckCircle2, Grid3x3, MapPin,
   Armchair, Hash, Users, ChevronDown, AlertCircle, ArrowRight, AlertTriangle, Coins,
   Combine, Link2, Unlink, Check, X, CheckSquare,
-  Receipt, ArrowLeftRight, Clock, RotateCcw, Sparkles
+  Receipt, ArrowLeftRight, Clock, RotateCcw, Sparkles, Bell
 } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
@@ -809,6 +845,35 @@ const zones = ref<Zone[]>([])
 const orders = ref<OrderDto[]>([])
 const loading = ref(false)
 const errorMsg = ref('')
+
+// ── Service Requests (Gọi phục vụ / Thanh toán) ──
+const serviceRequests = ref<any[]>([])
+
+async function loadServiceRequests() {
+  try {
+    serviceRequests.value = await ordersApi.getActiveServiceRequests()
+  } catch (e) {
+    console.error('Lỗi tải yêu cầu phục vụ:', e)
+  }
+}
+
+async function resolveRequest(id: string) {
+  try {
+    await ordersApi.resolveServiceRequest(id)
+    serviceRequests.value = serviceRequests.value.filter(r => r.id !== id)
+  } catch (e) {
+    console.error('Lỗi hoàn tất yêu cầu:', e)
+  }
+}
+
+let serviceRequestsInterval: any = null
+onMounted(() => {
+  loadServiceRequests()
+  serviceRequestsInterval = setInterval(loadServiceRequests, 4000)
+})
+onUnmounted(() => {
+  if (serviceRequestsInterval) clearInterval(serviceRequestsInterval)
+})
 
 const search = ref('')
 const zoneFilter = ref<number | 'all'>('all')
