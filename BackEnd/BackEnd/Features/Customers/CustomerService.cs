@@ -9,12 +9,12 @@ namespace BackEnd.Features.Customers;
 public class CustomerService
 {
     private readonly QuanLyCFDbContext _db;
-    private readonly BackEnd.Shared.SmsService _sms;
+    private readonly BackEnd.Shared.EmailService _email;
 
-    public CustomerService(QuanLyCFDbContext db, BackEnd.Shared.SmsService sms)
+    public CustomerService(QuanLyCFDbContext db, BackEnd.Shared.EmailService email)
     {
         _db = db;
-        _sms = sms;
+        _email = email;
     }
 
     public async Task<IEnumerable<CustomerListItem>> ListAsync(string? q, string? tier)
@@ -91,6 +91,37 @@ public class CustomerService
             visits,
             history
         );
+    }
+
+    public async Task<object?> GetByPhoneAsync(string phone, string? alternativePhone)
+    {
+        var x = await _db.KhachHangs.FirstOrDefaultAsync(c => c.SoDienThoai == phone || (alternativePhone != null && c.SoDienThoai == alternativePhone));
+        if (x == null) return null;
+
+        return new
+        {
+            id = x.MaKhachHang,
+            name = x.HoTen ?? "Khách hàng mới",
+            phone = x.SoDienThoai ?? "",
+            tier = MapTierToVn(x.HangThanhVien),
+            points = x.DiemTichLuy
+        };
+    }
+
+    public async Task<object?> GetByEmailAsync(string email)
+    {
+        var x = await _db.KhachHangs.FirstOrDefaultAsync(c => c.Email != null && c.Email.ToLower() == email.Trim().ToLower());
+        if (x == null) return null;
+
+        return new
+        {
+            id = x.MaKhachHang,
+            name = x.HoTen ?? "Khách hàng mới",
+            phone = x.SoDienThoai ?? "",
+            email = x.Email ?? "",
+            tier = MapTierToVn(x.HangThanhVien),
+            points = x.DiemTichLuy
+        };
     }
 
     public async Task<ServiceResult<int>> CreateAsync(CreateCustomerRequest req)
@@ -172,27 +203,39 @@ public class CustomerService
 
     private static readonly ConcurrentDictionary<int, (string Otp, DateTime Expires)> _otpStore = new();
 
-    public bool IsSmsSimulated()
-    {
-        return _sms.IsSimulated();
-    }
 
     public async Task<string> GenerateOtpAsync(int customerId)
     {
         var kh = await _db.KhachHangs.FindAsync(customerId);
-        var phone = kh?.SoDienThoai ?? "";
+        if (kh == null) throw new InvalidOperationException("Không tìm thấy khách hàng.");
+        
+        var email = kh.Email?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new InvalidOperationException("Khách hàng chưa đăng ký địa chỉ email. Vui lòng cập nhật email của khách hàng trước khi đổi quà.");
+        }
 
         var otp = new Random().Next(100000, 999999).ToString();
         _otpStore[customerId] = (otp, DateTime.UtcNow.AddMinutes(5));
 
-        var msg = $"[BrewManager] Ma OTP xac nhan doi diem cua ban la: {otp}. Ma co hieu luc trong 5 phut.";
+        var subject = "[F6 Coffee] Mã OTP xác nhận đổi quà";
+        var body = $@"
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;'>
+                <h2 style='color: #CC8033; text-align: center;'>F6 Coffee Loyalty</h2>
+                <p>Xin chào <strong>{kh.HoTen}</strong>,</p>
+                <p>Hệ thống nhận được yêu cầu đổi điểm tích lũy của bạn tại cửa hàng <strong>F6 Coffee</strong>.</p>
+                <div style='background-color: #fcf6f0; border: 1px dashed #CC8033; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0;'>
+                    <span style='font-size: 14px; color: #666; display: block; margin-bottom: 5px;'>MÃ OTP CỦA BẠN LÀ:</span>
+                    <strong style='font-size: 32px; color: #CC8033; letter-spacing: 5px;'>{otp}</strong>
+                </div>
+                <p style='color: #666; font-size: 13px;'>Mã này có hiệu lực trong vòng <strong>5 phút</strong>. Vui lòng không chia sẻ mã này cho bất kỳ ai.</p>
+                <hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;' />
+                <p style='font-size: 11px; color: #999; text-align: center;'>Đây là email tự động từ hệ thống F6 Coffee. Vui lòng không phản hồi email này.</p>
+            </div>";
 
-        if (!string.IsNullOrWhiteSpace(phone))
-        {
-            await _sms.SendSmsAsync(phone, msg);
-        }
+        await _email.SendEmailAsync(email, subject, body);
 
-        Console.WriteLine($"\n[OTP SIMULATION] Mã OTP của khách hàng {customerId} là: {otp} (Hiệu lực 5 phút)\n");
+        Console.WriteLine($"\n[OTP EMAIL SIMULATION] Mã OTP của khách hàng {customerId} ({email}) là: {otp} (Hiệu lực 5 phút)\n");
         return otp;
     }
 
@@ -211,11 +254,11 @@ public class CustomerService
 
     public async Task<ServiceResult<int>> RedeemRewardAsync(int id, int rewardId, string otp)
     {
-        if (string.IsNullOrWhiteSpace(otp) || !VerifyOtp(id, otp))
-            return ServiceResult<int>.Fail("Mã OTP không chính xác hoặc đã hết hạn.");
-
         var kh = await _db.KhachHangs.FindAsync(id);
         if (kh == null) return ServiceResult<int>.Fail("Không tìm thấy khách hàng.");
+
+        if (string.IsNullOrWhiteSpace(otp) || !VerifyOtp(id, otp))
+            return ServiceResult<int>.Fail("Mã OTP không chính xác hoặc đã hết hạn.");
 
         var reward = await _db.Set<PhanThuong>().FindAsync(rewardId);
         if (reward == null || !reward.TrangThaiHoatDong) 
@@ -240,6 +283,43 @@ public class CustomerService
             ThoiGianTao = DateTime.UtcNow
         };
         _db.Set<LichSuDiem>().Add(ls);
+
+        await _db.SaveChangesAsync();
+
+        return ServiceResult<int>.Ok(kh.DiemTichLuy);
+    }
+
+    public async Task<ServiceResult<int>> RedeemPointsPublicAsync(int id, int points, int? maDonHang)
+    {
+        var kh = await _db.KhachHangs.FindAsync(id);
+        if (kh == null) return ServiceResult<int>.Fail("Không tìm thấy khách hàng.");
+
+        if (kh.DiemTichLuy < points)
+            return ServiceResult<int>.Fail($"Khách hàng không đủ điểm (Cần {points} điểm, hiện có {kh.DiemTichLuy} điểm).");
+
+        kh.DiemTichLuy -= points;
+        kh.HangThanhVien = GetTierByPoints(kh.DiemTichLuy);
+
+        var ls = new LichSuDiem
+        {
+            MaKhachHang = id,
+            LoaiBienDong = "Doi",
+            SoDiem = -points,
+            GhiChu = $"Đổi {points} điểm thưởng lấy chiết khấu đơn hàng tại bàn",
+            ThoiGianTao = DateTime.UtcNow
+        };
+        _db.Set<LichSuDiem>().Add(ls);
+
+        if (maDonHang is { } mdh)
+        {
+            var don = await _db.DonHangs.FindAsync(mdh);
+            if (don != null)
+            {
+                don.MaKhachHang = id; // Link customer to order
+                don.TienGiamGia += 20000; // Deduct 20,000 VND
+                don.ThanhTien = Math.Max(0, don.ThanhTien - 20000);
+            }
+        }
 
         await _db.SaveChangesAsync();
 

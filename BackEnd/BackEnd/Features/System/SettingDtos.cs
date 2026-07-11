@@ -16,7 +16,11 @@ namespace BackEnd.Features.System
         bool   CheDoBaoTri,
         string ThongDiepBaoTri,
         string TenAI,
-        string XungHoAI
+        string XungHoAI,
+        // Cấu hình ngân hàng VietQR
+        string NganHangId,    // Mã ngân hàng theo VietQR (VD: MB, VCB, TCB, ACB...)
+        string NganHangStk,   // Số tài khoản nhận tiền
+        string NganHangTen    // Tên chủ tài khoản
     );
 
     /// <summary>Request cập nhật cài đặt hệ thống.</summary>
@@ -33,7 +37,11 @@ namespace BackEnd.Features.System
         bool   CheDoBaoTri,
         string ThongDiepBaoTri,
         string TenAI,
-        string XungHoAI
+        string XungHoAI,
+        // Cấu hình ngân hàng VietQR
+        string? NganHangId  = null,
+        string? NganHangStk = null,
+        string? NganHangTen = null
     );
 
     /// <summary>Thông tin công khai của quán (không cần đăng nhập).</summary>

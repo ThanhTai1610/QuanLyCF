@@ -27,6 +27,9 @@ export const useOrderStore = defineStore('orders', () => {
     status?: OrderStatus
     paid?: boolean
     paymentMethod?: string
+    pointsDiscount?: number
+    promoDiscount?: number
+    maKhuyenMai?: number
   }): Order {
     const now = new Date()
     const items = payload.items.map(i => ({ ...i }))
@@ -34,13 +37,16 @@ export const useOrderStore = defineStore('orders', () => {
       id: nextId(),
       table: payload.table,
       items,
-      total: items.reduce((s, i) => s + i.price * i.qty, 0),
+      total: Math.max(0, items.reduce((s, i) => s + i.price * i.qty, 0) - (payload.pointsDiscount ?? 0) - (payload.promoDiscount ?? 0)),
       status: payload.status ?? 'pending',
       createdAt: now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
       createdTs: now.getTime(),
       customer: payload.customer,
       paid: payload.paid ?? false,
       paymentMethod: payload.paymentMethod,
+      pointsDiscount: payload.pointsDiscount ?? 0,
+      promoDiscount: payload.promoDiscount ?? 0,
+      maKhuyenMai: payload.maKhuyenMai,
     }
     orders.value.unshift(order)
     return order

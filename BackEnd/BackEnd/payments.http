@@ -1,0 +1,129 @@
+@Host = http://localhost:5124
+
+### 1. ĐĂNG NHẬP (Lấy Token Admin)
+# @name login
+POST {{Host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@brew.vn",
+  "matKhau": "demo1234"
+}
+
+### Lưu Access Token
+@token = {{login.response.body.accessToken}}
+
+
+### 2. TẠO ĐƠN HÀNG THỬ NGHIỆM 1 (Để test VietQR)
+# @name createOrder1
+POST {{Host}}/api/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "maBan": 1,
+  "items": [
+    {
+      "maSanPham": 1,
+      "soLuong": 2
+    }
+  ],
+  "ghiChuDonHang": "Test don hang VietQR"
+}
+
+@orderId1 = {{createOrder1.response.body.maDonHang}}
+
+
+### 3. TẠO MÃ VIETQR ĐỘNG CHO ĐƠN 1
+# @name payVietQr
+POST {{Host}}/api/payments/vietqr
+Content-Type: application/json
+
+{
+  "maDonHang": {{orderId1}}
+}
+
+### Trích xuất link ảnh QR để hiển thị
+@vietQrLink = {{payVietQr.response.body.qrCodeUrl}}
+
+
+### 4. THU NGÂN XÁC NHẬN CHUYỂN KHOẢN THỦ CÔNG CHO ĐƠN 1
+POST {{Host}}/api/payments/confirm-transfer/{{orderId1}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "maDonHang": {{orderId1}},
+  "soTienThucNhan": 60000
+}
+
+
+### 5. TẠO ĐƠN HÀNG THỬ NGHIỆM 2 (Để test Casso Webhook tự động)
+# @name createOrder2
+POST {{Host}}/api/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "maBan": 2,
+  "items": [
+    {
+      "maSanPham": 2,
+      "soLuong": 1
+    }
+  ]
+}
+
+@orderId2 = {{createOrder2.response.body.maDonHang}}
+
+
+### 6. TẠO MÃ VIETQR CHO ĐƠN 2
+POST {{Host}}/api/payments/vietqr
+Content-Type: application/json
+
+{
+  "maDonHang": {{orderId2}}
+}
+
+
+### 7. GIẢ LẬP WEBHOOK CASSO TỰ ĐỘNG BẮN TIỀN VỀ CHO ĐƠN 2
+# Nội dung chuyển khoản chứa "BrewManager DH<maDonHang>" (ví dụ: "BrewManager DH2")
+POST {{Host}}/api/payments/casso-webhook
+Content-Type: application/json
+
+{
+  "error": 0,
+  "data": [
+    {
+      "id": 883719,
+      "tid": "FT2609087112",
+      "description": "Thanh toan don hang BrewManager DH{{orderId2}} cua khach",
+      "amount": 35000,
+      "when": "2026-07-07T20:30:00Z",
+      "bank_sub_acc_id": "19035282928014"
+    }
+  ]
+}
+
+
+### 8. LẤY DANH SÁCH HOÁ ĐƠN (Phân trang, Authorize)
+# @name getInvoices
+GET {{Host}}/api/invoices?page=1&pageSize=10
+Authorization: Bearer {{token}}
+Accept: application/json
+
+
+### Trích xuất MaHoaDon vừa tạo
+@invoiceId = {{getInvoices.response.body.items[0].maHoaDon}}
+
+
+### 9. XEM CHI TIẾT HOÁ ĐƠN
+GET {{Host}}/api/invoices/{{invoiceId}}
+Authorization: Bearer {{token}}
+Accept: application/json
+
+
+### 10. XUẤT HTML IN HOÁ ĐƠN NHIỆT K80
+GET {{Host}}/api/invoices/{{invoiceId}}/print
+Authorization: Bearer {{token}}
+Accept: text/html

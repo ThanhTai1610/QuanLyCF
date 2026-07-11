@@ -51,5 +51,17 @@ export const loyaltyApi = {
   getRewards: () => api.get<Reward[]>('/api/customers/rewards'),
   sendOtp: (customerId: number) => api.post<{ otp: string | null }>(`/api/customers/${customerId}/send-otp`),
   redeem: (customerId: number, rewardId: number, otp: string) => 
-    api.post<{ points: number }>(`/api/customers/${customerId}/redeem`, { rewardId, otp })
+    api.post<{ points: number }>(`/api/customers/${customerId}/redeem`, { rewardId, otp }),
+  checkPublicEmail: (email: string) => 
+    api.get<{ id: number; name: string; phone: string; email: string; tier: string; points: number }>(`/api/customers/public/by-email?email=${email}`),
+  registerPublic: (body: { name: string; phone: string; email: string }) => 
+    api.post<{ id: number; name: string; phone: string; email: string; tier: string; points: number }>('/api/customers/public/register', body),
+  
+  // Public OTP/Loyalty endpoints
+  sendPublicOtp: (customerId: number) => 
+    api.post<{ message: string }>(`/api/customers/public/${customerId}/send-otp`),
+  verifyPublicOtp: (customerId: number, otp: string) => 
+    api.post<{ success: boolean }>(`/api/customers/public/${customerId}/verify-otp`, { otp }),
+  redeemPublicPoints: (customerId: number, points: number, otp: string, maDonHang?: number) => 
+    api.post<{ points: number }>(`/api/customers/public/${customerId}/redeem-points`, { points, otp, maDonHang })
 }

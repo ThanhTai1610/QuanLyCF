@@ -28,6 +28,9 @@ export interface Order {
   paid?: boolean;
   /** Phương thức thanh toán */
   paymentMethod?: string;
+  pointsDiscount?: number;
+  promoDiscount?: number;
+  maKhuyenMai?: number;
 }
 
 /** Mốc thời gian gốc để seed dữ liệu mẫu (cố định theo lúc khởi tạo app) */

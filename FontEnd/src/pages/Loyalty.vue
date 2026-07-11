@@ -397,19 +397,8 @@
         </div>
 
         <p class="text-xs text-muted-foreground mb-4">
-          <template v-if="simulatedOtpCode">
-            Hệ thống đã gửi một mã OTP giả lập tới số điện thoại của <strong>{{ currentRedeemCustomer?.name }}</strong>.
-          </template>
-          <template v-else>
-            Hệ thống đã gửi một mã OTP xác thực tới số điện thoại <strong>{{ currentRedeemCustomer?.phone }}</strong> của <strong>{{ currentRedeemCustomer?.name }}</strong>. Vui lòng nhập mã OTP từ điện thoại của bạn.
-          </template>
+          Hệ thống đã gửi một mã OTP xác thực tới địa chỉ email <strong>{{ currentRedeemCustomer?.email }}</strong> của <strong>{{ currentRedeemCustomer?.name }}</strong>. Vui lòng nhập mã OTP để xác nhận.
         </p>
-
-        <!-- Simulated OTP Widget -->
-        <div v-if="simulatedOtpCode" class="bg-orange-50/70 border border-orange-200/50 rounded-xl p-4 mb-4 text-center">
-          <div class="text-[10px] uppercase font-bold tracking-wider text-orange-600/80 mb-1">Mã OTP Giả lập</div>
-          <div class="text-3xl font-extrabold tracking-[0.25em] text-[#CC8033]">{{ simulatedOtpCode }}</div>
-        </div>
 
         <div class="space-y-3">
           <div>
@@ -441,7 +430,6 @@
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -455,7 +443,6 @@ import {
 import { loyaltyApi, type Customer, type Reward } from '@/services/loyalty'
 import { useToast } from '@/stores/toast'
 import { useAlert } from '@/stores/alert'
-
 // ─── Composable Notifications ────────────────────────────────────────────────
 const toast = useToast()
 const alertStore = useAlert()
@@ -478,7 +465,6 @@ const showOtpModal = ref(false)
 const otpInput = ref('')
 const currentRedeemCustomer = ref<Customer | null>(null)
 const currentRedeemReward = ref<any>(null)
-const simulatedOtpCode = ref<string | null>(null)
 
 // ─── Tier benefits ─────────────────────────────────────────────────────────────
 const tiers = [
@@ -615,13 +601,14 @@ const redeemReward = async (customer: Customer, reward: any) => {
   )
   if (!confirmed) return
   try {
-    const otpRes = await loyaltyApi.sendOtp(customer.id)
     currentRedeemCustomer.value = customer
     currentRedeemReward.value = reward
-    simulatedOtpCode.value = otpRes.otp
     otpInput.value = ''
+
+    await loyaltyApi.sendOtp(customer.id)
     showOtpModal.value = true
   } catch (err: any) {
+    console.error(err)
     toast.error(err.message || 'Không thể gửi mã OTP xác nhận.')
   }
 }
@@ -637,6 +624,7 @@ const handleRedeemWithOtp = async () => {
       await openDetail(currentRedeemCustomer.value)
     }
   } catch (err: any) {
+    console.error(err)
     toast.error(err.message || 'Mã OTP không chính xác hoặc đã hết hạn.')
   }
 }
