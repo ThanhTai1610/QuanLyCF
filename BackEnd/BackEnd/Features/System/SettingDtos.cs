@@ -72,10 +72,11 @@ namespace BackEnd.Features.System
 
     /// <summary>Tham số truy vấn nhật ký.</summary>
     public record AuditLogQuery(
-        string? Module    = null,
-        string? HanhDong  = null,
+        string? Module     = null,
+        string? HanhDong   = null,
         int?    MaNhanVien = null,
-        int     Page      = 1,
-        int     PageSize  = 20
+        string? Search     = null,
+        int     Page       = 1,
+        int     PageSize   = 20
     );
 }

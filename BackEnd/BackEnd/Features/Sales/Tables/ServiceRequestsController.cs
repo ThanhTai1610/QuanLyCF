@@ -26,7 +26,7 @@ public class ServiceRequestsController : ControllerBase
 
     [HttpPost]
     [AllowAnonymous]
-    public async Task<IActionResult> Create(CreateServiceRequest req)
+    public async Task<IActionResult> Create([FromBody] CreateServiceRequest req)
     {
         var ban = await _db.Bans.FindAsync(req.MaBan);
         if (ban is null) return BadRequest(new { message = "Bàn không tồn tại." });

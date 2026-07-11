@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BackEnd.Domain.Entities;
 using BackEnd.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,7 +24,25 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login(LoginRequest req)
     {
         var r = await _auth.DangNhapAsync(req);
-        return r.Data is null ? Unauthorized(new { message = r.Error }) : Ok(r.Data);
+        if (r.Data is null) return Unauthorized(new { message = r.Error });
+
+        var ip = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+        var ua = Request.Headers["User-Agent"].ToString();
+        var log = new NhatKyHeThong
+        {
+            MaNhanVien = r.Data.NguoiDung.MaNhanVien,
+            HanhDong = "Đăng nhập",
+            Module = "Hệ thống",
+            DuLieuCu = null,
+            DuLieuMoi = $"Đăng nhập thành công bằng Email: {req.Email}",
+            DiaChiIP = ip,
+            ThietBi = ua,
+            ThoiGianTao = DateTime.UtcNow
+        };
+        _db.NhatKyHeThongs.Add(log);
+        await _db.SaveChangesAsync();
+
+        return Ok(r.Data);
     }
 
     /// <summary>Đăng nhập ca làm bằng PIN (màn hình StaffLogin).</summary>
@@ -31,7 +50,25 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> PinLogin(PinLoginRequest req)
     {
         var r = await _auth.DangNhapPinAsync(req);
-        return r.Data is null ? Unauthorized(new { message = r.Error }) : Ok(r.Data);
+        if (r.Data is null) return Unauthorized(new { message = r.Error });
+
+        var ip = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+        var ua = Request.Headers["User-Agent"].ToString();
+        var log = new NhatKyHeThong
+        {
+            MaNhanVien = r.Data.NguoiDung.MaNhanVien,
+            HanhDong = "Đăng nhập PIN",
+            Module = "Hệ thống",
+            DuLieuCu = null,
+            DuLieuMoi = $"Đăng nhập ca làm thành công bằng mã PIN (Nhân viên: {r.Data.NguoiDung.HoTen})",
+            DiaChiIP = ip,
+            ThietBi = ua,
+            ThoiGianTao = DateTime.UtcNow
+        };
+        _db.NhatKyHeThongs.Add(log);
+        await _db.SaveChangesAsync();
+
+        return Ok(r.Data);
     }
 
     /// <summary>Lấy danh sách nhân viên để hiển thị ngoài màn hình StaffLogin.</summary>

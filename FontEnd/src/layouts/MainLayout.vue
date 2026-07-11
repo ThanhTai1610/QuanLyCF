@@ -180,6 +180,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useStoreInfoStore } from '../stores/storeInfo'
+import { useToast } from '@/stores/toast'
 import { ordersApi } from '@/services/orders'
 import {
   LayoutDashboard, ShoppingBag, Coffee, Users, Settings, LogOut,
@@ -193,6 +194,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore      = useAuthStore()
 const storeInfoStore = useStoreInfoStore()
+const toast          = useToast()
 
 // Ẩn menu theo quyền: chỉ hiện trang user được phép vào
 function canSee(to: string) {
@@ -341,11 +343,28 @@ const handleLogout = () => {
 // ── Service Requests Notifications ──
 const showNotifications = ref(false)
 const serviceRequests = ref<any[]>([])
+const previousCount = ref(0)
 
 async function loadServiceRequests() {
   try {
-    if (authStore.token) {
-      serviceRequests.value = await ordersApi.getActiveServiceRequests()
+    if (authStore.accessToken) {
+      const data = await ordersApi.getActiveServiceRequests()
+      
+      // Phát hiện yêu cầu mới để bắn toast thông báo nổi
+      if (data.length > previousCount.value) {
+        const newReqs = data.filter((x: any) => !serviceRequests.value.some((y: any) => y.id === x.id))
+        newReqs.forEach((r: any) => {
+          const typeStr = r.loaiYeuCau === 'GoiPhucVu'
+            ? 'gọi phục vụ'
+            : r.loaiYeuCau === 'ThanhToanTienMat'
+            ? 'yêu cầu thanh toán tiền mặt'
+            : 'yêu cầu thanh toán chuyển khoản'
+          toast.info(`${r.tenBan}: ${typeStr.toUpperCase()} ${r.ghiChu && r.ghiChu !== 'Yêu cầu phục vụ tại bàn' && r.ghiChu !== 'Yêu cầu thanh toán tiền mặt' && r.ghiChu !== 'Yêu cầu thanh toán chuyển khoản (Momo/QR)' ? `(${r.ghiChu})` : ''}`)
+        })
+      }
+      
+      serviceRequests.value = data
+      previousCount.value = data.length
     }
   } catch (e) {
     console.error('Lỗi tải yêu cầu phục vụ ở layout:', e)
@@ -356,6 +375,7 @@ async function resolveRequest(id: string) {
   try {
     await ordersApi.resolveServiceRequest(id)
     serviceRequests.value = serviceRequests.value.filter(r => r.id !== id)
+    previousCount.value = serviceRequests.value.length
   } catch (e) {
     console.error('Lỗi hoàn tất yêu cầu ở layout:', e)
   }
@@ -364,7 +384,7 @@ async function resolveRequest(id: string) {
 let serviceRequestsInterval: any = null
 onMounted(() => {
   loadServiceRequests()
-  serviceRequestsInterval = setInterval(loadServiceRequests, 4000)
+  serviceRequestsInterval = setInterval(loadServiceRequests, 2000)
 })
 onUnmounted(() => {
   if (serviceRequestsInterval) clearInterval(serviceRequestsInterval)

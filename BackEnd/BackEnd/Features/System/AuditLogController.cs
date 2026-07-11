@@ -18,16 +18,17 @@ namespace BackEnd.Features.System
 
         public AuditLogController(AuditLogService svc) => _svc = svc;
 
-        // GET /api/audit-logs?module=&hanhDong=&maNhanVien=&page=1&pageSize=20
+        // GET /api/audit-logs?module=&hanhDong=&maNhanVien=&search=&page=1&pageSize=20
         [HttpGet]
         public async Task<IActionResult> GetLogs(
             [FromQuery] string? module,
             [FromQuery] string? hanhDong,
             [FromQuery] int?    maNhanVien,
+            [FromQuery] string? search,
             [FromQuery] int     page     = 1,
             [FromQuery] int     pageSize = 20)
         {
-            var query = new AuditLogQuery(module, hanhDong, maNhanVien, page, pageSize);
+            var query = new AuditLogQuery(module, hanhDong, maNhanVien, search, page, pageSize);
             var (items, total) = await _svc.GetPagedAsync(query);
 
             return Ok(new
@@ -46,6 +47,14 @@ namespace BackEnd.Features.System
         {
             var modules = await _svc.GetModulesAsync();
             return Ok(modules);
+        }
+
+        // DELETE /api/audit-logs
+        [HttpDelete]
+        public async Task<IActionResult> ClearLogs()
+        {
+            await _svc.ClearAllAsync();
+            return NoContent();
         }
     }
 }

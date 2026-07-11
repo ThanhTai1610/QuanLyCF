@@ -77,7 +77,7 @@ namespace BackEnd.Features.System
 
         // ── Cập nhật cài đặt ──────────────────────────────────────────────────
 
-        public async Task UpdateAsync(UpdateSettingsRequest req)
+        public async Task UpdateAsync(UpdateSettingsRequest req, int? maNhanVien = null, string? ipAddress = null, string? userAgent = null)
         {
             // Validate
             if (string.IsNullOrWhiteSpace(req.TenQuan))
@@ -110,6 +110,39 @@ namespace BackEnd.Features.System
                 .Where(x => payload.Keys.Contains(x.KhoaCaiDat))
                 .ToListAsync();
 
+            // 1. Phát hiện thay đổi thực tế trước khi cập nhật dữ liệu
+            var listChangesOld = new List<string>();
+            var listChangesNew = new List<string>();
+
+            foreach (var (key, value) in payload)
+            {
+                var row = existing.FirstOrDefault(x => x.KhoaCaiDat == key);
+                var oldValue = row?.GiaTriCaiDat ?? "";
+                var newValue = value ?? "";
+                if (oldValue.Trim() != newValue.Trim())
+                {
+                    listChangesOld.Add($"{key}: {oldValue}");
+                    listChangesNew.Add($"{key}: {newValue}");
+                }
+            }
+
+            if (listChangesNew.Any())
+            {
+                var log = new NhatKyHeThong
+                {
+                    MaNhanVien = maNhanVien,
+                    HanhDong = "Cập nhật cài đặt",
+                    Module = "Hệ thống",
+                    DuLieuCu = string.Join(", ", listChangesOld),
+                    DuLieuMoi = string.Join(", ", listChangesNew),
+                    DiaChiIP = ipAddress,
+                    ThietBi = userAgent,
+                    ThoiGianTao = DateTime.UtcNow
+                };
+                _db.NhatKyHeThongs.Add(log);
+            }
+
+            // 2. Thực hiện cập nhật dữ liệu cài đặt
             var now = DateTime.UtcNow;
             foreach (var (key, value) in payload)
             {

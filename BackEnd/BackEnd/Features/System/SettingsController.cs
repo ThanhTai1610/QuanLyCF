@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using BackEnd.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +20,10 @@ namespace BackEnd.Features.System
         private readonly SettingService _svc;
 
         public SettingsController(SettingService svc) => _svc = svc;
+
+        private int? CurrentUserId =>
+            int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var id)
+                ? id : null;
 
         // GET /api/settings/store-info  (AllowAnonymous — thông tin hiển thị công khai)
         [HttpGet("store-info")]
@@ -45,7 +50,9 @@ namespace BackEnd.Features.System
         {
             try
             {
-                await _svc.UpdateAsync(req);
+                var ip = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+                var ua = Request.Headers["User-Agent"].ToString();
+                await _svc.UpdateAsync(req, CurrentUserId, ip, ua);
                 return NoContent();
             }
             catch (ArgumentException ex)
