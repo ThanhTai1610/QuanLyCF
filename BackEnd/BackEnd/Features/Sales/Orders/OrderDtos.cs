@@ -13,7 +13,7 @@ public record MenuItemDto(
 
 // ── Tạo đơn ──────────────────────────────────────────────────
 public record OrderLineRequest(int MaSanPham, int? MaKichCo, int SoLuong, string? GhiChuMon);
-public record CreateOrderRequest(int? MaBan, List<OrderLineRequest> Items, string? GhiChuDonHang); // MaBan null = mang về
+public record CreateOrderRequest(int? MaBan, List<OrderLineRequest> Items, string? GhiChuDonHang, int? MaKhachHang = null); // MaBan null = mang về
 
 // ── Hiển thị đơn ─────────────────────────────────────────────
 public record OrderItemDto(
@@ -47,7 +47,8 @@ public record CheckoutRequest(
     string? GhiChuDonHang,
     string PhuongThuc,          // TienMat, ChuyenKhoan, Momo
     decimal? SoTienKhachTra,
-    int? MaKhuyenMai);          // khuyến mãi áp dụng (tuỳ chọn)
+    int? MaKhuyenMai,
+    int? MaKhachHang = null);          // khuyến mãi áp dụng (tuỳ chọn)
 public record CheckoutResult(int MaDonHang, int MaHoaDon, decimal TienGiam, decimal ThanhTien, decimal TienThoiLai, string PhuongThuc);
 public record MoveOrderResult(string KetQua, string? TenBanCu, string? TenBanMoi); // KetQua: moved | merged
 public record CancelOrderRequest(string? LyDo);

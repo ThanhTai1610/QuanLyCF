@@ -108,6 +108,7 @@ public class PaymentService
             don.TrangThaiDon = "DangPha";
         }
         don.ThoiGianCapNhat = DateTime.UtcNow;
+        await TichDiemChoKhachHangAsync(don);
 
         await _db.SaveChangesAsync();
 
@@ -655,6 +656,7 @@ public class PaymentService
             don.TrangThaiDon = "DangPha";
         }
         don.ThoiGianCapNhat = DateTime.UtcNow;
+        await TichDiemChoKhachHangAsync(don);
 
         await _db.SaveChangesAsync();
         return (true, null);
@@ -716,6 +718,7 @@ public class PaymentService
             don.TrangThaiDon = "DangPha";
         }
         don.ThoiGianCapNhat = DateTime.UtcNow;
+        await TichDiemChoKhachHangAsync(don);
 
         await _db.SaveChangesAsync();
         return (true, "Ghi nhận thanh toán MoMo thành công.");
@@ -728,6 +731,40 @@ public class PaymentService
         using var hmac = new HMACSHA256(keyBytes);
         var hashBytes = hmac.ComputeHash(messageBytes);
         return Convert.ToHexString(hashBytes).ToLower();
+    }
+
+    private async Task TichDiemChoKhachHangAsync(DonHang don)
+    {
+        if (don.MaKhachHang == null) return;
+        
+        var kh = await _db.KhachHangs.FindAsync(don.MaKhachHang.Value);
+        if (kh == null) return;
+
+        // Tích luỹ 1 điểm cho mỗi 10.000đ giá trị thanh toán của đơn
+        int diemCong = (int)(don.ThanhTien / 10000);
+        if (diemCong <= 0) return;
+
+        kh.DiemTichLuy += diemCong;
+        kh.HangThanhVien = GetTierByPoints(kh.DiemTichLuy);
+
+        var ls = new LichSuDiem
+        {
+            MaKhachHang = kh.MaKhachHang,
+            LoaiBienDong = "Cong",
+            SoDiem = diemCong,
+            GhiChu = $"Tích điểm từ đơn hàng #{don.MaDonHang} (Thanh toán: {don.ThanhTien:N0}đ)",
+            MaDonHang = don.MaDonHang,
+            ThoiGianTao = DateTime.UtcNow
+        };
+        _db.Set<LichSuDiem>().Add(ls);
+    }
+
+    private static string GetTierByPoints(int points)
+    {
+        if (points >= 3000) return "Diamond";
+        if (points >= 1500) return "Gold";
+        if (points >= 500) return "Silver";
+        return "Bronze";
     }
 
     #endregion

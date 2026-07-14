@@ -154,19 +154,37 @@
             </div>
             <span class="flex-1">
               <span class="block text-sm font-bold text-espresso">Đã áp dụng đổi điểm thành công</span>
-              <span class="block text-[11px] text-muted-foreground font-medium">Đơn hàng này đã được trừ 50 điểm thưởng (giảm 20.000đ) khi đặt món.</span>
+              <span class="block text-[11px] text-muted-foreground font-medium">Đơn hàng này đã được trừ điểm thưởng (giảm {{ formatVND(order.pointsDiscount) }}) khi đặt món.</span>
             </span>
             <Gift class="w-5 h-5 text-[#CC8033]" />
           </div>
           <!-- Trường hợp 2: Chưa đổi điểm, cho phép đổi tại đây -->
-          <label v-else for="usePoints" class="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" v-model="usePoints" id="usePoints" class="w-5 h-5 rounded-md border-[#EAE3D9] text-[#CC8033] focus:ring-[#CC8033]" />
-            <span class="flex-1">
-              <span class="block text-sm font-bold text-espresso">Dùng 50 điểm thưởng</span>
-              <span class="block text-[11px] text-muted-foreground font-medium">Giảm ngay <span class="text-[#CC8033] font-bold">20.000đ</span> cho đơn này (Hội viên: {{ customerProfile.name }} - {{ customerProfile.points }} điểm)</span>
-            </span>
-            <Gift class="w-5 h-5 text-[#CC8033]" />
-          </label>
+          <div v-else class="space-y-3">
+            <div class="flex items-center justify-between border-b border-[#FAF6F0] pb-2">
+              <span class="text-sm font-bold text-espresso flex items-center gap-1.5">
+                <Gift class="w-4 h-4 text-[#CC8033]" /> Đổi điểm lấy ưu đãi
+              </span>
+              <span class="text-[10px] font-bold text-[#CC8033] bg-[#FFF9F2] px-2 py-0.5 rounded-full">Hiện có: {{ customerProfile.points }} điểm</span>
+            </div>
+            <div class="space-y-2">
+              <label class="flex items-center gap-2 cursor-pointer py-1">
+                <input type="radio" v-model="selectedRewardPoints" :value="0" name="reward-option-payment" class="w-4 h-4 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" />
+                <span class="text-xs text-[#5C544E]">Không dùng điểm</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer py-1">
+                <input type="radio" v-model="selectedRewardPoints" :value="50" name="reward-option-payment" class="w-4 h-4 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" :disabled="customerProfile.points < 50" />
+                <span class="text-xs font-semibold text-[#2A231E] flex-1" :class="{ 'opacity-40': customerProfile.points < 50 }">
+                  Giảm 20.000đ <span class="text-muted-foreground font-normal">(50 điểm)</span>
+                </span>
+              </label>
+              <label v-for="r in availableRewards" :key="r.id" class="flex items-center gap-2 cursor-pointer py-1">
+                <input type="radio" v-model="selectedRewardPoints" :value="r.cost" name="reward-option-payment" class="w-4 h-4 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" :disabled="customerProfile.points < r.cost" />
+                <span class="text-xs font-semibold text-[#2A231E] flex-1" :class="{ 'opacity-40': customerProfile.points < r.cost }">
+                  {{ r.name }} <span class="text-muted-foreground font-normal">({{ r.cost }} điểm)</span>
+                </span>
+              </label>
+            </div>
+          </div>
         </div>
 
         <!-- Payment Methods -->
@@ -254,7 +272,7 @@
         <div>
           <h3 class="font-premium-serif text-lg font-bold text-espresso">Xác thực OTP đổi điểm</h3>
           <p class="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-            Mã xác thực 6 số đã được gửi tới email thành viên của bạn. Vui lòng nhập để xác nhận đổi <strong>50 điểm thưởng</strong>.
+            Mã xác thực 6 số đã được gửi tới email thành viên của bạn. Vui lòng nhập để xác nhận đổi <strong>{{ selectedRewardPoints }} điểm thưởng</strong>.
           </p>
         </div>
 
@@ -354,7 +372,6 @@ const appliedPromo = ref<ApplyResult | null>(null)
 const promoBusy = ref(false)
 
 const customerProfile = ref<{ id: number; name: string; phone: string; email?: string; tier: string; points: number } | null>(null)
-const usePoints = ref(false)
 const otpModalOpen = ref(false)
 const otpCode = ref('')
 const otpError = ref('')
@@ -369,11 +386,36 @@ const loadCustomerProfile = () => {
   }
 }
 
-watch(usePoints, async (newVal) => {
-  if (newVal) {
-    if (!customerProfile.value || customerProfile.value.points < 50) {
-      errorMessage.value = 'Bạn cần tối thiểu 50 điểm thưởng để đổi ưu đãi này.'
-      usePoints.value = false
+const selectedRewardPoints = ref<number>(0)
+const usePoints = computed({
+  get: () => selectedRewardPoints.value > 0,
+  set: (val) => {
+    if (!val) selectedRewardPoints.value = 0
+  }
+})
+
+const availableRewards = ref<{ id: number; name: string; cost: number; description?: string }[]>([])
+
+const loadRewards = async () => {
+  try {
+    availableRewards.value = await loyaltyApi.getPublicRewards()
+  } catch (e) {
+    console.error('Không tải được danh sách ưu đãi đổi điểm:', e)
+    // Fallback rewards
+    availableRewards.value = [
+      { id: 1, name: 'Free 1 topping', cost: 100 },
+      { id: 2, name: 'Giảm 10% hóa đơn', cost: 200 },
+      { id: 3, name: 'Tặng 1 ly cà phê', cost: 350 },
+      { id: 4, name: 'Voucher 50.000đ', cost: 500 },
+    ]
+  }
+}
+
+watch(selectedRewardPoints, async (newVal) => {
+  if (newVal > 0) {
+    if (!customerProfile.value || customerProfile.value.points < newVal) {
+      errorMessage.value = `Bạn cần tối thiểu ${newVal} điểm thưởng để đổi ưu đãi này.`
+      selectedRewardPoints.value = 0
       return
     }
     otpCode.value = ''
@@ -393,7 +435,7 @@ const triggerSendOtp = async () => {
   } catch (e: any) {
     errorMessage.value = e.message || 'Không thể gửi mã OTP.'
     otpModalOpen.value = false
-    usePoints.value = false
+    selectedRewardPoints.value = 0
   } finally {
     otpBusy.value = false
   }
@@ -406,7 +448,7 @@ const verifyAndRedeem = async () => {
   try {
     const res = await loyaltyApi.redeemPublicPoints(
       customerProfile.value.id, 
-      50, 
+      selectedRewardPoints.value, 
       otpCode.value.trim(), 
       effectiveOrderId.value ? effectiveOrderId.value : undefined
     )
@@ -419,7 +461,7 @@ const verifyAndRedeem = async () => {
     }
   } catch (e: any) {
     otpError.value = e.message || 'Mã OTP không chính xác.'
-    usePoints.value = false
+    selectedRewardPoints.value = 0
   } finally {
     otpBusy.value = false
   }
@@ -427,14 +469,20 @@ const verifyAndRedeem = async () => {
 
 const cancelOtp = () => {
   otpModalOpen.value = false
-  usePoints.value = false
+  selectedRewardPoints.value = 0
 }
 
 const pointsDiscount = computed(() => {
   if (order.value?.pointsDiscount) {
     return order.value.pointsDiscount
   }
-  return usePoints.value ? 20000 : 0
+  const pts = selectedRewardPoints.value
+  if (pts === 50) return 20000
+  if (pts === 100) return 10000
+  if (pts === 200) return Math.round(subtotal.value * 0.1)
+  if (pts === 350) return 35000
+  if (pts === 500) return 50000
+  return 0
 })
 const promoDiscount = computed(() => {
   if (order.value?.promoDiscount) {
@@ -528,7 +576,8 @@ const syncMockOrderToBackend = async () => {
     const orderRes = await ordersApi.create({
       maBan,
       items: apiItems,
-      ghiChuDonHang: `Khách đặt - Đơn gốc ${orderId}`
+      ghiChuDonHang: `Khách đặt - Đơn gốc ${orderId}`,
+      maKhachHang: customerProfile.value?.id || null
     })
 
     if (orderRes && orderRes.maDonHang) {
@@ -588,6 +637,18 @@ const initPayment = async () => {
   }
 }
 
+const updateLocalStoragePoints = async () => {
+  if (customerProfile.value && customerProfile.value.email) {
+    try {
+      const updated = await loyaltyApi.checkPublicEmail(customerProfile.value.email)
+      localStorage.setItem('brewCustomerProfile', JSON.stringify(updated))
+      customerProfile.value = updated
+    } catch (e) {
+      console.error('Không thể cập nhật điểm tích lũy sau thanh toán:', e)
+    }
+  }
+}
+
 const startStatusPolling = () => {
   stopStatusPolling()
   if (!effectiveOrderId.value) return
@@ -599,6 +660,7 @@ const startStatusPolling = () => {
         stopStatusPolling()
         orderStore.markPaid(orderId, method.value)
         paid.value = true
+        await updateLocalStoragePoints()
       }
     } catch (err) {
       console.error('Lỗi check status:', err)
@@ -627,6 +689,7 @@ const handlePay = async () => {
         if (res.success) {
           orderStore.markPaid(orderId, method.value)
           paid.value = true
+          await updateLocalStoragePoints()
         } else {
           errorMessage.value = res.message
         }
@@ -644,6 +707,7 @@ const handlePay = async () => {
     // Fallback nếu không có ID backend (đơn mock bị lỗi mạng)
     orderStore.markPaid(orderId, method.value)
     paid.value = true
+    await updateLocalStoragePoints()
   }
 }
 
@@ -652,11 +716,12 @@ watch(method, () => {
 })
 
 onMounted(async () => {
+  loadCustomerProfile()
   await syncMockOrderToBackend()
   initPayment()
   loadActivePromotions()
-  loadCustomerProfile()
   loadSavedVouchers()
+  loadRewards()
 })
 
 onUnmounted(() => {

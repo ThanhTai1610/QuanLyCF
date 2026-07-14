@@ -403,18 +403,34 @@
             </div>
 
             <!-- Dùng điểm (chỉ khi đã là thành viên) -->
-            <div v-if="cart.lines.length > 0 && customerPhone" class="bg-white p-4 rounded-2xl border border-[#EAE3D9] shadow-sm">
-              <label for="usePoints" class="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" v-model="usePoints" id="usePoints" class="w-5 h-5 rounded-md border-[#EAE3D9] text-[#CC8033] focus:ring-[#CC8033]" />
-                <span class="flex-1">
-                  <span class="block text-sm font-bold text-[#2A231E]">Dùng 50 điểm thưởng</span>
-                  <span class="block text-[11px] text-[#8A8178] font-medium">Giảm ngay <span class="text-[#CC8033] font-bold">20.000đ</span> cho đơn này</span>
+            <div v-if="cart.lines.length > 0 && customerPhone" class="bg-white p-4 rounded-2xl border border-[#EAE3D9] shadow-sm text-left space-y-3">
+              <div class="flex items-center justify-between border-b border-[#FAF6F0] pb-2">
+                <span class="text-sm font-bold text-[#2A231E] flex items-center gap-1.5">
+                  <Gift class="w-4 h-4 text-[#CC8033]" /> Đổi điểm lấy ưu đãi
                 </span>
-                <Gift class="w-5 h-5 text-[#CC8033]" />
-              </label>
+                <span class="text-[10px] font-bold text-[#CC8033] bg-[#FFF9F2] px-2 py-0.5 rounded-full">Hiện có: {{ customerPoints }} điểm</span>
+              </div>
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 cursor-pointer py-1">
+                  <input type="radio" v-model="selectedRewardPoints" :value="0" name="reward-option" class="w-4 h-4 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" />
+                  <span class="text-xs text-[#5C544E]">Không dùng điểm</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer py-1">
+                  <input type="radio" v-model="selectedRewardPoints" :value="50" name="reward-option" class="w-4 h-4 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" :disabled="customerPoints < 50" />
+                  <span class="text-xs font-semibold text-[#2A231E] flex-1" :class="{ 'opacity-40': customerPoints < 50 }">
+                    Giảm 20.000đ <span class="text-muted-foreground font-normal">(50 điểm)</span>
+                  </span>
+                </label>
+                <label v-for="r in availableRewards" :key="r.id" class="flex items-center gap-2 cursor-pointer py-1">
+                  <input type="radio" v-model="selectedRewardPoints" :value="r.cost" name="reward-option" class="w-4 h-4 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" :disabled="customerPoints < r.cost" />
+                  <span class="text-xs font-semibold text-[#2A231E] flex-1" :class="{ 'opacity-40': customerPoints < r.cost }">
+                    {{ r.name }} <span class="text-muted-foreground font-normal">({{ r.cost }} điểm)</span>
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
-
+ 
           <!-- Slide-Over Footer -->
           <div v-if="cart.lines.length > 0" class="p-5 bg-white border-t border-[#EAE3D9] shadow-[0_-10px_30px_rgba(42,35,30,0.06)]">
             <div class="space-y-2 mb-4">
@@ -426,13 +442,13 @@
                 <span class="text-[#8A8178] font-medium flex items-center gap-1.5"><Ticket class="w-3.5 h-3.5 text-[#CC8033]" /> Giảm giá voucher</span>
                 <span class="font-bold text-[#E85D04]">- {{ formatVND(appliedPromo.tienGiam) }}</span>
               </div>
-              <div v-if="usePoints" class="flex justify-between items-center text-sm">
+              <div v-if="selectedRewardPoints > 0" class="flex justify-between items-center text-sm">
                 <span class="text-[#8A8178] font-medium flex items-center gap-1.5"><Gift class="w-3.5 h-3.5 text-[#CC8033]" /> Điểm thưởng</span>
-                <span class="font-bold text-[#E85D04]">- 20.000đ</span>
+                <span class="font-bold text-[#E85D04]">- {{ formatVND(pointsDiscount) }}</span>
               </div>
               <div class="border-t border-dashed border-[#EAE3D9] pt-3 flex justify-between items-center">
                 <span class="text-sm font-bold text-[#2A231E]">Tổng cộng</span>
-                <span class="font-sans text-2xl font-bold text-[#2A231E] leading-none">{{ formatVND(cart.total() - (usePoints ? 20000 : 0) - (appliedPromo?.tienGiam || 0)) }}</span>
+                <span class="font-sans text-2xl font-bold text-[#2A231E] leading-none">{{ formatVND(cart.total() - pointsDiscount - (appliedPromo?.tienGiam || 0)) }}</span>
               </div>
             </div>
             <button
@@ -443,7 +459,7 @@
                 <ShoppingBag class="w-4 h-4" /> Gửi đơn đặt món
               </span>
               <span class="flex items-center gap-2 font-bold">
-                {{ formatVND(cart.total() - (usePoints ? 20000 : 0) - (appliedPromo?.tienGiam || 0)) }}
+                {{ formatVND(cart.total() - pointsDiscount - (appliedPromo?.tienGiam || 0)) }}
                 <ChevronRight class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" stroke-width="2.5" />
               </span>
             </button>
@@ -471,7 +487,7 @@
             <div class="w-8 h-8 rounded-full bg-[#CC8033] text-white flex items-center justify-center font-bold text-xs shrink-0">{{ (customerName || 'K').charAt(0).toUpperCase() }}</div>
             <div class="text-sm font-bold text-[#2A231E] truncate">{{ customerName || customerPhone }}</div>
           </div>
-          <div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-[#E8C5A5] text-[#CC8033] text-[11px] font-bold shrink-0"><Coffee class="w-3 h-3" /> 150 điểm</div>
+          <div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-[#E8C5A5] text-[#CC8033] text-[11px] font-bold shrink-0"><Coffee class="w-3 h-3" /> {{ customerPoints }} điểm</div>
         </div>
         <button v-else @click="openLoginSheet = true" class="w-full flex items-center justify-between gap-2 bg-[#FDFBF7] border border-dashed border-[#CC8033]/40 rounded-xl p-2.5 hover:bg-[#FFF9F2] transition-colors">
           <span class="flex items-center gap-2">
@@ -564,18 +580,32 @@
           </div>
         </div>
 
-        <div v-if="cart.lines.length > 0 && customerPhone" class="bg-white p-3.5 rounded-2xl border border-[#EAE3D9] text-left">
-          <label for="usePointsSidebar" class="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" v-model="usePoints" id="usePointsSidebar" class="w-4 h-4 rounded border-[#EAE3D9] text-[#CC8033] focus:ring-[#CC8033]" />
-            <span class="flex-1">
-              <span class="block text-sm font-bold text-[#2A231E]">Dùng 50 điểm thưởng</span>
-              <span class="block text-[10px] text-[#8A8178]">Giảm ngay <span class="text-[#CC8033] font-bold">20.000đ</span></span>
-            </span>
-            <Gift class="w-4 h-4 text-[#CC8033]" />
-          </label>
+        <div v-if="cart.lines.length > 0 && customerPhone" class="bg-white p-3.5 rounded-2xl border border-[#EAE3D9] text-left space-y-2">
+          <div class="flex items-center justify-between border-b border-[#FAF6F0] pb-1.5 mb-1.5">
+            <span class="text-xs font-bold text-[#2A231E] flex items-center gap-1"><Gift class="w-3.5 h-3.5 text-[#CC8033]" /> Đổi điểm lấy ưu đãi</span>
+            <span class="text-[9px] font-bold text-[#CC8033] bg-[#FFF9F2] px-1.5 py-0.5 rounded-full">Hiện có: {{ customerPoints }} điểm</span>
+          </div>
+          <div class="space-y-1.5">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" v-model="selectedRewardPoints" :value="0" name="reward-option-sidebar" class="w-3.5 h-3.5 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" />
+              <span class="text-[11px] text-[#5C544E]">Không dùng điểm</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" v-model="selectedRewardPoints" :value="50" name="reward-option-sidebar" class="w-3.5 h-3.5 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" :disabled="customerPoints < 50" />
+              <span class="text-[11px] font-semibold text-[#2A231E] flex-1" :class="{ 'opacity-40': customerPoints < 50 }">
+                Giảm 20.000đ <span class="text-muted-foreground font-normal text-[10px]">(50 điểm)</span>
+              </span>
+            </label>
+            <label v-for="r in availableRewards" :key="r.id" class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" v-model="selectedRewardPoints" :value="r.cost" name="reward-option-sidebar" class="w-3.5 h-3.5 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" :disabled="customerPoints < r.cost" />
+              <span class="text-[11px] font-semibold text-[#2A231E] flex-1" :class="{ 'opacity-40': customerPoints < r.cost }">
+                {{ r.name }} <span class="text-muted-foreground font-normal text-[10px]">({{ r.cost }} điểm)</span>
+              </span>
+            </label>
+          </div>
         </div>
       </div>
-
+ 
       <!-- Footer -->
       <div v-if="cart.lines.length > 0" class="p-4 bg-white border-t border-[#EAE3D9] shrink-0 shadow-[0_-8px_24px_rgba(42,35,30,0.05)]">
         <div class="space-y-2 mb-3">
@@ -587,18 +617,18 @@
             <span class="text-[#8A8178] font-medium flex items-center gap-1.5"><Ticket class="w-3.5 h-3.5 text-[#CC8033]" /> Giảm giá voucher</span>
             <span class="font-bold text-[#E85D04]">- {{ formatVND(appliedPromo.tienGiam) }}</span>
           </div>
-          <div v-if="usePoints" class="flex justify-between items-center text-sm">
+          <div v-if="selectedRewardPoints > 0" class="flex justify-between items-center text-sm">
             <span class="text-[#8A8178] font-medium flex items-center gap-1.5"><Gift class="w-3.5 h-3.5 text-[#CC8033]" /> Điểm thưởng</span>
-            <span class="font-bold text-[#E85D04]">- 20.000đ</span>
+            <span class="font-bold text-[#E85D04]">- {{ formatVND(pointsDiscount) }}</span>
           </div>
           <div class="border-t border-dashed border-[#EAE3D9] pt-2.5 flex justify-between items-center">
             <span class="text-sm font-bold text-[#2A231E]">Tổng cộng</span>
-            <span class="text-xl font-bold text-[#2A231E]">{{ formatVND(cart.total() - (usePoints ? 20000 : 0) - (appliedPromo?.tienGiam || 0)) }}</span>
+            <span class="text-xl font-bold text-[#2A231E]">{{ formatVND(cart.total() - pointsDiscount - (appliedPromo?.tienGiam || 0)) }}</span>
           </div>
         </div>
         <button @click="handleOrder" class="group w-full h-12 bg-gradient-to-r from-[#CC8033] to-[#D97724] hover:shadow-[0_8px_24px_rgba(204,128,51,0.4)] text-white rounded-2xl shadow-lg transition-all active:scale-[0.99] flex items-center justify-between px-4">
           <span class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide"><ShoppingBag class="w-4 h-4" /> Gửi đơn đặt món</span>
-          <span class="flex items-center gap-1.5 font-bold text-sm">{{ formatVND(cart.total() - (usePoints ? 20000 : 0) - (appliedPromo?.tienGiam || 0)) }}<ChevronRight class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" stroke-width="2.5" /></span>
+          <span class="flex items-center gap-1.5 font-bold text-sm">{{ formatVND(cart.total() - pointsDiscount - (appliedPromo?.tienGiam || 0)) }}<ChevronRight class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" stroke-width="2.5" /></span>
         </button>
       </div>
     </div>
@@ -620,7 +650,7 @@
           <div>
             <h3 class="font-premium-serif text-lg font-bold text-[#1A1512]">Xác thực OTP đổi điểm</h3>
             <p class="text-xs text-[#8A8178] mt-1.5 leading-relaxed">
-              Mã xác thực 6 số đã được gửi tới email thành viên của bạn. Vui lòng nhập để xác nhận đổi <strong>50 điểm thưởng</strong>.
+              Mã xác thực 6 số đã được gửi tới email thành viên của bạn. Vui lòng nhập để xác nhận đổi <strong>{{ selectedRewardPoints }} điểm thưởng</strong>.
             </p>
           </div>
 
@@ -1005,7 +1035,40 @@ const toast = {
 }
 
 const customerPhone = ref('')
-const usePoints = ref(false)
+const selectedRewardPoints = ref<number>(0)
+const usePoints = computed({
+  get: () => selectedRewardPoints.value > 0,
+  set: (val) => {
+    if (!val) selectedRewardPoints.value = 0
+  }
+})
+
+const pointsDiscount = computed(() => {
+  const pts = selectedRewardPoints.value
+  if (pts === 50) return 20000
+  if (pts === 100) return 10000
+  if (pts === 200) return Math.round(cart.total() * 0.1)
+  if (pts === 350) return 35000
+  if (pts === 500) return 50000
+  return 0
+})
+
+const availableRewards = ref<{ id: number; name: string; cost: number; description?: string }[]>([])
+
+const loadRewards = async () => {
+  try {
+    availableRewards.value = await loyaltyApi.getPublicRewards()
+  } catch (e) {
+    console.error('Không tải được danh sách ưu đãi đổi điểm:', e)
+    // Fallback rewards
+    availableRewards.value = [
+      { id: 1, name: 'Free 1 topping', cost: 100 },
+      { id: 2, name: 'Giảm 10% hóa đơn', cost: 200 },
+      { id: 3, name: 'Tặng 1 ly cà phê', cost: 350 },
+      { id: 4, name: 'Voucher 50.000đ', cost: 500 },
+    ]
+  }
+}
 
 const customerId = ref<number | null>(null)
 const otpModalOpen = ref(false)
@@ -1014,11 +1077,11 @@ const otpError = ref('')
 const otpBusy = ref(false)
 const otpSent = ref(false)
 
-watch(usePoints, async (newVal) => {
-  if (newVal) {
-    if (customerPoints.value < 50) {
-      toast.error('Không đủ điểm', 'Bạn cần tối thiểu 50 điểm thưởng để đổi ưu đãi này.')
-      usePoints.value = false
+watch(selectedRewardPoints, async (newVal) => {
+  if (newVal > 0) {
+    if (customerPoints.value < newVal) {
+      toast.error('Không đủ điểm', `Bạn cần tối thiểu ${newVal} điểm thưởng để đổi ưu đãi này.`)
+      selectedRewardPoints.value = 0
       return
     }
     otpCode.value = ''
@@ -1033,7 +1096,7 @@ const triggerSendOtp = async () => {
   if (!customerId.value) {
     toast.error('Lỗi danh tính', 'Vui lòng đăng nhập tài khoản thành viên để nhận mã OTP.')
     otpModalOpen.value = false
-    usePoints.value = false
+    selectedRewardPoints.value = 0
     return
   }
   otpBusy.value = true
@@ -1044,7 +1107,7 @@ const triggerSendOtp = async () => {
   } catch (e: any) {
     toast.error('Lỗi gửi OTP', e.message || 'Không thể gửi mã OTP.')
     otpModalOpen.value = false
-    usePoints.value = false
+    selectedRewardPoints.value = 0
   } finally {
     otpBusy.value = false
   }
@@ -1060,7 +1123,11 @@ const verifyAndRedeem = async () => {
   otpBusy.value = true
   otpError.value = ''
   try {
-    const res = await loyaltyApi.redeemPublicPoints(customerId.value, 50, otpCode.value.trim())
+    const res = await loyaltyApi.redeemPublicPoints(
+      customerId.value, 
+      selectedRewardPoints.value, 
+      otpCode.value.trim()
+    )
     customerPoints.value = res.points
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
@@ -1068,11 +1135,11 @@ const verifyAndRedeem = async () => {
       profile.points = res.points
       localStorage.setItem(STORAGE_KEY, JSON.stringify(profile))
     }
-    toast.success('Đổi điểm thành công', 'Đã khấu trừ 50 điểm và áp dụng giảm 20.000đ!')
+    toast.success('Đổi điểm thành công', `Đã khấu trừ ${selectedRewardPoints.value} điểm và áp dụng giảm giá!`)
     otpModalOpen.value = false
   } catch (e: any) {
     otpError.value = e.message || 'Mã OTP không chính xác.'
-    usePoints.value = false
+    selectedRewardPoints.value = 0
   } finally {
     otpBusy.value = false
   }
@@ -1080,7 +1147,7 @@ const verifyAndRedeem = async () => {
 
 const cancelOtp = () => {
   otpModalOpen.value = false
-  usePoints.value = false
+  selectedRewardPoints.value = 0
 }
 
 const handleLogout = () => {
@@ -1091,7 +1158,7 @@ const handleLogout = () => {
   customerPoints.value = 0
   customerTier.value = 'Đồng'
   customerId.value = null
-  usePoints.value = false
+  selectedRewardPoints.value = 0
   toast.success('Đã đăng xuất', 'Bạn đã đăng xuất tài khoản thành viên.')
 }
 
@@ -1261,6 +1328,7 @@ const syncCustomerStatus = async () => {
 onMounted(() => {
   syncCustomerStatus()
   loadSavedVouchers()
+  loadRewards()
 })
 
 const resetLoginSheet = () => {
@@ -1395,7 +1463,7 @@ const handleOrder = () => {
     table: `Bàn ${tableId}`,
     items,
     customer: customerName.value || undefined,
-    pointsDiscount: usePoints.value ? 20000 : 0,
+    pointsDiscount: pointsDiscount.value,
     promoDiscount: appliedPromo.value?.tienGiam ?? 0,
     maKhuyenMai: appliedPromo.value?.maKhuyenMai,
   })

@@ -48,6 +48,7 @@ export interface CreateOrderBody {
   maBan: number | null   // null = mang về
   items: OrderLineBody[]
   ghiChuDonHang: string | null
+  maKhachHang?: number | null
 }
 export interface MoveOrderResult {
   ketQua: 'moved' | 'merged'

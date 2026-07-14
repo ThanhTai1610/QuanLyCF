@@ -152,6 +152,14 @@ public class CustomerController : ControllerBase
         });
     }
 
+    [HttpGet("public/rewards")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPublicRewards()
+    {
+        var data = await _service.GetRewardsAsync();
+        return Ok(data);
+    }
+
     [HttpPost("public/{id:int}/send-otp")]
     [AllowAnonymous]
     public async Task<IActionResult> SendPublicOtp(int id)
@@ -187,6 +195,11 @@ public class CustomerController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> RedeemPoints(int id, [FromBody] RedeemPointsRequest body)
     {
+        if (string.IsNullOrWhiteSpace(body.Otp) || !_service.VerifyOtp(id, body.Otp))
+        {
+            return BadRequest(new { message = "Mã OTP không chính xác hoặc đã hết hạn." });
+        }
+
         var result = await _service.RedeemPointsPublicAsync(id, body.Points, body.MaDonHang);
         if (result.Error != null)
         {

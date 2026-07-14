@@ -58,6 +58,8 @@ export const loyaltyApi = {
     api.post<{ id: number; name: string; phone: string; email: string; tier: string; points: number }>('/api/customers/public/register', body),
   
   // Public OTP/Loyalty endpoints
+  getPublicRewards: () => 
+    api.get<Reward[]>('/api/customers/public/rewards'),
   sendPublicOtp: (customerId: number) => 
     api.post<{ message: string }>(`/api/customers/public/${customerId}/send-otp`),
   verifyPublicOtp: (customerId: number, otp: string) => 

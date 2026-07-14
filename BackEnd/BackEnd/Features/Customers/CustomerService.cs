@@ -316,8 +316,16 @@ public class CustomerService
             if (don != null)
             {
                 don.MaKhachHang = id; // Link customer to order
-                don.TienGiamGia += 20000; // Deduct 20,000 VND
-                don.ThanhTien = Math.Max(0, don.ThanhTien - 20000);
+                
+                decimal giam = 0;
+                if (points == 50) giam = 20000;
+                else if (points == 100) giam = 10000;
+                else if (points == 200) giam = Math.Round(don.TongTienHang * 0.1m, 0);
+                else if (points == 350) giam = 35000;
+                else if (points == 500) giam = 50000;
+                
+                don.TienGiamGia += giam;
+                don.ThanhTien = Math.Max(0, don.ThanhTien - giam);
             }
         }
 
