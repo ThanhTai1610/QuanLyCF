@@ -71,7 +71,26 @@ public class StockReceiptService
         if (req.MaNhaCungCap is { } maNcc)
         {
             var ncc = await _db.NhaCungCaps.FindAsync(maNcc);
-            if (ncc is not null) ncc.CongNoHienTai += (tong - daTra);
+            if (ncc is not null) 
+            {
+                ncc.CongNoHienTai += (tong - daTra);
+                
+                if (daTra > 0)
+                {
+                    _db.DongTiens.Add(new DongTien
+                    {
+                        LoaiGiaoDich = "Chi",
+                        NhomGiaoDich = "NhapKho",
+                        MaThamChieu = phieu.MaPhieu,
+                        PhuongThucThanhToan = req.PhuongThucThanhToan,
+                        SoTien = daTra,
+                        NguoiNopNhan = ncc.TenNhaCungCap,
+                        GhiChu = $"Chi trả phiếu nhập kho {phieu.MaPhieu}",
+                        MaNhanVienGhiNhan = maNhanVien,
+                        ThoiGianTao = DateTime.UtcNow
+                    });
+                }
+            }
         }
 
         await _db.SaveChangesAsync();

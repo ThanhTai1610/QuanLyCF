@@ -106,6 +106,37 @@
         </div>
       </section>
 
+      <!-- Cấu hình ngân hàng VietQR -->
+      <section class="bg-card rounded-lg border border-cream-deep shadow-card p-6">
+        <div class="flex items-start gap-3 mb-5">
+          <div class="w-10 h-10 rounded-lg bg-caramel-light flex items-center justify-center flex-shrink-0 border border-cream-deep">
+            <Landmark class="w-5 h-5 text-caramel" />
+          </div>
+          <div>
+            <h3 class="font-display text-lg text-espresso font-semibold">Tài khoản ngân hàng (VietQR)</h3>
+            <p class="text-xs text-muted-foreground mt-0.5">Tiền chuyển khoản của khách sẽ về <strong>tài khoản này</strong>. Điền đúng thông tin của bạn.</p>
+          </div>
+        </div>
+        <div class="grid sm:grid-cols-3 gap-4">
+          <div class="space-y-1.5">
+            <Label class="text-espresso">Mã ngân hàng <span class="text-xs text-muted-foreground">(VD: MB, VCB, TCB, ACB...)</span></Label>
+            <Input v-model="nganHangId" placeholder="MB" class="bg-background border border-cream-deep rounded-lg shadow-card uppercase" />
+          </div>
+          <div class="space-y-1.5">
+            <Label class="text-espresso">Số tài khoản</Label>
+            <Input v-model="nganHangStk" placeholder="Số tài khoản của bạn" class="bg-background border border-cream-deep rounded-lg shadow-card" />
+          </div>
+          <div class="space-y-1.5">
+            <Label class="text-espresso">Chủ tài khoản</Label>
+            <Input v-model="nganHangTen" placeholder="TEN CHU TAI KHOAN (không dấu)" class="bg-background border border-cream-deep rounded-lg shadow-card uppercase" />
+          </div>
+        </div>
+        <div class="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-700 font-medium space-y-1">
+          <p>📌 <strong>Mã ngân hàng phổ biến:</strong> MB · VCB · TCB · ACB · VPB · BIDV · Agribank · OCB · SHB · TPB · MSB</p>
+          <p>📌 Xem danh sách đầy đủ tại: <a href="https://api.vietqr.io/v2/banks" target="_blank" class="underline">api.vietqr.io/v2/banks</a></p>
+        </div>
+      </section>
+
       <!-- Bảo trì hệ thống -->
       <section class="bg-card rounded-lg border border-[#EF4444]/20 shadow-card p-6 relative overflow-hidden">
         <!-- Viền màu đỏ cảnh báo ở góc trái -->
@@ -175,7 +206,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Coffee, Bell, CreditCard, Wrench, RefreshCw, Upload, Sparkles } from 'lucide-vue-next'
+import { Coffee, Bell, CreditCard, Wrench, RefreshCw, Upload, Sparkles, Landmark } from 'lucide-vue-next'
 import { api } from '@/services/api'
 import { useStoreInfoStore } from '@/stores/storeInfo'
 import { useAlert } from '@/stores/alert'
@@ -213,6 +244,11 @@ const pointRate = ref("1")
 const maintenanceMode = ref(false)
 const maintenanceMessage = ref("")
 
+// Cài đặt ngân hàng VietQR
+const nganHangId = ref("MB")
+const nganHangStk = ref("")
+const nganHangTen = ref("")
+
 // Cài đặt client mock
 const notifications = ref([
   { label: "Thông báo đơn mới", sub: "Phát âm thanh khi có đơn từ khách", on: true },
@@ -246,6 +282,9 @@ const loadSettings = async () => {
       maintenanceMessage.value = res.thongDiepBaoTri || ""
       tenAI.value = res.tenAI || "Barista AI"
       xungHoAI.value = res.xungHoAI || "tôi - bạn"
+      nganHangId.value = res.nganHangId || "MB"
+      nganHangStk.value = res.nganHangStk || ""
+      nganHangTen.value = res.nganHangTen || ""
     }
   } catch (err: any) {
     await alert.error('Lỗi tải dữ liệu', 'Không thể tải cài đặt: ' + err.message)
@@ -272,6 +311,9 @@ const save = async () => {
       thongDiepBaoTri: maintenanceMessage.value,
       tenAI: tenAI.value,
       xungHoAI: xungHoAI.value,
+      nganHangId: nganHangId.value.trim().toUpperCase(),
+      nganHangStk: nganHangStk.value.trim(),
+      nganHangTen: nganHangTen.value.trim().toUpperCase(),
     })
 
     // Cập nhật store toàn cục ngay lập tức — các trang khác thay đổi không cần reload

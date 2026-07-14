@@ -17,6 +17,11 @@ public class StockTakeService
             return ServiceResult<int>.Fail("Phiếu kiểm kê phải có ít nhất 1 mặt hàng.");
 
         var ids = req.ChiTiets.Select(l => l.MaNguyenLieu).Distinct().ToList();
+        if (ids.Count != req.ChiTiets.Count)
+            return ServiceResult<int>.Fail("Danh sách kiểm kê có nguyên liệu bị trùng lặp.");
+        if (req.ChiTiets.Any(x => x.SoLuongThucTe < 0))
+            return ServiceResult<int>.Fail("Số lượng thực tế không được âm.");
+
         var materials = await _db.NguyenLieus.Where(x => ids.Contains(x.MaNguyenLieu)).ToDictionaryAsync(x => x.MaNguyenLieu);
         if (materials.Count != ids.Count)
             return ServiceResult<int>.Fail("Có nguyên liệu không tồn tại.");

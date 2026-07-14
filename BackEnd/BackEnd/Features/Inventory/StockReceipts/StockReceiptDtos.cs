@@ -5,6 +5,7 @@ public record ReceiptLineRequest(int MaNguyenLieu, decimal SoLuong, decimal DonG
 public record CreateReceiptRequest(
     int? MaNhaCungCap,
     decimal TienDaThanhToan,
+    string PhuongThucThanhToan,
     string? GhiChu,
     List<ReceiptLineRequest> ChiTiets);
 

@@ -50,6 +50,7 @@ export interface CreateOrderBody {
   maBan: number | null   // null = mang về
   items: OrderLineBody[]
   ghiChuDonHang: string | null
+  maKhachHang?: number | null
 }
 export interface MoveOrderResult {
   ketQua: 'moved' | 'merged'
@@ -83,6 +84,8 @@ export const ordersApi = {
     api.put<MoveOrderResult>(`/api/orders/${maDon}/move`, { maBanMoi }),
   cancel: (maDon: number, lyDo?: string) =>
     api.put<void>(`/api/orders/${maDon}/cancel`, { lyDo: lyDo ?? null }),
+  updateStatus: (maDon: number, status: string) =>
+    api.put<void>(`/api/orders/${maDon}/status`, { status }),
 
   // Đóng bàn / hoàn tác / lịch sử
   closeTable: (maBan: number) => api.post<void>(`/api/orders/close-table/${maBan}`),

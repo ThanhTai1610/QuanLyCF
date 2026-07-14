@@ -69,6 +69,23 @@
           <div class="w-12 h-12 rounded-full bg-[#FFF9F2] border border-[#E8C5A5] flex items-center justify-center text-[#CC8033]"><AlertTriangle class="w-6 h-6" /></div>
         </div>
       </div>
+      <!-- Debt Notification Alert -->
+      <div v-if="suppliersWithDebt.length > 0" class="mb-4 bg-white border border-red-200 rounded-xl shadow-[0_4px_20px_rgba(239,68,68,0.05)] flex items-center p-3 pr-4 animate-in fade-in duration-300">
+        <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mr-3 text-red-500 relative">
+          <AlertTriangle class="w-5 h-5" />
+          <span class="absolute -top-1 -right-1 flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+          </span>
+        </div>
+        <div>
+          <p class="text-[10px] uppercase tracking-widest font-bold text-[#8A8178]">Lưu ý công nợ</p>
+          <p class="text-xs font-bold text-[#2A231E]">Bạn có <span class="text-red-500">{{ suppliersWithDebt.length }} đối tác</span> đang có dư nợ cần thanh toán.</p>
+        </div>
+        <button @click="supplierFilter = 'debt'" class="ml-auto px-4 py-1.5 bg-red-50 border border-red-100 hover:bg-red-100 hover:border-red-200 text-red-600 rounded-lg text-xs font-bold transition-all shadow-sm">
+          Lọc xem ngay
+        </button>
+      </div>
 
       <!-- Toolbar -->
       <div class="flex flex-col md:flex-row gap-3 items-center">
@@ -80,7 +97,18 @@
             class="pl-11 w-full bg-white border border-[#EAE3D9] h-12 rounded-xl shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#CC8033]/20 focus:border-[#CC8033]"
           />
         </div>
-        <button @click="openSupplierForm()" class="w-full md:w-auto flex items-center justify-center gap-2 bg-white border border-[#EAE3D9] hover:border-[#CC8033] hover:text-[#CC8033] text-[#2A231E] h-12 px-5 rounded-xl shadow-sm transition-colors text-xs font-bold uppercase tracking-wider">
+
+        <!-- Bộ lọc nợ -->
+        <div class="relative w-full md:w-48 flex-shrink-0">
+          <select v-model="supplierFilter" class="w-full bg-white border border-[#EAE3D9] h-12 rounded-xl pl-4 pr-10 shadow-sm text-sm font-bold text-[#5C544E] focus:outline-none focus:border-[#CC8033] appearance-none cursor-pointer hover:bg-[#FDFBF7] transition-colors">
+            <option value="all">Tất cả đối tác</option>
+            <option value="debt">Đang còn nợ</option>
+            <option value="no-debt">Không có nợ</option>
+          </select>
+          <ChevronDown class="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-[#8A8178] pointer-events-none" />
+        </div>
+
+        <button @click="openSupplierForm()" class="w-full md:w-auto flex items-center justify-center gap-2 bg-white border border-[#EAE3D9] hover:border-[#CC8033] hover:text-[#CC8033] text-[#2A231E] h-12 px-5 rounded-xl shadow-sm transition-colors text-xs font-bold uppercase tracking-wider flex-shrink-0">
           <Plus class="w-4 h-4" /> Thêm đối tác
         </button>
       </div>
@@ -184,133 +212,314 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- FULL-SCREEN MODAL: Tạo Phiếu Nhập Kho (reactive) -->
+    <!-- MODAL: Tạo Phiếu Nhập Kho (Centered Pop-up) -->
     <!-- ===================================================================== -->
-    <div v-if="isCreateReceiptOpen" class="fixed inset-0 bg-white z-50 flex flex-col animate-in fade-in zoom-in-95">
-      <!-- Header -->
-      <div class="px-8 py-4 border-b border-[#EAE3D9] bg-[#FDFBF7] flex justify-between items-center shadow-sm flex-shrink-0">
-        <div>
-          <h2 class="text-2xl font-bold text-[#2A231E] uppercase">Tạo Phiếu Nhập Kho Mới</h2>
-          <p class="text-sm text-[#8A8178] mt-1 font-mono">Mã phiếu dự kiến: <span class="text-[#CC8033] font-bold">{{ draftCode }}</span></p>
-        </div>
-        <button @click="isCreateReceiptOpen = false" class="p-2 text-[#8A8178] hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2 font-bold text-sm">
-          <X class="w-5 h-5" /> Đóng
-        </button>
-      </div>
-
-      <div class="flex flex-1 overflow-hidden">
-        <!-- Left 30% -->
-        <div class="w-[30%] min-w-[320px] bg-gray-50 border-r border-[#EAE3D9] p-6 overflow-y-auto space-y-5 custom-scrollbar">
-          <h3 class="font-bold text-[#2A231E] text-sm uppercase tracking-wider flex items-center gap-2"><Box class="w-4 h-4 text-[#CC8033]" /> Thông tin chung</h3>
-
-          <div class="bg-white p-4 rounded-xl border border-[#EAE3D9] shadow-sm space-y-1.5">
-            <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178]">Nhà cung cấp <span class="text-red-500">*</span></label>
-            <select v-model="draft.supplierCode" class="w-full bg-white border border-[#EAE3D9] h-10 rounded-lg px-3 text-sm font-bold text-[#2A231E] focus:ring-2 focus:ring-[#CC8033]/20 focus:border-[#CC8033] focus:outline-none">
-              <option value="" disabled>Chọn nhà cung cấp...</option>
-              <option v-for="s in suppliers" :key="s.code" :value="s.code">{{ s.name }}</option>
-            </select>
+    <div v-if="isCreateReceiptOpen" class="fixed inset-0 bg-[#2A231E]/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 sm:p-6 lg:p-8" @click.self="isCreateReceiptOpen = false">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[1280px] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 max-h-full">
+        <!-- Header -->
+        <div class="h-16 px-6 bg-white border-b border-[#EAE3D9] flex justify-between items-center shadow-sm flex-shrink-0">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-[#2A231E] text-white rounded-lg flex items-center justify-center shadow-md">
+              <Truck class="w-5 h-5" stroke-width="2" />
+            </div>
+            <div>
+              <h2 class="text-lg font-bold text-[#2A231E] uppercase tracking-wide leading-tight">Tạo Phiếu Nhập Kho</h2>
+              <div class="text-[11px] text-[#8A8178] uppercase tracking-widest font-bold mt-0.5">
+                Mã Phiếu: <span class="text-[#CC8033]">{{ draftCode }}</span>
+              </div>
+            </div>
           </div>
-
-          <div class="bg-white p-4 rounded-xl border border-[#EAE3D9] shadow-sm space-y-1.5">
-            <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178]">Ngày nhập</label>
-            <input type="datetime-local" v-model="draft.date" class="w-full bg-[#FDFBF7] border border-[#EAE3D9] h-10 rounded-lg px-3 text-sm font-medium text-[#5C544E] focus:outline-none" />
-          </div>
-
-          <div class="bg-white p-4 rounded-xl border border-[#EAE3D9] shadow-sm space-y-1.5">
-            <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178]">Ghi chú phiếu nhập</label>
-            <textarea v-model="draft.note" placeholder="Nhập ghi chú cho thủ kho hoặc kế toán..." rows="3" class="w-full bg-[#FDFBF7] border border-[#EAE3D9] rounded-lg p-3 text-sm font-medium text-[#5C544E] focus:outline-none focus:border-[#CC8033] resize-none"></textarea>
-          </div>
-
-          <div class="bg-[#FFF9F2] border border-[#E8C5A5] p-4 rounded-xl text-xs text-[#5C544E] leading-relaxed">
-            <p class="font-bold text-[#CC8033] uppercase tracking-wider mb-1 flex items-center gap-1.5"><Info class="w-3.5 h-3.5" /> Lưu ý</p>
-            Khi lưu, hàng sẽ được cộng vào kho (tạo lô mới) và phần chưa trả sẽ ghi nợ cho nhà cung cấp.
-          </div>
+          <button @click="isCreateReceiptOpen = false" class="flex items-center justify-center w-8 h-8 bg-[#FDFBF7] border border-[#EAE3D9] text-[#5C544E] hover:bg-red-50 hover:text-red-600 hover:border-red-200 rounded-lg transition-colors" title="Đóng">
+            <X class="w-5 h-5" />
+          </button>
         </div>
 
-        <!-- Right 70% -->
-        <div class="w-[70%] flex flex-col bg-white overflow-hidden relative">
-          <div class="flex-1 overflow-y-auto p-6 custom-scrollbar pb-32">
-            <h3 class="font-bold text-[#2A231E] text-sm uppercase tracking-wider mb-4 flex items-center gap-2"><Layers class="w-4 h-4 text-[#CC8033]" /> Chi tiết hàng hóa</h3>
+        <div class="flex flex-col lg:flex-row flex-1 overflow-hidden bg-[#FDFBF7]">
+        <!-- Left Panel: Thông tin chung -->
+        <div class="w-[320px] lg:w-[340px] bg-[#FDFBF7] border-r border-[#EAE3D9] flex flex-col flex-shrink-0">
+          <div class="p-5 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+            
+            <h3 class="font-bold text-[#2A231E] text-sm uppercase tracking-wider flex items-center gap-2 border-b border-[#EAE3D9] pb-3">
+              <Box class="w-5 h-5 text-[#CC8033]" /> Thông Tin Chứng Từ
+            </h3>
 
-            <div class="border border-[#EAE3D9] rounded-xl overflow-hidden shadow-sm">
-              <table class="w-full text-sm">
-                <thead class="bg-[#FDFBF7] border-b border-[#EAE3D9] text-[#8A8178] text-[10px] uppercase tracking-wider">
+            <div class="space-y-4">
+              <!-- Người lập phiếu -->
+              <div class="space-y-1">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-[#5C544E]">Người Lập Phiếu</label>
+                <div class="relative">
+                  <input type="text" value="Quản trị viên (admin@brew.vn)" readonly class="w-full bg-[#EAE3D9]/40 border border-[#EAE3D9] h-9 rounded-lg pl-8 pr-3 text-xs font-medium text-[#5C544E] shadow-sm cursor-not-allowed focus:outline-none" />
+                  <Users class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8A8178]" />
+                </div>
+              </div>
+
+              <!-- Nhà cung cấp -->
+              <div class="space-y-1">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-[#5C544E]">Nhà Cung Cấp <span class="text-red-500">*</span></label>
+                <div class="flex items-center gap-2">
+                  <div class="relative flex-1">
+                    <select v-model="draft.supplierCode" class="w-full bg-white border border-[#EAE3D9] h-9 rounded-lg pl-3 pr-8 text-xs font-bold text-[#2A231E] focus:outline-none focus:border-[#CC8033] focus:ring-1 focus:ring-[#CC8033] shadow-sm appearance-none cursor-pointer">
+                      <option value="" disabled>-- Chọn nhà cung cấp --</option>
+                      <option v-for="s in suppliers" :key="s.code" :value="s.code">{{ s.name }}</option>
+                    </select>
+                    <ChevronDown class="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8178] pointer-events-none" />
+                  </div>
+                  <button @click="openSupplierForm()" class="w-9 h-9 flex-shrink-0 bg-white border border-[#EAE3D9] text-[#CC8033] hover:border-[#CC8033] hover:bg-[#FFF9F2] rounded-lg flex items-center justify-center shadow-sm transition-colors" title="Thêm nhà cung cấp mới">
+                    <Plus class="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <!-- Ngày nhập -->
+              <div class="space-y-1">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-[#5C544E]">Ngày Nhập Hàng</label>
+                <input type="datetime-local" v-model="draft.date" class="w-full bg-white border border-[#EAE3D9] h-9 rounded-lg px-3 text-xs font-medium text-[#2A231E] focus:outline-none focus:border-[#CC8033] focus:ring-1 focus:ring-[#CC8033] shadow-sm" />
+              </div>
+
+              <!-- Ghi chú -->
+              <div class="space-y-1">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-[#5C544E]">Ghi Chú</label>
+                <textarea v-model="draft.note" placeholder="Nhập diễn giải cho phiếu nhập này..." rows="2" class="w-full bg-white border border-[#EAE3D9] rounded-lg p-2.5 text-xs font-medium text-[#2A231E] focus:outline-none focus:border-[#CC8033] focus:ring-1 focus:ring-[#CC8033] shadow-sm resize-none"></textarea>
+              </div>
+
+              <!-- Tùy chọn Nhập Kho -->
+              <div class="flex items-center justify-between bg-white border border-[#EAE3D9] p-3 rounded-lg shadow-sm cursor-pointer hover:border-[#CC8033] transition-colors" @click="draft.updateInventory = !draft.updateInventory">
+                <div class="flex items-center gap-3">
+                  <div class="w-5 h-5 rounded flex items-center justify-center transition-colors border" :class="draft.updateInventory ? 'bg-[#4A7C59] border-[#4A7C59]' : 'bg-gray-50 border-[#8A8178]'">
+                    <CheckCircle2 v-if="draft.updateInventory" class="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <div>
+                    <label class="text-xs font-bold text-[#2A231E] cursor-pointer">Cập nhật Tồn Kho</label>
+                    <p class="text-[9px] text-[#8A8178] mt-0.5">Cộng số lượng vào kho sau khi lưu</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Lưu ý -->
+            <div class="bg-[#FFF9F2] border border-[#E8C5A5] rounded-lg p-3 flex gap-2 items-start mt-2">
+              <Info class="w-4 h-4 text-[#CC8033] flex-shrink-0 mt-0.5" />
+              <p class="text-[10px] text-[#5C544E] leading-relaxed">
+                Hàng hóa sẽ được <span v-if="draft.updateInventory">cộng thẳng vào <strong>Tồn Kho</strong></span><span v-else><strong>ghi nhận vào hóa đơn mua hàng</strong>, không cập nhật kho</span>. Phần chưa thanh toán tự động cộng vào <strong>Công Nợ</strong>.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel: Chi tiết hàng hóa & Footer -->
+        <div class="flex-1 flex flex-col bg-white overflow-hidden relative">
+          
+          <div class="flex-1 overflow-y-auto p-6 lg:p-8 custom-scrollbar">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="font-bold text-[#2A231E] text-sm uppercase tracking-wider flex items-center gap-2">
+                <Layers class="w-5 h-5 text-[#CC8033]" /> Chi Tiết Nhập Kho
+              </h3>
+              <button @click="addRow" class="flex items-center gap-2 bg-[#FDFBF7] border border-[#EAE3D9] hover:border-[#CC8033] hover:text-[#CC8033] text-[#2A231E] h-10 px-4 rounded-lg shadow-sm transition-colors text-xs font-bold uppercase tracking-wider">
+                <Plus class="w-4 h-4" /> Thêm Dòng
+              </button>
+            </div>
+
+            <!-- Bảng dữ liệu -->
+            <div class="border border-[#EAE3D9] rounded-xl overflow-x-auto shadow-sm">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-[#FDFBF7] text-[#5C544E] text-[10px] font-bold uppercase tracking-widest border-b border-[#EAE3D9]">
                   <tr>
-                    <th class="px-4 py-3 text-left">Nguyên liệu</th>
-                    <th class="px-4 py-3 text-left w-32">Đơn vị nhập</th>
-                    <th class="px-4 py-3 text-right w-28">Số lượng</th>
-                    <th class="px-4 py-3 text-right w-40">Đơn giá (₫)</th>
-                    <th class="px-4 py-3 text-right w-40">Thành tiền (₫)</th>
-                    <th class="px-2 py-3 text-center w-12"></th>
+                    <th class="px-3 py-3 w-10 text-center border-r border-[#EAE3D9]">#</th>
+                    <th class="px-4 py-3 min-w-[200px] border-r border-[#EAE3D9]">Mã / Tên Nguyên Liệu</th>
+                    <th class="px-4 py-3 min-w-[120px] w-36 border-r border-[#EAE3D9]">Đơn Vị Nhập</th>
+                    <th class="px-4 py-3 min-w-[130px] w-32 border-r border-[#EAE3D9]">Hạn Sử Dụng</th>
+                    <th class="px-4 py-3 min-w-[100px] w-24 text-right border-r border-[#EAE3D9]">Số Lượng</th>
+                    <th class="px-4 py-3 min-w-[120px] w-32 text-right border-r border-[#EAE3D9]">Đơn Giá (₫)</th>
+                    <th class="px-4 py-3 min-w-[120px] w-32 text-right border-r border-[#EAE3D9]">Thành Tiền (₫)</th>
+                    <th class="px-2 py-3 w-12 text-center"></th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-[#EAE3D9]/50">
-                  <tr v-for="(row, idx) in draft.rows" :key="idx" class="hover:bg-gray-50 transition-colors">
-                    <td class="p-3">
-                      <select v-model="row.materialId" class="w-full bg-white border border-[#EAE3D9] h-10 rounded-md px-3 text-sm font-bold text-[#2A231E] focus:outline-none focus:border-[#CC8033]">
-                        <option value="" disabled>Chọn nguyên liệu...</option>
-                        <option v-for="m in materials" :key="m.id" :value="m.id">{{ m.name }}</option>
+                <tbody class="divide-y divide-[#EAE3D9]">
+                  <tr v-for="(row, idx) in draft.rows" :key="idx" class="hover:bg-[#FDFBF7] transition-colors group">
+                    <td class="px-3 py-2 text-center text-[#8A8178] font-medium border-r border-[#EAE3D9] bg-gray-50">{{ idx + 1 }}</td>
+                    
+                    <td class="px-3 py-2 border-r border-[#EAE3D9]">
+                      <!-- Smart Search Input with Datalist -->
+                      <div class="flex items-center gap-1">
+                        <div class="flex-1 relative">
+                          <input 
+                            type="text" 
+                            :list="'material-list-' + idx"
+                            v-model="row._materialSearchStr"
+                            @change="onMaterialSearchChange(row)"
+                            @input="row.materialId = ''"
+                            placeholder="Gõ mã, tên (VD: Sữa đặc)..."
+                            class="w-full bg-transparent border-0 h-9 px-1 text-sm font-bold text-[#2A231E] focus:ring-0 focus:outline-none placeholder:font-normal placeholder:text-[#8A8178]"
+                          />
+                          <datalist :id="'material-list-' + idx">
+                            <option v-for="m in materials" :key="m.id" :value="m.id + ' | ' + m.name"></option>
+                          </datalist>
+                        </div>
+                        
+                        <!-- Nút gọi AI khi chưa chọn được mã hợp lệ -->
+                        <button 
+                          v-if="row._materialSearchStr && !row.materialId" 
+                          @click="analyzeWithAI(row)"
+                          :disabled="row.isAiLoading"
+                          class="flex-shrink-0 flex items-center gap-1 px-2.5 h-7 rounded bg-gradient-to-r from-[#2A231E] to-[#3D332A] hover:from-[#1A1614] hover:to-[#2A231E] text-yellow-400 font-bold text-[9px] uppercase tracking-wider shadow-sm transition-all animate-in zoom-in-50"
+                          title="Nhờ AI tạo mã mới"
+                        >
+                          <Sparkles v-if="!row.isAiLoading" class="w-3 h-3" />
+                          <div v-else class="w-3 h-3 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+                          <span v-if="!row.isAiLoading">AI Tạo</span>
+                        </button>
+                      </div>
+
+                      <!-- Hiển thị phân loại nếu có -->
+                      <div v-if="row.materialId && materialObj(row.materialId)" class="mt-1 ml-1 relative inline-block group">
+                        <select 
+                          v-model="materialObj(row.materialId)!.category" 
+                          class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        >
+                          <option v-for="c in systemCategories" :key="c" :value="c">{{ c }}</option>
+                        </select>
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#FFF9F2] text-[#CC8033] border border-[#E8C5A5]/60 text-[8px] font-bold uppercase tracking-widest shadow-sm group-hover:bg-[#E8C5A5]/20 transition-colors">
+                          <Package class="w-2.5 h-2.5" stroke-width="2.5" /> 
+                          {{ materialObj(row.materialId)?.category || 'CHƯA PHÂN LOẠI' }}
+                        </span>
+                      </div>
+                    </td>
+                    
+                    <td class="px-3 py-2 border-r border-[#EAE3D9]">
+                      <select v-model="row.unit" class="w-full bg-[#FDFBF7] border border-[#EAE3D9] h-9 rounded px-2 text-xs font-medium text-[#2A231E] focus:outline-none focus:border-[#CC8033]">
+                        <option v-for="u in unitsFor(row.materialId)" :key="u.name" :value="u.name">{{ u.name }}</option>
                       </select>
+                      <div v-if="row.materialId && !isBaseUnit(row.materialId, row.unit)">
+                        <!-- Display Mode -->
+                        <div v-if="conversionFor(row.materialId, row.unit) && !row._isEditingConversion" class="text-[9px] text-[#8A8178] mt-1 pl-1 flex items-center justify-between group">
+                          <span>Quy đổi: 1 {{ row.unit }} = {{ conversionFor(row.materialId, row.unit) }}</span>
+                          <button @click="editConversion(row)" class="opacity-0 group-hover:opacity-100 text-[#CC8033] hover:underline transition-opacity flex items-center gap-0.5">Sửa</button>
+                        </div>
+                        
+                        <!-- AI Prompt / Edit Mode -->
+                        <div v-else class="mt-1.5 bg-[#FFFDF5] border border-yellow-200 rounded p-1.5 shadow-sm animate-in fade-in zoom-in-95">
+                          <p class="text-[9px] font-bold text-yellow-600 flex items-center gap-1 mb-1">
+                            <Sparkles class="w-2.5 h-2.5"/> AI: 1 {{ row.unit }} = ?
+                          </p>
+                          <div class="flex gap-1">
+                            <input type="text" v-model="row._aiConversionInput" @keyup.enter="saveAiConversion(row)" placeholder="VD: 12 Lốc..." class="flex-1 min-w-0 bg-white border border-yellow-300 text-[10px] font-bold text-[#2A231E] px-1.5 py-0.5 rounded focus:outline-none focus:border-yellow-500" />
+                            <button @click="saveAiConversion(row)" class="bg-yellow-400 text-black text-[9px] px-2 font-bold uppercase rounded shadow-sm hover:bg-yellow-500 transition-colors">Lưu</button>
+                            <button v-if="conversionFor(row.materialId, row.unit)" @click="row._isEditingConversion = false" class="bg-gray-200 text-[#5C544E] text-[9px] px-2 font-bold uppercase rounded hover:bg-gray-300 transition-colors">Hủy</button>
+                          </div>
+                        </div>
+                      </div>
                     </td>
-                    <td class="p-3">
-                      <select v-model="row.unit" class="w-full bg-[#FDFBF7] border border-[#EAE3D9] h-10 rounded-md px-2 text-sm font-medium focus:outline-none">
-                        <option v-for="u in unitsFor(row.materialId)" :key="u" :value="u">{{ u }}</option>
-                      </select>
+
+                    <td class="px-3 py-2 border-r border-[#EAE3D9]">
+                      <input type="date" v-model="row.expiryDate" class="w-full bg-white border border-[#EAE3D9] h-9 rounded px-2 text-xs font-medium text-[#2A231E] focus:outline-none focus:border-[#CC8033] focus:ring-1 focus:ring-[#CC8033] transition-all" />
                     </td>
-                    <td class="p-3">
-                      <input type="number" min="0" v-model.number="row.qty" class="w-full text-right bg-[#FFF9F2] border border-[#E8C5A5] h-10 rounded-md px-3 text-base font-bold text-[#CC8033] focus:outline-none" />
+                    
+                    <td class="px-3 py-2 border-r border-[#EAE3D9]">
+                      <input type="number" min="0" max="999999" v-model.number="row.qty" class="w-full text-right bg-white border border-[#EAE3D9] h-9 rounded px-2 text-sm font-bold text-[#CC8033] focus:outline-none focus:border-[#CC8033] focus:ring-1 focus:ring-[#CC8033] transition-all" />
                     </td>
-                    <td class="p-3">
-                      <input type="number" min="0" v-model.number="row.price" class="w-full text-right bg-white border border-[#EAE3D9] h-10 rounded-md px-3 text-sm font-medium focus:outline-none focus:border-[#CC8033]" />
+                    
+                    <td class="px-3 py-2 border-r border-[#EAE3D9] relative">
+                      <input type="number" min="0" max="999999999" v-model.number="row.price" @keyup.enter="idx === draft.rows.length - 1 ? addRow() : null" class="w-full text-right bg-white border border-[#EAE3D9] h-9 rounded px-2 text-sm font-bold text-[#2A231E] focus:outline-none focus:border-[#CC8033] focus:ring-1 focus:ring-[#CC8033] transition-all" />
+                      <div v-if="row.price >= 100000" class="absolute right-3 bottom-0 translate-y-full text-[9px] text-[#4A7C59] font-bold z-10">{{ formatCompact(row.price) }}</div>
                     </td>
-                    <td class="p-3 text-right font-bold text-[#2A231E] text-base">{{ formatNumber(row.qty * row.price) }}</td>
-                    <td class="p-3 text-center">
-                      <button @click="removeRow(idx)" class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"><Trash2 class="w-5 h-5" /></button>
+                    
+                    <td class="px-4 py-2 text-right bg-gray-50">
+                      <span class="font-bold text-[#2A231E] text-base">{{ formatCompactVND(row.qty * row.price) }}</span>
+                    </td>
+                    
+                    <td class="px-2 py-2 text-center bg-white">
+                      <button @click="removeRow(idx)" class="p-1.5 text-[#8A8178] hover:text-red-500 hover:bg-red-50 rounded transition-all" title="Xóa dòng này">
+                        <Trash2 class="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                   <tr v-if="draft.rows.length === 0">
-                    <td colspan="6" class="px-4 py-8 text-center text-[#8A8178] text-sm">Chưa có dòng hàng nào.</td>
+                    <td colspan="8" class="px-4 py-16 text-center bg-gray-50/50">
+                      <div class="flex flex-col items-center justify-center text-[#8A8178]">
+                        <Package class="w-12 h-12 mb-3 text-[#EAE3D9]" stroke-width="1.5" />
+                        <p class="text-sm font-medium text-[#5C544E]">Chưa có hàng hóa nào được thêm.</p>
+                        <button @click="addRow" class="mt-4 px-5 py-2 rounded-lg bg-white border border-[#EAE3D9] text-[#2A231E] text-xs font-bold uppercase shadow-sm hover:border-[#CC8033] hover:text-[#CC8033] transition-colors">
+                          + Bấm vào đây để thêm
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
-
-            <button @click="addRow" class="mt-4 w-full border-2 border-dashed border-[#CC8033]/40 bg-[#FFF9F2] text-[#CC8033] hover:bg-[#CC8033] hover:text-white hover:border-[#CC8033] py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-colors shadow-sm">
-              <Plus class="w-5 h-5" /> Thêm nguyên liệu mới
-            </button>
+            
+            <p class="text-xs text-[#8A8178] mt-3 italic">* Mẹo: Chọn ô <strong>Đơn giá</strong> ở dòng cuối và bấm <strong>Enter</strong> để thêm nhanh dòng mới.</p>
           </div>
 
-          <!-- Sticky footer -->
-          <div class="absolute bottom-0 left-0 right-0 bg-[#1E2128] text-white p-5 border-t-4 border-[#CC8033] flex flex-wrap gap-4 justify-between items-center z-10 shadow-2xl">
-            <div class="flex items-center gap-8 flex-wrap">
-              <div>
-                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Tổng tiền hàng</p>
-                <p class="text-2xl font-bold text-white">{{ formatVND(draftTotal) }}</p>
-              </div>
-              <div class="h-10 w-px bg-gray-600"></div>
-              <div>
-                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Thực trả cho NCC</p>
-                <div class="flex items-center gap-2">
-                  <input type="number" min="0" v-model.number="draft.paid" class="w-36 text-right bg-gray-800 border border-gray-600 h-9 rounded-md px-2 text-lg font-bold text-[#4A7C59] focus:outline-none focus:border-[#4A7C59]" />
-                  <span class="text-sm">₫</span>
+          <!-- Solid Dark Footer -->
+          <div class="bg-[#1F1915] border-t border-[#3D332A] text-white flex-shrink-0 z-20">
+            <div class="px-6 py-4 flex flex-wrap lg:flex-nowrap items-end justify-between gap-6">
+              
+              <div class="flex flex-wrap lg:flex-nowrap items-end gap-6 md:gap-8 flex-1">
+                <!-- Tổng Tiền -->
+                <div class="min-w-[100px] lg:min-w-[120px]">
+                  <p class="text-[10px] text-[#8A8178] uppercase tracking-widest font-bold mb-1">Tổng Tiền Hàng</p>
+                  <p class="text-2xl lg:text-3xl font-black text-white tracking-tight truncate max-w-[200px]" :title="formatVND(draftTotal)">{{ formatCompactVND(draftTotal) }}</p>
+                </div>
+                
+                <div class="h-12 w-px bg-[#3D332A] hidden md:block flex-shrink-0"></div>
+                
+                <!-- Thực Trả -->
+                <div class="flex-1 min-w-[250px]">
+                  <div class="flex items-center justify-between mb-1.5">
+                    <p class="text-[10px] text-[#4A7C59] uppercase tracking-widest font-bold flex items-center gap-1.5"><CheckCircle2 class="w-3.5 h-3.5" /> Thực Trả NCC</p>
+                    <button @click="draft.paid = draftTotal" class="text-[9px] text-white font-bold uppercase tracking-wider hover:bg-[#3B6347] transition-colors bg-[#4A7C59]/80 px-2 py-0.5 rounded shadow-sm border border-[#4A7C59]">Trả Đủ</button>
+                  </div>
+                  <div class="flex gap-2 items-start">
+                    <!-- Input tiền -->
+                    <div class="relative w-32 lg:w-36">
+                      <input type="number" min="0" max="99999999999" v-model.number="draft.paid" class="w-full text-right bg-[#0F0C0A] border border-[#4A7C59]/50 h-11 rounded-lg px-3 pr-8 text-lg font-bold text-[#4A7C59] focus:outline-none focus:border-[#4A7C59] transition-all shadow-inner" />
+                      <span class="absolute right-3 top-2.5 text-[#4A7C59] font-bold pointer-events-none text-sm">₫</span>
+                      <div v-if="draft.paid >= 100000" class="absolute -bottom-4 right-1 text-[9px] text-[#4A7C59] font-bold">{{ formatCompact(draft.paid) }}</div>
+                    </div>
+
+                    <!-- Select phương thức -->
+                    <div class="w-32 lg:w-36 flex-shrink-0">
+                      <select v-model="draft.paymentMethod" class="w-full bg-[#2A231E] border border-[#3D332A] h-11 rounded-lg px-2 lg:px-3 text-xs font-bold text-white focus:outline-none focus:border-[#CC8033] appearance-none cursor-pointer hover:bg-[#332A24] transition-colors">
+                        <option value="ChuyenKhoan">Chuyển khoản</option>
+                        <option value="TienMat">Tiền mặt</option>
+                      </select>
+                    </div>
+
+                    <!-- Upload Button (Only if ChuyenKhoan) -->
+                    <label v-if="draft.paymentMethod === 'ChuyenKhoan'" class="h-11 px-3 bg-[#2A231E] border border-dashed border-[#5C544E] hover:border-[#CC8033] hover:text-[#CC8033] rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all group flex-shrink-0" :class="draft.billImageName ? 'border-[#4A7C59] text-[#4A7C59]' : 'text-[#8A8178]'" :title="draft.billImageName || 'Tải lên ảnh bill chuyển khoản'">
+                      <CheckCircle2 v-if="draft.billImageName" class="w-4 h-4 text-[#4A7C59]" />
+                      <UploadCloud v-else class="w-4 h-4 text-[#8A8178] group-hover:text-[#CC8033]" />
+                      <span class="text-[10px] font-bold uppercase tracking-wider whitespace-nowrap" :class="draft.billImageName ? 'text-[#4A7C59]' : 'group-hover:text-[#CC8033]'">
+                        {{ draft.billImageName ? 'Đã Tải Bill' : 'Tải Bill' }}
+                      </span>
+                      <input type="file" class="hidden" accept="image/*" @change="handleFileUpload" />
+                    </label>
+                  </div>
+                </div>
+
+                <div class="h-12 w-px bg-[#3D332A] hidden lg:block flex-shrink-0"></div>
+
+                <!-- Nợ Phát Sinh -->
+                <div class="hidden lg:block min-w-[100px]">
+                  <p class="text-[10px] uppercase tracking-widest font-bold mb-1 flex items-center gap-1.5" :class="draftDebt > 0 ? 'text-orange-400' : 'text-[#8A8178]'">
+                    <AlertTriangle v-if="draftDebt > 0" class="w-3.5 h-3.5" /> Nợ Phát Sinh
+                  </p>
+                  <p class="text-xl lg:text-2xl font-bold truncate max-w-[150px]" :title="formatVND(draftDebt)" :class="draftDebt > 0 ? 'text-orange-400' : 'text-[#8A8178]'">{{ formatCompactVND(draftDebt) }}</p>
                 </div>
               </div>
-              <div class="h-10 w-px bg-gray-600"></div>
-              <div>
-                <p class="text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1" :class="draftDebt > 0 ? 'text-orange-400' : 'text-green-400'">
-                  <AlertTriangle v-if="draftDebt > 0" class="w-3 h-3" /><CheckCircle2 v-else class="w-3 h-3" /> Nợ phát sinh
-                </p>
-                <p class="text-xl font-bold" :class="draftDebt > 0 ? 'text-orange-400' : 'text-green-400'">{{ formatVND(draftDebt) }}</p>
-              </div>
-            </div>
 
-            <button @click="saveReceipt" class="px-10 py-3 rounded-lg bg-[#CC8033] hover:bg-[#B87029] text-white text-sm font-bold uppercase tracking-wider transition-colors shadow-lg shadow-[#CC8033]/30">
-              Lưu Phiếu & Hoàn Tất
-            </button>
+              <!-- Button -->
+              <button @click="saveReceipt" class="h-14 px-4 lg:px-6 rounded-xl bg-gradient-to-r from-[#4A7C59] to-[#3B6347] hover:from-[#548D65] hover:to-[#4A7C59] text-white text-sm font-black uppercase tracking-widest shadow-[0_0_20px_rgba(74,124,89,0.3)] transition-all flex items-center gap-2 flex-shrink-0 transform active:scale-95 border border-[#548D65]/50">
+                <CheckCircle2 class="w-5 h-5" /> Hoàn Tất
+              </button>
+
+            </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
     <!-- ===================================================================== -->
     <!-- MODAL: Xem chi tiết phiếu nhập -->
@@ -411,12 +620,12 @@
         </div>
       </div>
     </div>
-
     <!-- Toast -->
     <Transition name="toast">
       <div v-if="toastMsg" class="fixed bottom-6 right-6 z-[60] bg-[#2A231E] text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-[#CC8033]/30">
-        <CheckCircle2 class="w-5 h-5 text-[#4A7C59]" />
-        <span class="text-sm font-medium">{{ toastMsg }}</span>
+        <CheckCircle2 v-if="!toastMsg.includes('❌')" class="w-5 h-5 text-[#4A7C59]" />
+        <AlertTriangle v-else class="w-5 h-5 text-red-500" />
+        <span class="text-sm font-medium">{{ toastMsg.replace('❌', '').trim() }}</span>
       </div>
     </Transition>
 
@@ -428,22 +637,23 @@ import { ref, computed } from 'vue'
 import {
   Plus, Search, Phone, TrendingDown, CheckCircle2, AlertTriangle, Eye, X, Trash2,
   Box, Layers, Users, ClipboardList, ChevronRight, Truck, Package, ClipboardCheck,
-  Pencil, Info
+  Pencil, Info, Sparkles
 } from 'lucide-vue-next'
 
 // ── Types ───────────────────────────────────────────────
 interface Supplier { code: string; name: string; phone: string; group: string; debt: number }
-interface Material { id: string; name: string; units: string[] }
-interface ReceiptRow { materialId: string; unit: string; qty: number; price: number }
-interface Receipt { id: string; date: string; supplierCode: string; supplier: string; rows: ReceiptRow[]; total: number; paid: number; note: string }
+interface UnitConversion { name: string; conversion?: string }
+interface Material { id: string; name: string; category?: string; units: UnitConversion[] }
+interface ReceiptRow { materialId: string; unit: string; qty: number; price: number; expiryDate: string; _materialSearchStr?: string; isAiLoading?: boolean; _aiConversionInput?: string; _isEditingConversion?: boolean }
+interface Receipt { id: string; date: string; supplierCode: string; supplier: string; rows: ReceiptRow[]; total: number; paid: number; note: string; paymentMethod: string }
 
 // ── Master data (mock) ──────────────────────────────────
 const materials: Material[] = [
-  { id: 'RAW-CF-001', name: 'Hạt cà phê Robusta', units: ['Bao', 'Kg', 'g'] },
-  { id: 'SEM-TC-012', name: 'Trân châu đen nấu sẵn', units: ['Khay', 'Kg', 'g'] },
-  { id: 'RAW-MK-005', name: 'Sữa đặc Ngôi sao Phương Nam', units: ['Thùng', 'Lon'] },
-  { id: 'RAW-MK-002', name: 'Sữa tươi thanh trùng 1L', units: ['Thùng', 'Lốc', 'Hộp'] },
-  { id: 'SUP-CUP-01', name: 'Ly giấy Takeaway 450ml', units: ['Thùng', 'Cây', 'Chiếc'] },
+  { id: 'RAW-CF-001', name: 'Hạt cà phê Robusta', category: 'Nguyên liệu thô', units: [{name: 'Bao', conversion: '50 Kg'}, {name: 'Kg', conversion: '1000g'}, {name: 'g'}] },
+  { id: 'SEM-TC-012', name: 'Trân châu đen nấu sẵn', category: 'Bán thành phẩm / Topping', units: [{name: 'Khay', conversion: '10 Kg'}, {name: 'Kg', conversion: '1000g'}, {name: 'g'}] },
+  { id: 'RAW-MK-005', name: 'Sữa đặc Ngôi sao Phương Nam', category: 'Nguyên liệu thô', units: [{name: 'Thùng', conversion: '24 Lon'}, {name: 'Lon', conversion: '380g'}] },
+  { id: 'RAW-MK-002', name: 'Sữa tươi thanh trùng 1L', category: 'Nguyên liệu thô', units: [{name: 'Thùng', conversion: '12 Lốc'}, {name: 'Lốc', conversion: '4 Hộp'}, {name: 'Hộp', conversion: '1000ml'}] },
+  { id: 'SUP-CUP-01', name: 'Ly giấy Takeaway 450ml', category: 'Vật tư', units: [{name: 'Thùng', conversion: '1000 Chiếc'}, {name: 'Cây', conversion: '50 Chiếc'}, {name: 'Chiếc'}] },
 ]
 
 const suppliers = ref<Supplier[]>([
@@ -460,14 +670,24 @@ const receipts = ref<Receipt[]>([
 // ── Tab + filters ───────────────────────────────────────
 const activeTab = ref<'suppliers' | 'inbound'>('suppliers')
 const supplierSearch = ref('')
+const supplierFilter = ref<'all' | 'debt' | 'no-debt'>('all')
 const receiptFilter = ref<'all' | 'paid' | 'debt'>('all')
 
 const totalDebt = computed(() => suppliers.value.reduce((s, x) => s + x.debt, 0))
+const suppliersWithDebt = computed(() => suppliers.value.filter(s => s.debt > 0))
 
 const filteredSuppliers = computed(() => {
+  let result = suppliers.value;
+  
+  if (supplierFilter.value === 'debt') result = result.filter(s => s.debt > 0);
+  if (supplierFilter.value === 'no-debt') result = result.filter(s => s.debt <= 0);
+  
   const q = supplierSearch.value.toLowerCase().trim()
-  if (!q) return suppliers.value
-  return suppliers.value.filter(s => s.name.toLowerCase().includes(q) || s.phone.replace(/\s/g, '').includes(q.replace(/\s/g, '')))
+  if (q) {
+    result = result.filter(s => s.name.toLowerCase().includes(q) || s.phone.replace(/\s/g, '').includes(q.replace(/\s/g, '')))
+  }
+  
+  return result;
 })
 
 const filteredReceipts = computed(() => {
@@ -478,9 +698,160 @@ const filteredReceipts = computed(() => {
 
 // ── Helpers ─────────────────────────────────────────────
 const formatNumber = (n: number) => (n || 0).toLocaleString('vi-VN')
+const formatCompact = (n: number) => {
+  if (!n) return '0'
+  if (n >= 1e9) return (n / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' tỷ'
+  if (n >= 1e6) return (n / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' triệu'
+  if (n >= 1e5) return (n / 1e3).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' ngàn'
+  return formatNumber(n)
+}
 const formatVND = (n: number) => formatNumber(n) + ' ₫'
+const formatCompactVND = (n: number) => {
+  if (!n) return '0 ₫'
+  if (n >= 1e9) return (n / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' tỷ'
+  if (n >= 1e6) return (n / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' triệu'
+  if (n >= 1e5) return (n / 1e3).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' ngàn'
+  return formatNumber(n) + ' ₫'
+}
 const materialName = (id: string) => materials.find(m => m.id === id)?.name ?? '—'
-const unitsFor = (id: string) => materials.find(m => m.id === id)?.units ?? ['Đơn vị']
+const materialObj = (id: string) => materials.find(m => m.id === id) || null
+const categoryFor = (id: string) => materials.find(m => m.id === id)?.category || null
+const systemCategories = ref<string[]>(JSON.parse(localStorage.getItem('materialCategories') || '["Nguyên liệu thô", "Bán thành phẩm / Topping", "Vật tư"]'))
+const unitsFor = (id: string) => materials.find(m => m.id === id)?.units ?? [{name: 'Đơn vị'}]
+const conversionFor = (matId: string, unitName: string) => {
+  const m = materials.find(x => x.id === matId)
+  if (!m) return null
+  return m.units.find(u => u.name === unitName)?.conversion || null
+}
+
+const isBaseUnit = (matId: string, unitName: string) => {
+  const m = materials.find(x => x.id === matId)
+  if (!m || m.units.length === 0) return true;
+  return m.units[m.units.length - 1].name === unitName;
+}
+
+const saveAiConversion = (row: ReceiptRow) => {
+  if (!row._aiConversionInput) return;
+  const m = materials.find(x => x.id === row.materialId);
+  if (m) {
+    const u = m.units.find(x => x.name === row.unit);
+    if (u) {
+      u.conversion = row._aiConversionInput;
+      row._isEditingConversion = false;
+    }
+  }
+}
+
+const editConversion = (row: ReceiptRow) => {
+  row._aiConversionInput = conversionFor(row.materialId, row.unit) || '';
+  row._isEditingConversion = true;
+}
+
+const onMaterialSearchChange = (row: ReceiptRow) => {
+  if (!row._materialSearchStr) {
+    row.materialId = '';
+    return;
+  }
+  const str = row._materialSearchStr.trim();
+  const parts = str.split(' | ');
+  
+  const mat = materials.find(m => m.id === parts[0].trim() || m.name.toLowerCase() === str.toLowerCase());
+  
+  if (mat) {
+    row.materialId = mat.id;
+    row._materialSearchStr = `${mat.id} | ${mat.name}`;
+    if (!row.unit) row.unit = mat.units[0]?.name || '';
+  } else {
+    row.materialId = '';
+  }
+}
+
+// ── AI Magic (Mock Gemini AI Integration) ────────────────
+let aiCounter = 1;
+const analyzeWithAI = (row: ReceiptRow) => {
+  if (!row._materialSearchStr) return;
+  row.isAiLoading = true;
+  
+  // Simulate AI network delay (1.5s)
+  setTimeout(() => {
+    const rawName = row._materialSearchStr!.trim();
+    const lowerName = rawName.toLowerCase();
+    
+    // AI Knowledge base (simulated)
+    let suggestedUnits: UnitConversion[] = [{ name: 'Cái', conversion: '' }];
+    let suggestedCategory = 'Nguyên liệu thô';
+    
+    if (lowerName.includes('sữa') || lowerName.includes('milk')) {
+      suggestedUnits = [
+        { name: 'Thùng', conversion: '' },
+        { name: 'Lốc', conversion: '' },
+        { name: 'Hộp', conversion: '' },
+        { name: 'ml', conversion: '' }
+      ];
+    } else if (lowerName.includes('cà phê') || lowerName.includes('cafe')) {
+      suggestedUnits = [
+        { name: 'Bao', conversion: '' },
+        { name: 'Kg', conversion: '1000g' },
+        { name: 'g', conversion: '' }
+      ];
+    } else if (lowerName.includes('siro') || lowerName.includes('syrup')) {
+      suggestedUnits = [
+        { name: 'Thùng', conversion: '' },
+        { name: 'Chai', conversion: '750ml' },
+        { name: 'ml', conversion: '' }
+      ];
+    } else if (lowerName.includes('trà') || lowerName.includes('tea')) {
+      suggestedUnits = [
+        { name: 'Thùng', conversion: '20 Túi' },
+        { name: 'Túi', conversion: '500g' },
+        { name: 'g', conversion: '' }
+      ];
+    } else if (lowerName.includes('đường') || lowerName.includes('sugar') || lowerName.includes('trân châu') || lowerName.includes('thạch') || lowerName.includes('topping')) {
+      suggestedUnits = [
+        { name: 'Bao', conversion: '50 Kg' },
+        { name: 'Kg', conversion: '1000g' },
+        { name: 'g', conversion: '' }
+      ];
+      suggestedCategory = 'Bán thành phẩm / Topping';
+    } else if (lowerName.includes('mứt') || lowerName.includes('ngâm') || lowerName.includes('puree') || lowerName.includes('đào') || lowerName.includes('vải') || lowerName.includes('nhãn')) {
+      suggestedUnits = [
+        { name: 'Thùng', conversion: '24 Lon' },
+        { name: 'Lon', conversion: '500g' },
+        { name: 'Hộp', conversion: '500g' },
+        { name: 'g', conversion: '' }
+      ];
+      suggestedCategory = 'Nguyên liệu thô';
+    } else if (lowerName.includes('ly') || lowerName.includes('cốc') || lowerName.includes('ống hút') || lowerName.includes('muỗng') || lowerName.includes('bao bì') || lowerName.includes('túi')) {
+      suggestedUnits = [
+        { name: 'Thùng', conversion: '1000 Cái' },
+        { name: 'Bịch', conversion: '50 Cái' },
+        { name: 'Cái', conversion: '' }
+      ];
+      suggestedCategory = 'Vật tư';
+    } else {
+      suggestedUnits = [
+        { name: 'Thùng', conversion: '10 Hộp' },
+        { name: 'Hộp', conversion: '100 Cái' },
+        { name: 'Cái', conversion: '' }
+      ];
+    }
+
+    const newMat: Material = {
+      id: `RAW-AI-${String(aiCounter++).padStart(3, '0')}`,
+      name: rawName,
+      category: suggestedCategory,
+      units: suggestedUnits
+    };
+
+    materials.push(newMat);
+    row.materialId = newMat.id;
+    row._materialSearchStr = `${newMat.id} | ${newMat.name}`;
+    row.unit = suggestedUnits[0].name;
+    row.isAiLoading = false;
+    
+    toast(`✨ AI đã tạo "${newMat.name}" - Thuộc nhóm: ${newMat.category}`);
+  }, 1500);
+}
 
 // ── Toast ───────────────────────────────────────────────
 const toastMsg = ref('')
@@ -495,28 +866,91 @@ const toast = (msg: string) => {
 const isCreateReceiptOpen = ref(false)
 let receiptCounter = 4
 const draftCode = ref('')
-const blankRow = (): ReceiptRow => ({ materialId: '', unit: '', qty: 1, price: 0 })
-const draft = ref<{ supplierCode: string; date: string; note: string; rows: ReceiptRow[]; paid: number }>({
-  supplierCode: '', date: '', note: '', rows: [], paid: 0,
+const blankRow = (): ReceiptRow => ({ materialId: '', unit: '', qty: 1, price: 0, expiryDate: '', _materialSearchStr: '' })
+const draft = ref<{ supplierCode: string; date: string; note: string; rows: ReceiptRow[]; paid: number; paymentMethod: string; billImageName?: string; updateInventory: boolean }>({
+  supplierCode: '', date: '', note: '', rows: [], paid: 0, paymentMethod: 'ChuyenKhoan', billImageName: '', updateInventory: true
 })
 
 const draftTotal = computed(() => draft.value.rows.reduce((s, r) => s + (r.qty || 0) * (r.price || 0), 0))
 const draftDebt = computed(() => Math.max(0, draftTotal.value - (draft.value.paid || 0)))
 
+const handleFileUpload = (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  if (target.files && target.files.length > 0) {
+    draft.value.billImageName = target.files[0].name;
+    toast(`Đã đính kèm ảnh: ${target.files[0].name}`);
+  }
+}
+
 const openCreateReceipt = () => {
   draftCode.value = `INB-2406-${String(receiptCounter).padStart(3, '0')}`
   const now = new Date()
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-  draft.value = { supplierCode: '', date: local, note: '', rows: [blankRow()], paid: 0 }
+  draft.value = { supplierCode: '', date: local, note: '', rows: [blankRow()], paid: 0, paymentMethod: 'ChuyenKhoan', billImageName: '', updateInventory: true }
   isCreateReceiptOpen.value = true
 }
 const addRow = () => draft.value.rows.push(blankRow())
 const removeRow = (idx: number) => draft.value.rows.splice(idx, 1)
 
 const saveReceipt = () => {
-  if (!draft.value.supplierCode) { toast('Vui lòng chọn nhà cung cấp'); return }
-  const validRows = draft.value.rows.filter(r => r.materialId && r.qty > 0)
-  if (validRows.length === 0) { toast('Phiếu chưa có dòng hàng hợp lệ'); return }
+  // Validate Supplier
+  if (!draft.value.supplierCode) { 
+    toast('❌ Vui lòng chọn nhà cung cấp!'); 
+    return; 
+  }
+  
+  // Validate Date
+  if (!draft.value.date) {
+    toast('❌ Vui lòng chọn ngày nhập hàng!'); 
+    return; 
+  }
+
+  // Validate Rows
+  const validRows = draft.value.rows.filter(r => r.materialId);
+  if (validRows.length === 0) { 
+    toast('❌ Phiếu nhập phải có ít nhất một nguyên liệu!'); 
+    return; 
+  }
+
+  for (let i = 0; i < validRows.length; i++) {
+    const row = validRows[i];
+    if (!row.qty || row.qty <= 0) {
+      toast(`❌ Dòng ${i+1}: Số lượng phải lớn hơn 0!`);
+      return;
+    }
+    if (row.price === null || row.price === undefined || row.price < 0) {
+      toast(`❌ Dòng ${i+1}: Đơn giá không hợp lệ!`);
+      return;
+    }
+    if (!row.unit) {
+      toast(`❌ Dòng ${i+1}: Vui lòng chọn đơn vị nhập!`);
+      return;
+    }
+    if (row.expiryDate) {
+      const expiryTime = new Date(row.expiryDate).getTime();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (expiryTime < today.getTime()) {
+        toast(`❌ Dòng ${i+1}: Hạn sử dụng không được là ngày trong quá khứ!`);
+        return;
+      }
+    }
+    if (row._aiConversionInput || row._isEditingConversion) {
+      toast(`❌ Dòng ${i+1}: Vui lòng lưu quy đổi đơn vị trước khi hoàn tất!`);
+      return;
+    }
+  }
+
+  // Validate Payment
+  if (draft.value.paid < 0) {
+    toast('❌ Số tiền thực trả không hợp lệ!');
+    return;
+  }
+
+  if (draft.value.paymentMethod === 'ChuyenKhoan' && draft.value.paid > 0 && !draft.value.billImageName) {
+    toast('❌ Vui lòng tải lên ảnh bill chuyển khoản!');
+    return;
+  }
 
   const sup = suppliers.value.find(s => s.code === draft.value.supplierCode)!
   const total = draftTotal.value
@@ -526,7 +960,7 @@ const saveReceipt = () => {
 
   receipts.value.unshift({
     id: draftCode.value, date: dateStr, supplierCode: sup.code, supplier: sup.name,
-    rows: validRows.map(r => ({ ...r })), total, paid: draft.value.paid || 0, note: draft.value.note,
+    rows: validRows.map(r => ({ ...r })), total, paid: draft.value.paid || 0, note: draft.value.note, paymentMethod: draft.value.paymentMethod
   })
   if (debt > 0) sup.debt += debt
   receiptCounter++

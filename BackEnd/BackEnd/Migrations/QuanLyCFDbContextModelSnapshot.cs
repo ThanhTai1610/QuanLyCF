@@ -266,6 +266,33 @@ namespace BackEnd.Migrations
                             MoTa = "Mô tả quán",
                             NhomCaiDat = "CHUNG",
                             ThoiGianCapNhat = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            MaCaiDat = 10,
+                            GiaTriCaiDat = "MB",
+                            KhoaCaiDat = "NGAN_HANG_ID",
+                            MoTa = "Mã ngân hàng nhận chuyển khoản (MB, VCB...)",
+                            NhomCaiDat = "THANH_TOAN",
+                            ThoiGianCapNhat = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            MaCaiDat = 11,
+                            GiaTriCaiDat = "19035282928014",
+                            KhoaCaiDat = "NGAN_HANG_STK",
+                            MoTa = "Số tài khoản ngân hàng nhận chuyển khoản",
+                            NhomCaiDat = "THANH_TOAN",
+                            ThoiGianCapNhat = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        },
+                        new
+                        {
+                            MaCaiDat = 12,
+                            GiaTriCaiDat = "CONG TY BREWMANAGER",
+                            KhoaCaiDat = "NGAN_HANG_TEN",
+                            MoTa = "Tên chủ tài khoản ngân hàng nhận chuyển khoản",
+                            NhomCaiDat = "THANH_TOAN",
+                            ThoiGianCapNhat = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         });
                 });
 
@@ -1118,6 +1145,16 @@ namespace BackEnd.Migrations
 
                     b.Property<decimal?>("MucTonToiThieu")
                         .HasColumnType("decimal(10,3)");
+
+                    b.Property<DateTime?>("NgayHetHan")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PhanLoai")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("Nguyên liệu thô");
 
                     b.Property<decimal>("SoLuongTon")
                         .HasColumnType("decimal(10,3)");

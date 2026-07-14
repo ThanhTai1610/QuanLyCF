@@ -445,6 +445,7 @@ import Switch from '@/components/ui/Switch.vue'
 import Textarea from '@/components/ui/Textarea.vue'
 import Modal from '@/components/ui/Modal.vue'
 import { productsApi, type ProductListItem, type ProductDetail, type SizeDto, type CategoryItem } from '@/services/products'
+import { combosApi } from '@/services/combos'
 
 const formatVND = (n: number) => (n || 0).toLocaleString('vi-VN') + 'đ'
 
@@ -506,12 +507,30 @@ const loadData = async () => {
   loading.value = true
   errorMsg.value = ""
   try {
-    const [pList, cList] = await Promise.all([
+    const [pList, cList, cbList] = await Promise.all([
       productsApi.list(),
-      productsApi.listCategories()
+      productsApi.listCategories(),
+      combosApi.list()
     ])
-    items.value = pList
-    categories.value = cList.filter(c => c.trangThaiHoatDong)
+    
+    const comboItems: ProductListItem[] = cbList.map(c => ({
+      maSanPham: -c.maCombo,
+      tenSanPham: c.tenCombo,
+      maDanhMuc: -1,
+      tenDanhMuc: 'Combo',
+      giaBan: c.giaCombo,
+      giaVonDuKien: null,
+      hinhAnh: c.hinhAnh,
+      kieuMon: 'Combo',
+      laMonNoiBat: false,
+      trangThaiBan: c.trangThaiHoatDong
+    }))
+
+    items.value = [...pList, ...comboItems]
+    categories.value = [
+      ...cList.filter(c => c.trangThaiHoatDong),
+      { maDanhMuc: -1, tenDanhMuc: 'Combo', maDanhMucCha: null, hinhAnh: null, thuTuHienThi: 99, moTa: null, trangThaiHoatDong: true, soLuongSanPham: cbList.length } as CategoryItem
+    ]
   } catch (e) {
     errorMsg.value = e instanceof Error ? e.message : 'Có lỗi xảy ra khi tải thực đơn.'
   } finally {
@@ -566,6 +585,10 @@ const openNew = () => {
 }
 
 const openEdit = async (m: ProductListItem) => {
+  if (m.maSanPham < 0) {
+    showToast('Vui lòng chuyển sang trang "Quản lý Combo" để chỉnh sửa ưu đãi này.', 'warning')
+    return
+  }
   activeTab.value = 'basic'
   try {
     const detail = await productsApi.get(m.maSanPham)
@@ -663,6 +686,10 @@ const save = async () => {
 }
 
 const remove = async (id: number) => {
+  if (id < 0) {
+    showToast('Vui lòng chuyển sang trang "Quản lý Combo" để xóa ưu đãi này.', 'warning')
+    return
+  }
   if (!confirm("Bạn có chắc chắn muốn xóa món này không?")) return
   try {
     await productsApi.delete(id)

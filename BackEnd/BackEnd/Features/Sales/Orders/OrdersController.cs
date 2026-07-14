@@ -125,6 +125,14 @@ public class OrdersController : ControllerBase
         return ok ? NoContent() : BadRequest(new { message = err });
     }
 
+    [HttpPut("{id:int}/status")]
+    [Authorize(Policy = Quyens.DonHangXuLy)]
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateOrderStatusRequest req)
+    {
+        var (ok, err) = await _svc.CapNhatTrangThaiAsync(id, req.Status);
+        return ok ? NoContent() : BadRequest(new { message = err });
+    }
+
     /// <summary>Đóng bàn: hoàn tất đơn đang hoạt động + đặt bàn Trống.</summary>
     [HttpPost("close-table/{maBan:int}")]
     [Authorize(Policy = Quyens.DonHangXuLy)]

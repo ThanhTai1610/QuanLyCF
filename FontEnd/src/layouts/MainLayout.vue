@@ -114,7 +114,7 @@
       <header class="h-14 bg-cream border-b border-cream-deep flex items-center justify-between px-6 shadow-sm z-10">
         <div>
           <h1 class="font-display text-lg font-bold text-espresso">{{ currentLabel }}</h1>
-          <p class="text-xs text-muted-foreground mt-0.5">Hôm nay, {{ todayDate }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">Chào {{ authStore.user?.hoTen || 'bạn' }}, chúc một ngày làm việc hiệu quả!</p>
         </div>
         <div class="flex items-center gap-3 relative">
           <!-- Notification Bell -->

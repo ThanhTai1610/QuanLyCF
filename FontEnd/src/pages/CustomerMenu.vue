@@ -14,21 +14,15 @@
         </router-link>
         
         <!-- Right actions -->
-        <div class="flex items-center gap-3">
-          <div class="hidden sm:flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#EAE3D9] shadow-sm">
+        <div class="flex items-center gap-5">
+          <div class="hidden sm:flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#EAE3D9] shadow-xl">
             <span class="w-2 h-2 rounded-full bg-[#CC8033]"></span>
-            <span class="text-[10px] uppercase tracking-[0.2em] font-bold text-[#5C544E]">Bàn số {{ tableId }}</span>
+            <span class="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#5C544E]">Bàn số {{ tableId }}</span>
           </div>
-
-          <!-- Lịch sử đơn button -->
-          <router-link to="/lich-su-don" class="h-9 px-3 rounded-xl bg-white border border-[#EAE3D9] hover:bg-[#FAF6F0] flex items-center justify-center gap-1.5 text-xs font-bold text-[#5C544E] transition-colors shadow-sm" title="Lịch sử gọi món">
-            <History class="w-4 h-4 text-[#CC8033]" />
-            <span>Lịch sử đơn</span>
-          </router-link>
          
-          <button @click="open = true" class="relative w-9 h-9 bg-white rounded-lg border border-[#EAE3D9] shadow-sm flex items-center justify-center text-[#2A231E] lg:hidden">
-            <ShoppingBag class="w-4 h-4" stroke-width="1.5" />
-            <span v-if="cart.count() > 0" class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#CC8033] text-white text-[9px] font-bold flex items-center justify-center border border-white">
+          <button @click="open = true" class="relative w-11 h-11 bg-white rounded-lg border border-[#EAE3D9] shadow-xl flex items-center justify-center text-[#2A231E] lg:hidden">
+            <ShoppingBag class="w-5 h-5" stroke-width="1.5" />
+            <span v-if="cart.count() > 0" class="absolute -top-1 -right-1 w-5 h-5 rounded-lg bg-[#CC8033] text-white text-[10px] font-bold flex items-center justify-center shadow-xl border border-[#FDFBF7]">
               {{ cart.count() }}
             </span>
           </button>
@@ -107,7 +101,7 @@
         <button
           v-for="c in categories"
           :key="c.id"
-          @click="activeCat = c.id"
+          @click="activeCat = c.id as any"
           :class="[
             'px-5 py-2.5 rounded-full whitespace-nowrap text-xs font-bold tracking-wide transition-all duration-200 border',
             activeCat === c.id
@@ -125,24 +119,21 @@
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
         <article
           v-for="m in paginatedItems"
-          :key="m.maSanPham"
+          :key="m.id"
           class="group bg-white rounded-2xl border border-[#EAE3D9] shadow-card flex flex-col relative overflow-hidden hover:shadow-[0_16px_40px_rgba(42,35,30,0.12)] hover:-translate-y-1 transition-all duration-300"
         >
           <!-- Image Container (Clickable) -->
           <div @click="openItemOptions(m)" class="relative aspect-square overflow-hidden bg-[#F5F2ED] cursor-pointer">
             <img
-              v-if="m.hinhAnh"
-              :src="m.hinhAnh"
-              :alt="m.tenSanPham"
+              :src="m.image"
+              :alt="m.name"
               loading="lazy"
               class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             />
-            <div v-else class="w-full h-full flex items-center justify-center text-[#C5BEB8] bg-[#F5F2ED]"><Coffee class="w-10 h-10" /></div>
-            
             <!-- Gradient Overlay -->
             <div class="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent"></div>
 
-            <div v-if="m.laMonNoiBat" class="absolute top-3 left-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-[#CC8033] text-[9px] uppercase tracking-[0.15em] font-bold shadow-lg">
+            <div v-if="m.popular" class="absolute top-3 left-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-[#CC8033] text-[9px] uppercase tracking-[0.15em] font-bold shadow-lg">
               <Star class="w-3 h-3 fill-[#CC8033]" /> Nổi bật
             </div>
 
@@ -158,22 +149,22 @@
 
           <!-- Content -->
           <div class="p-4 flex flex-col flex-1">
-            <h3 class="font-bold text-base leading-snug text-[#2A231E] cursor-pointer hover:text-[#CC8033] transition-colors line-clamp-1" @click="openItemOptions(m)">{{ m.tenSanPham }}</h3>
-            <p class="text-[11px] text-[#8A8178] mt-1.5 line-clamp-2 leading-relaxed flex-1 font-medium">{{ m.moTa }}</p>
+            <h3 class="font-bold text-base leading-snug text-[#2A231E] cursor-pointer hover:text-[#CC8033] transition-colors line-clamp-1" @click="openItemOptions(m)">{{ m.name }}</h3>
+            <p class="text-[11px] text-[#8A8178] mt-1.5 line-clamp-2 leading-relaxed flex-1 font-medium">{{ m.description }}</p>
 
             <div class="flex items-end justify-between gap-2 mt-4">
               <div class="flex flex-col min-w-0">
                 <span class="text-[9px] uppercase tracking-widest text-[#B5ADA3] font-bold">Giá</span>
-                <span class="text-[#CC8033] font-bold text-lg leading-tight truncate">{{ formatVND(m.giaBan) }}</span>
+                <span class="text-[#CC8033] font-bold text-lg leading-tight truncate">{{ formatVND(m.price) }}</span>
               </div>
-              <div v-if="(cart.lines.find(l => l.item.maSanPham === m.maSanPham)?.qty || 0) > 0" class="flex items-center bg-[#FDFBF7] rounded-xl border border-[#EAE3D9] p-0.5 shadow-sm h-10 shrink-0">
-                <button @click="cart.setQty(cart.lines.find(l => l.item.maSanPham === m.maSanPham)!.cartLineId, cart.lines.find(l => l.item.maSanPham === m.maSanPham)!.qty - 1)" class="w-8 h-full rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
+              <div v-if="(cart.lines.find(l => l.item.id === m.id)?.qty || 0) > 0" class="flex items-center bg-[#FDFBF7] rounded-xl border border-[#EAE3D9] p-0.5 shadow-sm h-10 shrink-0">
+                <button @click="cart.setQty(m.id, cart.lines.find(l => l.item.id === m.id)!.qty - 1)" class="w-8 h-full rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
                   <Minus class="w-3.5 h-3.5" stroke-width="2.5" />
                 </button>
                 <span class="w-7 text-center text-sm font-bold text-[#2A231E]">
-                  {{ cart.lines.find(l => l.item.maSanPham === m.maSanPham)?.qty }}
+                  {{ cart.lines.find(l => l.item.id === m.id)?.qty }}
                 </span>
-                <button @click="cart.setQty(cart.lines.find(l => l.item.maSanPham === m.maSanPham)!.cartLineId, cart.lines.find(l => l.item.maSanPham === m.maSanPham)!.qty + 1)" class="w-8 h-full rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
+                <button @click="cart.setQty(m.id, cart.lines.find(l => l.item.id === m.id)!.qty + 1)" class="w-8 h-full rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
                   <Plus class="w-3.5 h-3.5" stroke-width="2.5" />
                 </button>
               </div>
@@ -296,8 +287,11 @@
                   <div class="text-sm font-bold text-[#2A231E] truncate">{{ customerName || customerPhone }} 👋</div>
                 </div>
               </div>
-              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-[#E8C5A5] text-[#CC8033] text-xs font-bold shadow-sm shrink-0">
-                <Coffee class="w-3 h-3" /> 150 điểm
+              <div class="flex flex-col items-end gap-1 shrink-0">
+                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-[#E8C5A5] text-[#CC8033] text-xs font-bold shadow-sm shrink-0">
+                  <Coffee class="w-3 h-3" /> {{ customerPoints }} điểm ({{ customerTier }})
+                </div>
+                <button @click="handleLogout" class="text-[10px] text-[#8A8178] underline hover:text-red-500 font-medium">Đăng xuất</button>
               </div>
             </div>
             <button
@@ -329,74 +323,114 @@
 
             <!-- Items -->
             <div v-for="l in cart.lines" :key="l.cartLineId" class="flex gap-3.5 p-3 rounded-2xl bg-white shadow-[0_2px_10px_rgba(42,35,30,0.04)] border border-[#EAE3D9] relative">
-              <div @click="openItemOptions(l.item, l, true)" class="w-[68px] h-[68px] rounded-xl overflow-hidden flex-shrink-0 cursor-pointer relative group/avatar hover:opacity-90 active:scale-95 transition-all" title="Xem chi tiết">
-                <img v-if="l.item.hinhAnh" :src="l.item.hinhAnh" :alt="l.item.tenSanPham" class="w-full h-full object-cover" />
-                <div v-else class="w-full h-full flex items-center justify-center bg-[#F5F2ED] text-[#C5BEB8]"><Coffee class="w-6 h-6" /></div>
-                <!-- Hover overlay (desktop) -->
-                <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-                  <Eye class="w-5 h-5 text-white" />
-                </div>
-                <!-- Always visible tiny badge (mobile/fallback) -->
-                <div class="absolute bottom-1 right-1 w-5 h-5 rounded-md bg-black/60 backdrop-blur-xs flex items-center justify-center text-white transition-opacity sm:group-hover/avatar:opacity-0">
-                  <Eye class="w-3 h-3" />
-                </div>
+              <div class="w-[68px] h-[68px] rounded-xl overflow-hidden flex-shrink-0">
+                <img :src="l.item.image" :alt="l.item.name" class="w-full h-full object-cover" />
               </div>
               <div class="flex-1 min-w-0 flex flex-col justify-between">
                 <div class="flex justify-between items-start gap-2 pr-5">
                   <div class="min-w-0">
-                    <h4 class="font-bold text-sm text-[#2A231E] leading-tight truncate">{{ l.item.tenSanPham }}</h4>
+                    <h4 class="font-bold text-sm text-[#2A231E] leading-tight truncate">{{ l.item.name }}</h4>
+                    <!-- Options -->
                     <div v-if="l.options" class="mt-1 flex flex-wrap gap-1">
-                      <span v-if="l.options.maKichCo || l.options.sugar !== '100%' || l.options.ice !== '100%'" class="text-[9px] font-bold text-[#5C544E] bg-[#F5F2ED] px-1.5 py-0.5 rounded-md">
+                      <span v-if="l.options.size !== 'M' || l.options.sugar !== '100%' || l.options.ice !== '100%'" class="text-[9px] font-bold text-[#5C544E] bg-[#F5F2ED] px-1.5 py-0.5 rounded-md">
                         {{ l.options.size }} · Đá {{ l.options.ice }} · Đường {{ l.options.sugar }}
                       </span>
                       <span v-for="t in l.options.toppings" :key="t.name" class="text-[9px] font-bold text-[#CC8033] bg-[#FFF9F2] px-1.5 py-0.5 rounded-md">
                         + {{ t.name }} ×{{ t.qty }}
                       </span>
                     </div>
-                    <div v-if="l.options?.note" class="text-[10px] text-[#D97724] italic mt-1 break-words line-clamp-1">"{{ l.options.note }}"</div>
+                    <div v-if="l.options?.note" class="text-[10px] text-[#D97724] italic mt-1 break-words">"{{ l.options.note }}"</div>
                   </div>
-                  <button @click="removeWithConfirm(l.cartLineId)" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center text-[#C5BEB8] hover:text-red-500 hover:bg-red-50 transition-colors">
+                  <button @click="cart.remove(l.cartLineId)" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center text-[#C5BEB8] hover:text-red-500 hover:bg-red-50 transition-colors">
                     <Trash2 class="w-3.5 h-3.5" stroke-width="2" />
                   </button>
                 </div>
 
-                <!-- Qty + Actions + line total -->
-                <div class="flex items-center justify-between mt-3">
-                  <div class="flex items-center gap-2">
-                    <div class="flex items-center bg-[#FDFBF7] rounded-xl border border-[#EAE3D9] p-0.5">
-                      <button @click="cart.setQty(l.cartLineId, l.qty - 1)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
-                        <Minus class="w-3 h-3" stroke-width="2.5" />
-                      </button>
-                      <span class="w-8 text-center text-xs font-bold text-[#2A231E]">{{ l.qty }}</span>
-                      <button @click="cart.setQty(l.cartLineId, l.qty + 1)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
-                        <Plus class="w-3 h-3" stroke-width="2.5" />
-                      </button>
-                    </div>
-
-                    <div class="flex items-center ml-1">
-                      <button @click="openItemOptions(l.item, l)" class="h-7 px-3.5 rounded-lg text-[10px] font-bold tracking-wide uppercase bg-[#FFF9F2] text-[#CC8033] border border-[#CC8033]/25 hover:bg-[#CC8033] hover:text-white hover:border-[#CC8033] transition-all shadow-sm">
-                        Chỉnh sửa món
-                      </button>
-                    </div>
+                <!-- Qty + line total -->
+                <div class="flex items-center justify-between mt-2">
+                  <div class="flex items-center bg-[#FDFBF7] rounded-xl border border-[#EAE3D9] p-0.5">
+                    <button @click="cart.setQty(l.cartLineId, l.qty - 1)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
+                      <Minus class="w-3 h-3" stroke-width="2.5" />
+                    </button>
+                    <span class="w-8 text-center text-xs font-bold text-[#2A231E]">{{ l.qty }}</span>
+                    <button @click="cart.setQty(l.cartLineId, l.qty + 1)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
+                      <Plus class="w-3 h-3" stroke-width="2.5" />
+                    </button>
                   </div>
-                  <span class="text-[13px] text-[#2A231E] font-bold">{{ formatVND((l.item.giaBan + (l.options?.extraPrice || 0)) * l.qty) }}</span>
+                  <span class="text-sm text-[#2A231E] font-bold">{{ formatVND((l.item.price + (l.options?.extraPrice || 0)) * l.qty) }}</span>
                 </div>
               </div>
             </div>
 
+            <!-- Khuyến mãi & Voucher (Mobile) -->
+            <div v-if="cart.lines.length > 0" class="bg-white p-4 rounded-2xl border border-[#EAE3D9] shadow-sm space-y-3 text-left">
+              <div class="text-xs font-bold text-[#2A231E] uppercase tracking-wider flex items-center gap-1.5">
+                <Ticket class="w-4 h-4 text-[#CC8033]" /> Khuyến mãi &amp; Voucher
+              </div>
+              <div class="flex gap-2">
+                <input
+                  v-model="voucherCode"
+                  placeholder="Nhập mã giảm giá..."
+                  class="flex-1 px-3 h-10 border border-[#EAE3D9] rounded-xl text-xs focus:border-[#CC8033] outline-none uppercase bg-[#FAF6F0] text-[#2A231E] text-left"
+                />
+                <button
+                  @click="applyVoucherCode(voucherCode)"
+                  :disabled="!voucherCode.trim() || promoBusy"
+                  class="px-3 h-10 rounded-xl bg-[#2A231E] text-white text-xs font-bold disabled:opacity-40 hover:bg-[#CC8033] transition-colors"
+                >
+                  Áp dụng
+                </button>
+              </div>
+              <div v-if="savedVouchers.length" class="space-y-1.5">
+                <div class="text-[10px] text-[#8A8178] font-bold uppercase tracking-wider">Mã đã lưu của bạn:</div>
+                <div class="flex gap-1.5 flex-wrap">
+                  <button
+                    v-for="code in savedVouchers"
+                    :key="code"
+                    @click="applySavedVoucher(code)"
+                    :class="appliedPromo?.maGiamGia === code || voucherCode === code ? 'border-[#CC8033] bg-[#FFF9F2] text-[#CC8033]' : 'border-[#EAE3D9] text-[#5C544E] hover:border-[#CC8033]/50 hover:bg-white'"
+                    class="px-2.5 py-1 rounded-lg border text-[10px] font-semibold transition-colors"
+                  >
+                    {{ code }}
+                  </button>
+                </div>
+              </div>
+              <p v-if="voucherError" class="text-[10px] font-semibold text-red-600">{{ voucherError }}</p>
+              <div v-if="appliedPromo" class="flex items-center justify-between text-[11px] bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-3 py-1.5">
+                <span class="font-semibold">Đã áp dụng: {{ appliedPromo.tenChuongTrinh }}</span>
+                <button @click="clearPromo" class="text-[#2A231E] underline hover:text-[#CC8033] font-bold">Bỏ</button>
+              </div>
+            </div>
+
             <!-- Dùng điểm (chỉ khi đã là thành viên) -->
-            <div v-if="cart.lines.length > 0 && customerPhone" class="bg-white p-4 rounded-2xl border border-[#EAE3D9] shadow-sm">
-              <label for="usePoints" class="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" v-model="usePoints" id="usePoints" class="w-5 h-5 rounded-md border-[#EAE3D9] text-[#CC8033] focus:ring-[#CC8033]" />
-                <span class="flex-1">
-                  <span class="block text-sm font-bold text-[#2A231E]">Dùng 50 điểm thưởng</span>
-                  <span class="block text-[11px] text-[#8A8178] font-medium">Giảm ngay <span class="text-[#CC8033] font-bold">20.000đ</span> cho đơn này</span>
+            <div v-if="cart.lines.length > 0 && customerPhone" class="bg-white p-4 rounded-2xl border border-[#EAE3D9] shadow-sm text-left space-y-3">
+              <div class="flex items-center justify-between border-b border-[#FAF6F0] pb-2">
+                <span class="text-sm font-bold text-[#2A231E] flex items-center gap-1.5">
+                  <Gift class="w-4 h-4 text-[#CC8033]" /> Đổi điểm lấy ưu đãi
                 </span>
-                <Gift class="w-5 h-5 text-[#CC8033]" />
-              </label>
+                <span class="text-[10px] font-bold text-[#CC8033] bg-[#FFF9F2] px-2 py-0.5 rounded-full">Hiện có: {{ customerPoints }} điểm</span>
+              </div>
+              <div class="space-y-2">
+                <label class="flex items-center gap-2 cursor-pointer py-1">
+                  <input type="radio" v-model="selectedRewardPoints" :value="0" name="reward-option" class="w-4 h-4 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" />
+                  <span class="text-xs text-[#5C544E]">Không dùng điểm</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer py-1">
+                  <input type="radio" v-model="selectedRewardPoints" :value="50" name="reward-option" class="w-4 h-4 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" :disabled="customerPoints < 50" />
+                  <span class="text-xs font-semibold text-[#2A231E] flex-1" :class="{ 'opacity-40': customerPoints < 50 }">
+                    Giảm 20.000đ <span class="text-muted-foreground font-normal">(50 điểm)</span>
+                  </span>
+                </label>
+                <label v-for="r in availableRewards" :key="r.id" class="flex items-center gap-2 cursor-pointer py-1">
+                  <input type="radio" v-model="selectedRewardPoints" :value="r.cost" name="reward-option" class="w-4 h-4 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" :disabled="customerPoints < r.cost" />
+                  <span class="text-xs font-semibold text-[#2A231E] flex-1" :class="{ 'opacity-40': customerPoints < r.cost }">
+                    {{ r.name }} <span class="text-muted-foreground font-normal">({{ r.cost }} điểm)</span>
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
-
+ 
           <!-- Slide-Over Footer -->
           <div v-if="cart.lines.length > 0" class="p-5 bg-white border-t border-[#EAE3D9] shadow-[0_-10px_30px_rgba(42,35,30,0.06)]">
             <div class="space-y-2 mb-4">
@@ -404,13 +438,17 @@
                 <span class="text-[#8A8178] font-medium">Tạm tính</span>
                 <span class="font-bold text-[#5C544E]">{{ formatVND(cart.total()) }}</span>
               </div>
-              <div v-if="usePoints" class="flex justify-between items-center text-sm">
+              <div v-if="appliedPromo" class="flex justify-between items-center text-sm">
+                <span class="text-[#8A8178] font-medium flex items-center gap-1.5"><Ticket class="w-3.5 h-3.5 text-[#CC8033]" /> Giảm giá voucher</span>
+                <span class="font-bold text-[#E85D04]">- {{ formatVND(appliedPromo.tienGiam) }}</span>
+              </div>
+              <div v-if="selectedRewardPoints > 0" class="flex justify-between items-center text-sm">
                 <span class="text-[#8A8178] font-medium flex items-center gap-1.5"><Gift class="w-3.5 h-3.5 text-[#CC8033]" /> Điểm thưởng</span>
-                <span class="font-bold text-[#E85D04]">- 20.000đ</span>
+                <span class="font-bold text-[#E85D04]">- {{ formatVND(pointsDiscount) }}</span>
               </div>
               <div class="border-t border-dashed border-[#EAE3D9] pt-3 flex justify-between items-center">
                 <span class="text-sm font-bold text-[#2A231E]">Tổng cộng</span>
-                <span class="font-sans text-2xl font-bold text-[#2A231E] leading-none">{{ formatVND(cart.total() - (usePoints ? 20000 : 0)) }}</span>
+                <span class="font-sans text-2xl font-bold text-[#2A231E] leading-none">{{ formatVND(cart.total() - pointsDiscount - (appliedPromo?.tienGiam || 0)) }}</span>
               </div>
             </div>
             <button
@@ -421,7 +459,7 @@
                 <ShoppingBag class="w-4 h-4" /> Gửi đơn đặt món
               </span>
               <span class="flex items-center gap-2 font-bold">
-                {{ formatVND(cart.total() - (usePoints ? 20000 : 0)) }}
+                {{ formatVND(cart.total() - pointsDiscount - (appliedPromo?.tienGiam || 0)) }}
                 <ChevronRight class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" stroke-width="2.5" />
               </span>
             </button>
@@ -449,7 +487,7 @@
             <div class="w-8 h-8 rounded-full bg-[#CC8033] text-white flex items-center justify-center font-bold text-xs shrink-0">{{ (customerName || 'K').charAt(0).toUpperCase() }}</div>
             <div class="text-sm font-bold text-[#2A231E] truncate">{{ customerName || customerPhone }}</div>
           </div>
-          <div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-[#E8C5A5] text-[#CC8033] text-[11px] font-bold shrink-0"><Coffee class="w-3 h-3" /> 150 điểm</div>
+          <div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-[#E8C5A5] text-[#CC8033] text-[11px] font-bold shrink-0"><Coffee class="w-3 h-3" /> {{ customerPoints }} điểm</div>
         </div>
         <button v-else @click="openLoginSheet = true" class="w-full flex items-center justify-between gap-2 bg-[#FDFBF7] border border-dashed border-[#CC8033]/40 rounded-xl p-2.5 hover:bg-[#FFF9F2] transition-colors">
           <span class="flex items-center gap-2">
@@ -474,62 +512,100 @@
         </div>
 
         <div v-for="l in cart.lines" :key="l.cartLineId" class="flex gap-3 p-3 rounded-2xl bg-white border border-[#EAE3D9] relative">
-          <div @click="openItemOptions(l.item, l, true)" class="w-16 h-16 rounded-xl overflow-hidden shrink-0 cursor-pointer relative group/avatar hover:opacity-90 active:scale-95 transition-all" title="Xem chi tiết">
-            <img v-if="l.item.hinhAnh" :src="l.item.hinhAnh" :alt="l.item.tenSanPham" class="w-full h-full object-cover" />
-            <div v-else class="w-full h-full flex items-center justify-center bg-[#F5F2ED] text-[#C5BEB8] text-xs"><Coffee class="w-4 h-4" /></div>
-            <!-- Hover overlay (desktop) -->
-            <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-              <Eye class="w-4 h-4 text-white" />
-            </div>
-            <!-- Always visible tiny badge (mobile/fallback) -->
-            <div class="absolute bottom-1 right-1 w-4.5 h-4.5 rounded bg-black/60 backdrop-blur-xs flex items-center justify-center text-white transition-opacity sm:group-hover/avatar:opacity-0">
-              <Eye class="w-2.5 h-2.5" />
-            </div>
+          <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0">
+            <img :src="l.item.image" :alt="l.item.name" class="w-full h-full object-cover" />
           </div>
           <div class="flex-1 min-w-0 flex flex-col justify-between">
             <div class="flex justify-between items-start gap-2 pr-5">
               <div class="min-w-0">
-                <h4 class="font-bold text-sm text-[#2A231E] leading-tight truncate">{{ l.item.tenSanPham }}</h4>
+                <h4 class="font-bold text-sm text-[#2A231E] leading-tight truncate">{{ l.item.name }}</h4>
                 <div v-if="l.options" class="mt-0.5 flex flex-wrap gap-1">
-                  <span v-if="l.options.maKichCo || l.options.sugar !== '100%' || l.options.ice !== '100%'" class="text-[9px] font-bold text-[#5C544E] bg-[#F5F2ED] px-1.5 py-0.5 rounded-md">{{ l.options.size }} · Đá {{ l.options.ice }} · Đường {{ l.options.sugar }}</span>
+                  <span v-if="l.options.size !== 'M' || l.options.sugar !== '100%' || l.options.ice !== '100%'" class="text-[9px] font-bold text-[#5C544E] bg-[#F5F2ED] px-1.5 py-0.5 rounded-md">{{ l.options.size }} · Đá {{ l.options.ice }} · Đường {{ l.options.sugar }}</span>
                   <span v-for="t in l.options.toppings" :key="t.name" class="text-[9px] font-bold text-[#CC8033] bg-[#FFF9F2] px-1.5 py-0.5 rounded-md">+{{ t.name }}</span>
                 </div>
                 <div v-if="l.options?.note" class="text-[10px] text-[#D97724] italic mt-0.5">"{{ l.options.note }}"</div>
               </div>
-              <button @click="removeWithConfirm(l.cartLineId)" class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-[#C5BEB8] hover:text-red-500 hover:bg-red-50 transition-colors">
+              <button @click="cart.remove(l.cartLineId)" class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-[#C5BEB8] hover:text-red-500 hover:bg-red-50 transition-colors">
                 <Trash2 class="w-3.5 h-3.5" stroke-width="2" />
               </button>
             </div>
             <div class="flex items-center justify-between mt-2">
-              <div class="flex items-center gap-2">
-                <div class="flex items-center bg-[#FDFBF7] rounded-xl border border-[#EAE3D9] p-0.5">
-                  <button @click="cart.setQty(l.cartLineId, l.qty - 1)" class="w-6 h-6 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white transition-all"><Minus class="w-3 h-3" stroke-width="2.5" /></button>
-                  <span class="w-7 text-center text-xs font-bold text-[#2A231E]">{{ l.qty }}</span>
-                  <button @click="cart.setQty(l.cartLineId, l.qty + 1)" class="w-6 h-6 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white transition-all"><Plus class="w-3 h-3" stroke-width="2.5" /></button>
-                </div>
-                <div class="flex items-center ml-1">
-                  <button @click="openItemOptions(l.item, l)" class="h-7 px-3 rounded-lg text-[10px] font-bold tracking-wide uppercase bg-[#FFF9F2] text-[#CC8033] border border-[#CC8033]/25 hover:bg-[#CC8033] hover:text-white hover:border-[#CC8033] transition-all shadow-sm">
-                    Chỉnh sửa món
-                  </button>
-                </div>
+              <div class="flex items-center bg-[#FDFBF7] rounded-xl border border-[#EAE3D9] p-0.5">
+                <button @click="cart.setQty(l.cartLineId, l.qty - 1)" class="w-6 h-6 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white transition-all"><Minus class="w-3 h-3" stroke-width="2.5" /></button>
+                <span class="w-7 text-center text-xs font-bold text-[#2A231E]">{{ l.qty }}</span>
+                <button @click="cart.setQty(l.cartLineId, l.qty + 1)" class="w-6 h-6 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white transition-all"><Plus class="w-3 h-3" stroke-width="2.5" /></button>
               </div>
-              <span class="text-sm font-bold text-[#2A231E]">{{ formatVND((l.item.giaBan + (l.options?.extraPrice || 0)) * l.qty) }}</span>
+              <span class="text-sm font-bold text-[#2A231E]">{{ formatVND((l.item.price + (l.options?.extraPrice || 0)) * l.qty) }}</span>
             </div>
           </div>
         </div>
 
-        <div v-if="cart.lines.length > 0 && customerPhone" class="bg-white p-3.5 rounded-2xl border border-[#EAE3D9]">
-          <label for="usePointsSidebar" class="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" v-model="usePoints" id="usePointsSidebar" class="w-4 h-4 rounded border-[#EAE3D9] text-[#CC8033] focus:ring-[#CC8033]" />
-            <span class="flex-1">
-              <span class="block text-sm font-bold text-[#2A231E]">Dùng 50 điểm thưởng</span>
-              <span class="block text-[10px] text-[#8A8178]">Giảm ngay <span class="text-[#CC8033] font-bold">20.000đ</span></span>
-            </span>
-            <Gift class="w-4 h-4 text-[#CC8033]" />
-          </label>
+        <!-- Khuyến mãi & Voucher (Desktop) -->
+        <div v-if="cart.lines.length > 0" class="bg-white p-3.5 rounded-2xl border border-[#EAE3D9] space-y-3 text-left">
+          <div class="text-xs font-bold text-[#2A231E] uppercase tracking-wider flex items-center gap-1.5">
+            <Ticket class="w-4 h-4 text-[#CC8033]" /> Khuyến mãi &amp; Voucher
+          </div>
+          <div class="flex gap-2">
+            <input
+              v-model="voucherCode"
+              placeholder="Nhập mã giảm giá..."
+              class="flex-1 px-3 h-10 border border-[#EAE3D9] rounded-xl text-xs focus:border-[#CC8033] outline-none uppercase bg-[#FAF6F0] text-[#2A231E] text-left"
+            />
+            <button
+              @click="applyVoucherCode(voucherCode)"
+              :disabled="!voucherCode.trim() || promoBusy"
+              class="px-3 h-10 rounded-xl bg-[#2A231E] text-white text-xs font-bold disabled:opacity-40 hover:bg-[#CC8033] transition-colors"
+            >
+              Áp dụng
+            </button>
+          </div>
+          <div v-if="savedVouchers.length" class="space-y-1.5">
+            <div class="text-[10px] text-[#8A8178] font-bold uppercase tracking-wider">Mã đã lưu của bạn:</div>
+            <div class="flex gap-1.5 flex-wrap">
+              <button
+                v-for="code in savedVouchers"
+                :key="code"
+                @click="applySavedVoucher(code)"
+                :class="appliedPromo?.maGiamGia === code || voucherCode === code ? 'border-[#CC8033] bg-[#FFF9F2] text-[#CC8033]' : 'border-[#EAE3D9] text-[#5C544E] hover:border-[#CC8033]/50 hover:bg-white'"
+                class="px-2.5 py-1 rounded-lg border text-[10px] font-semibold transition-colors"
+              >
+                {{ code }}
+              </button>
+            </div>
+          </div>
+          <p v-if="voucherError" class="text-[10px] font-semibold text-red-600">{{ voucherError }}</p>
+          <div v-if="appliedPromo" class="flex items-center justify-between text-[11px] bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-3 py-1.5">
+            <span class="font-semibold">Đã áp dụng: {{ appliedPromo.tenChuongTrinh }}</span>
+            <button @click="clearPromo" class="text-[#2A231E] underline hover:text-[#CC8033] font-bold">Bỏ</button>
+          </div>
+        </div>
+
+        <div v-if="cart.lines.length > 0 && customerPhone" class="bg-white p-3.5 rounded-2xl border border-[#EAE3D9] text-left space-y-2">
+          <div class="flex items-center justify-between border-b border-[#FAF6F0] pb-1.5 mb-1.5">
+            <span class="text-xs font-bold text-[#2A231E] flex items-center gap-1"><Gift class="w-3.5 h-3.5 text-[#CC8033]" /> Đổi điểm lấy ưu đãi</span>
+            <span class="text-[9px] font-bold text-[#CC8033] bg-[#FFF9F2] px-1.5 py-0.5 rounded-full">Hiện có: {{ customerPoints }} điểm</span>
+          </div>
+          <div class="space-y-1.5">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" v-model="selectedRewardPoints" :value="0" name="reward-option-sidebar" class="w-3.5 h-3.5 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" />
+              <span class="text-[11px] text-[#5C544E]">Không dùng điểm</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" v-model="selectedRewardPoints" :value="50" name="reward-option-sidebar" class="w-3.5 h-3.5 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" :disabled="customerPoints < 50" />
+              <span class="text-[11px] font-semibold text-[#2A231E] flex-1" :class="{ 'opacity-40': customerPoints < 50 }">
+                Giảm 20.000đ <span class="text-muted-foreground font-normal text-[10px]">(50 điểm)</span>
+              </span>
+            </label>
+            <label v-for="r in availableRewards" :key="r.id" class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" v-model="selectedRewardPoints" :value="r.cost" name="reward-option-sidebar" class="w-3.5 h-3.5 text-[#CC8033] focus:ring-[#CC8033] border-[#EAE3D9]" :disabled="customerPoints < r.cost" />
+              <span class="text-[11px] font-semibold text-[#2A231E] flex-1" :class="{ 'opacity-40': customerPoints < r.cost }">
+                {{ r.name }} <span class="text-muted-foreground font-normal text-[10px]">({{ r.cost }} điểm)</span>
+              </span>
+            </label>
+          </div>
         </div>
       </div>
-
+ 
       <!-- Footer -->
       <div v-if="cart.lines.length > 0" class="p-4 bg-white border-t border-[#EAE3D9] shrink-0 shadow-[0_-8px_24px_rgba(42,35,30,0.05)]">
         <div class="space-y-2 mb-3">
@@ -537,25 +613,79 @@
             <span class="text-[#8A8178] font-medium">Tạm tính</span>
             <span class="font-bold text-[#5C544E]">{{ formatVND(cart.total()) }}</span>
           </div>
-          <div v-if="usePoints" class="flex justify-between items-center text-sm">
+          <div v-if="appliedPromo" class="flex justify-between items-center text-sm">
+            <span class="text-[#8A8178] font-medium flex items-center gap-1.5"><Ticket class="w-3.5 h-3.5 text-[#CC8033]" /> Giảm giá voucher</span>
+            <span class="font-bold text-[#E85D04]">- {{ formatVND(appliedPromo.tienGiam) }}</span>
+          </div>
+          <div v-if="selectedRewardPoints > 0" class="flex justify-between items-center text-sm">
             <span class="text-[#8A8178] font-medium flex items-center gap-1.5"><Gift class="w-3.5 h-3.5 text-[#CC8033]" /> Điểm thưởng</span>
-            <span class="font-bold text-[#E85D04]">- 20.000đ</span>
+            <span class="font-bold text-[#E85D04]">- {{ formatVND(pointsDiscount) }}</span>
           </div>
           <div class="border-t border-dashed border-[#EAE3D9] pt-2.5 flex justify-between items-center">
             <span class="text-sm font-bold text-[#2A231E]">Tổng cộng</span>
-            <span class="text-xl font-bold text-[#2A231E]">{{ formatVND(cart.total() - (usePoints ? 20000 : 0)) }}</span>
+            <span class="text-xl font-bold text-[#2A231E]">{{ formatVND(cart.total() - pointsDiscount - (appliedPromo?.tienGiam || 0)) }}</span>
           </div>
         </div>
         <button @click="handleOrder" class="group w-full h-12 bg-gradient-to-r from-[#CC8033] to-[#D97724] hover:shadow-[0_8px_24px_rgba(204,128,51,0.4)] text-white rounded-2xl shadow-lg transition-all active:scale-[0.99] flex items-center justify-between px-4">
           <span class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide"><ShoppingBag class="w-4 h-4" /> Gửi đơn đặt món</span>
-          <span class="flex items-center gap-1.5 font-bold text-sm">{{ formatVND(cart.total() - (usePoints ? 20000 : 0)) }}<ChevronRight class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" stroke-width="2.5" /></span>
+          <span class="flex items-center gap-1.5 font-bold text-sm">{{ formatVND(cart.total() - pointsDiscount - (appliedPromo?.tienGiam || 0)) }}<ChevronRight class="w-4 h-4 group-hover:translate-x-0.5 transition-transform" stroke-width="2.5" /></span>
         </button>
       </div>
     </div>
 
+    <!-- OTP Verification Modal for Loyalty Points -->
+    <Transition name="login-modal">
+      <div
+        v-if="otpModalOpen"
+        class="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-in fade-in duration-200"
+      >
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-[#1A1512]/50 backdrop-blur-sm" @click="cancelOtp"></div>
+
+        <!-- Card -->
+        <div class="relative w-full max-w-sm bg-white rounded-3xl shadow-[0_30px_80px_rgba(42,35,30,0.3)] border border-[#EAE3D9] overflow-hidden p-6 text-center space-y-5 animate-in zoom-in-95 duration-200">
+          <div class="w-14 h-14 mx-auto bg-[#FDF7EF] rounded-2xl flex items-center justify-center text-[#CC8033]">
+            <Gift class="w-7 h-7" />
+          </div>
+          <div>
+            <h3 class="font-premium-serif text-lg font-bold text-[#1A1512]">Xác thực OTP đổi điểm</h3>
+            <p class="text-xs text-[#8A8178] mt-1.5 leading-relaxed">
+              Mã xác thực 6 số đã được gửi tới email thành viên của bạn. Vui lòng nhập để xác nhận đổi <strong>{{ selectedRewardPoints }} điểm thưởng</strong>.
+            </p>
+          </div>
+
+          <div class="space-y-3">
+            <input
+              type="text"
+              v-model="otpCode"
+              placeholder="MÃ OTP..."
+              maxlength="6"
+              class="w-full h-12 text-center text-lg font-bold tracking-[8px] rounded-xl border-2 border-[#EAE3D9] focus:border-[#CC8033] focus:outline-none bg-[#FAF6F0] text-espresso"
+            />
+            <p v-if="otpError" class="text-xs font-semibold text-red-600">{{ otpError }}</p>
+          </div>
+
+          <div class="flex gap-2">
+            <button
+              @click="cancelOtp"
+              class="flex-1 h-11 rounded-xl border-2 border-[#EAE3D9] text-[#5C544E] text-xs font-bold hover:bg-[#FAF6F0] transition-colors"
+            >
+              Hủy bỏ
+            </button>
+            <button
+              @click="verifyAndRedeem"
+              :disabled="otpBusy"
+              class="flex-1 h-11 rounded-xl bg-[#CC8033] hover:bg-[#B8722D] text-white text-xs font-bold uppercase transition-colors disabled:opacity-50"
+            >
+              {{ otpBusy ? 'Đang xử lý...' : 'Xác nhận' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Chatbot Widget -->
     <ChatbotWidget />
-    <ServiceRequestFAB :table-id="tableId" />
 
     <!-- Customer Login Modal (form nhỏ căn giữa) -->
     <Transition name="login-modal">
@@ -594,43 +724,70 @@
               </div>
             </div>
 
-            <!-- Form tích điểm: chỉ tên + SĐT -->
+            <!-- Form tích điểm: chỉ nhập Email trước -->
             <div class="space-y-3">
               <div>
-                <label class="text-[11px] font-bold uppercase tracking-wider text-[#8A8178] mb-1.5 block">Họ và tên</label>
+                <label class="text-[11px] font-bold uppercase tracking-wider text-[#8A8178] mb-1.5 block text-left">Địa chỉ Email / Gmail</label>
                 <div class="relative">
-                  <User class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A8178]" />
+                  <Mail class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A8178]" />
                   <input
-                    v-model="customerName"
-                    type="text"
-                    placeholder="Nguyễn Văn A"
-                    class="w-full h-12 pl-10 pr-4 rounded-xl border-2 border-[#EAE3D9] focus:border-[#CC8033] focus:outline-none text-sm font-medium bg-[#FAF6F0] text-[#2A231E] placeholder:text-[#A89F95] transition-colors duration-200"
+                    v-model="customerEmail"
+                    type="email"
+                    placeholder="khachhang@gmail.com"
+                    :disabled="isNewCustomer"
+                    class="w-full h-12 pl-10 pr-4 rounded-xl border-2 border-[#EAE3D9] focus:border-[#CC8033] focus:outline-none text-sm font-medium bg-[#FAF6F0] text-[#2A231E] placeholder:text-[#A89F95] transition-colors duration-200 disabled:opacity-60 text-left"
+                    @keyup.enter="handleCustomerLogin"
                   />
                 </div>
               </div>
 
-              <div>
-                <label class="text-[11px] font-bold uppercase tracking-wider text-[#8A8178] mb-1.5 block">Số điện thoại</label>
-                <div class="relative">
-                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-[#8A8178]">🇻🇳 +84</span>
-                  <input
-                    v-model="phoneNumber"
-                    type="tel"
-                    placeholder="9xx xxx xxx"
-                    maxlength="10"
-                    @keyup.enter="submitLogin"
-                    class="w-full h-12 pl-[4.75rem] pr-4 rounded-xl border-2 border-[#EAE3D9] focus:border-[#CC8033] focus:outline-none text-sm font-medium bg-[#FAF6F0] text-[#2A231E] placeholder:text-[#A89F95] transition-colors duration-200"
-                  />
+              <!-- Hiển thị thêm nếu là khách mới -->
+              <div v-if="isNewCustomer" class="space-y-3 pt-1 animate-in fade-in duration-200">
+                <p class="text-[11px] text-[#CC8033] font-bold text-left">Chào bạn mới! Vui lòng nhập thông tin bên dưới để đăng ký:</p>
+                <div>
+                  <label class="text-[11px] font-bold uppercase tracking-wider text-[#8A8178] mb-1.5 block text-left">Họ và tên</label>
+                  <div class="relative">
+                    <User class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A8178]" />
+                    <input
+                      v-model="customerName"
+                      type="text"
+                      placeholder="Nguyễn Văn A"
+                      class="w-full h-12 pl-10 pr-4 rounded-xl border-2 border-[#EAE3D9] focus:border-[#CC8033] focus:outline-none text-sm font-medium bg-[#FAF6F0] text-[#2A231E] placeholder:text-[#A89F95] transition-colors duration-200 text-left"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="text-[11px] font-bold uppercase tracking-wider text-[#8A8178] mb-1.5 block text-left">Số điện thoại</label>
+                  <div class="relative">
+                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-[#8A8178]">🇻🇳 +84</span>
+                    <input
+                      v-model="phoneNumber"
+                      type="tel"
+                      placeholder="9xx xxx xxx"
+                      maxlength="10"
+                      class="w-full h-12 pl-[4.75rem] pr-4 rounded-xl border-2 border-[#EAE3D9] focus:border-[#CC8033] focus:outline-none text-sm font-medium bg-[#FAF6F0] text-[#2A231E] placeholder:text-[#A89F95] transition-colors duration-200 text-left"
+                      @keyup.enter="handleCustomerLogin"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <button
-                @click="submitLogin"
-                :disabled="!customerName.trim() || phoneNumber.length < 9"
-                class="w-full h-12 rounded-xl bg-[#CC8033] text-white text-sm font-bold uppercase tracking-wide shadow-md hover:bg-[#B8722D] disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-200"
-              >
-                Tích điểm ngay
-              </button>
+              <div class="flex gap-2 pt-2">
+                <button
+                  v-if="isNewCustomer"
+                  @click="resetLoginSheet"
+                  class="px-4 h-12 rounded-xl border-2 border-[#EAE3D9] text-[#5C544E] text-xs font-bold transition-all hover:bg-white"
+                >
+                  Quay lại
+                </button>
+                <button
+                  @click="handleCustomerLogin"
+                  class="flex-1 h-12 rounded-xl bg-[#CC8033] text-white text-sm font-bold uppercase tracking-wide shadow-md hover:bg-[#B8722D] transition-colors duration-200"
+                >
+                  {{ isNewCustomer ? 'Đăng ký & Tích điểm' : 'Tiếp tục' }}
+                </button>
+              </div>
             </div>
 
             <button @click="openLoginSheet = false" class="block w-full text-center text-[10px] text-[#A89F95] font-medium mt-5 hover:text-[#8A8178] transition-colors">
@@ -650,8 +807,7 @@
         
         <!-- Header Image -->
         <div class="relative h-48 sm:h-56 shrink-0 bg-[#F5F2ED]">
-          <img v-if="selectedItem?.hinhAnh" :src="selectedItem.hinhAnh" class="w-full h-full object-cover" />
-          <div v-else class="w-full h-full flex items-center justify-center text-[#C5BEB8]"><Coffee class="w-16 h-16" /></div>
+          <img :src="selectedItem?.image" class="w-full h-full object-cover" />
           <div class="absolute inset-0 bg-gradient-to-t from-[#FDFBF7] via-black/10 to-transparent"></div>
           <button @click="itemOptionsOpen = false" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/30 backdrop-blur-md border border-white/40 flex items-center justify-center text-white shadow-lg hover:bg-white/40 transition-colors">
             <X class="w-4 h-4" stroke-width="2.5" />
@@ -661,134 +817,66 @@
         <div class="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 space-y-8">
           <!-- Title & Price -->
           <div class="text-center sm:text-left">
-            <h2 class="font-premium-serif text-3xl font-bold text-[#2A231E] mb-2">{{ selectedItem?.tenSanPham }}</h2>
-            <p class="text-sm text-[#8A8178] font-medium leading-relaxed">{{ selectedItem?.moTa }}</p>
-            <div class="mt-3 font-bold text-2xl text-[#CC8033]">{{ formatVND(selectedItem?.giaBan || 0) }}</div>
+            <h2 class="font-premium-serif text-3xl font-bold text-[#2A231E] mb-2">{{ selectedItem?.name }}</h2>
+            <p class="text-sm text-[#8A8178] font-medium leading-relaxed">{{ selectedItem?.description }}</p>
+            <div class="mt-3 font-bold text-2xl text-[#CC8033]">{{ formatVND(selectedItem?.price || 0) }}</div>
           </div>
-
-          <!-- CHẾ ĐỘ XEM CHI TIẾT (READ-ONLY) -->
-          <div v-if="isViewMode" class="space-y-6">
-            <div class="bg-[#FDFBF7] p-6 rounded-[2rem] border-2 border-[#EAE3D9] shadow-sm relative overflow-hidden">
-               <div class="absolute top-0 right-0 w-32 h-32 bg-[#CC8033]/5 rounded-bl-full -mr-8 -mt-8"></div>
-               
-               <div class="relative z-10 space-y-5">
-                  <div class="flex items-start gap-4">
-                     <div class="w-10 h-10 rounded-xl bg-white border border-[#EAE3D9] flex items-center justify-center shrink-0 shadow-sm"><Coffee class="w-5 h-5 text-[#CC8033]" /></div>
-                     <div>
-                        <span class="text-[10px] uppercase tracking-widest font-bold text-[#8A8178]">Kích cỡ đã chọn</span>
-                        <p class="font-bold text-[#2A231E] text-lg">{{ selectedSizeId ? selectedItem?.kichCos.find(s => (s as any).maKichCo === selectedSizeId)?.tenKichCo : 'Mặc định (M)' }}</p>
-                     </div>
-                  </div>
-
-                  <div class="flex items-start gap-4">
-                     <div class="w-10 h-10 rounded-xl bg-white border border-[#EAE3D9] flex items-center justify-center shrink-0 shadow-sm"><Settings2 class="w-5 h-5 text-[#CC8033]" /></div>
-                     <div>
-                        <span class="text-[10px] uppercase tracking-widest font-bold text-[#8A8178]">Tùy chọn yêu cầu</span>
-                        <p class="font-bold text-[#2A231E]">Đường {{ selectedSugar }} · Đá {{ selectedIce }}</p>
-                     </div>
-                  </div>
-
-                  <div class="pt-2">
-                     <div class="flex items-center gap-2 mb-3">
-                        <span class="text-[10px] uppercase tracking-widest font-bold text-[#8A8178]">Danh sách Topping</span>
-                        <div class="h-px flex-1 bg-[#EAE3D9]/50"></div>
-                     </div>
-                     
-                     <div v-if="Object.values(selectedToppings).some(v => v > 0)" class="grid grid-cols-1 gap-2">
-                        <template v-for="t in availableToppings" :key="t.maSanPham">
-                           <div v-if="selectedToppings[t.maSanPham]" class="flex justify-between items-center p-3 rounded-xl bg-white border border-[#EAE3D9]/60 shadow-sm">
-                              <span class="font-bold text-[#2A231E] text-sm">{{ t.tenSanPham }}</span>
-                              <div class="flex items-center gap-2">
-                                 <span class="text-xs font-bold text-[#8A8178]">{{ formatVND(t.giaBan) }}</span>
-                                 <span class="px-2 py-0.5 rounded-md bg-[#FFF9F2] text-[#CC8033] text-[10px] font-bold border border-[#CC8033]/20">x{{ selectedToppings[t.maSanPham] }}</span>
-                              </div>
-                           </div>
-                        </template>
-                     </div>
-                     <div v-else class="p-4 rounded-xl bg-white/50 border border-dashed border-[#EAE3D9] text-center">
-                        <p class="text-xs font-bold text-[#B5ADA3]">Không có Topping kèm theo</p>
-                     </div>
-                  </div>
-
-                  <div v-if="itemNote" class="pt-2">
-                     <span class="text-[10px] uppercase tracking-widest font-bold text-[#8A8178]">Ghi chú của bạn</span>
-                     <div class="mt-2 p-4 rounded-xl bg-[#FFF9F2]/50 border border-[#CC8033]/10 italic text-sm text-[#D97724]">
-                        "{{ itemNote }}"
-                     </div>
-                  </div>
-               </div>
-            </div>
-          </div>
-
-          <!-- CHẾ ĐỘ CHỈNH SỬA / THÊM MỚI -->
-          <div v-else class="space-y-8">
 
           <!-- Kích cỡ (Size) -->
-          <div v-if="selectedItem?.kichCos?.length" class="space-y-4">
+          <div class="space-y-4">
             <h3 class="text-[11px] uppercase tracking-[0.15em] font-bold text-[#8A8178] flex items-center gap-2"><Coffee class="w-4 h-4" /> Chọn Kích Cỡ</h3>
             <div class="grid grid-cols-2 gap-3">
-              <button 
-                type="button" 
-                @click="selectedSizeId = null" 
-                class="flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer shadow-sm relative overflow-hidden group transition-all text-left" 
-                :class="selectedSizeId === null ? 'border-[#CC8033] bg-[#FFF9F2]' : 'border-[#EAE3D9] bg-white hover:border-[#CC8033]/50'"
-              >
-                <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedSizeId === null ? 'border-[#CC8033]' : 'border-[#EAE3D9]'">
-                  <div class="w-2.5 h-2.5 rounded-full bg-[#CC8033] transition-transform" :class="selectedSizeId === null ? 'scale-100' : 'scale-0'"></div>
+              <button type="button" @click="selectedSize = 'M'" class="flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer shadow-sm relative overflow-hidden group transition-all text-left" :class="selectedSize === 'M' ? 'border-[#CC8033] bg-[#FFF9F2]' : 'border-[#EAE3D9] bg-white hover:border-[#CC8033]/50'">
+                <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedSize === 'M' ? 'border-[#CC8033]' : 'border-[#EAE3D9]'">
+                  <div class="w-2.5 h-2.5 rounded-full bg-[#CC8033] transition-transform" :class="selectedSize === 'M' ? 'scale-100' : 'scale-0'"></div>
                 </div>
-                <span class="text-sm font-bold text-[#2A231E]">Mặc định <span class="block text-[#8A8178] text-xs font-medium mt-0.5">+ 0đ</span></span>
+                <span class="text-sm font-bold text-[#2A231E]">Vừa (M) <span class="block text-[#8A8178] text-xs font-medium mt-0.5">+ 0đ</span></span>
+                <div v-if="selectedSize === 'M'" class="absolute right-0 bottom-0 w-12 h-12 bg-[#CC8033]/5 rounded-tl-full transition-transform group-hover:scale-110"></div>
               </button>
 
-              <button 
-                v-for="s in selectedItem.kichCos" 
-                :key="s.maKichCo"
-                type="button" 
-                @click="selectedSizeId = s.maKichCo" 
-                class="flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer shadow-sm relative overflow-hidden group transition-all text-left" 
-                :class="selectedSizeId === s.maKichCo ? 'border-[#CC8033] bg-[#FFF9F2]' : 'border-[#EAE3D9] bg-white hover:border-[#CC8033]/50'"
-              >
-                <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedSizeId === s.maKichCo ? 'border-[#CC8033]' : 'border-[#EAE3D9]'">
-                  <div class="w-2.5 h-2.5 rounded-full bg-[#CC8033] transition-transform" :class="selectedSizeId === s.maKichCo ? 'scale-100' : 'scale-0'"></div>
+              <button type="button" @click="selectedSize = 'L'" class="flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer shadow-sm relative overflow-hidden group transition-all text-left" :class="selectedSize === 'L' ? 'border-[#CC8033] bg-[#FFF9F2]' : 'border-[#EAE3D9] bg-white hover:border-[#CC8033]/50'">
+                <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedSize === 'L' ? 'border-[#CC8033]' : 'border-[#EAE3D9]'">
+                  <div class="w-2.5 h-2.5 rounded-full bg-[#CC8033] transition-transform" :class="selectedSize === 'L' ? 'scale-100' : 'scale-0'"></div>
                 </div>
-                <span class="text-sm font-bold text-[#2A231E]">{{ s.tenKichCo }} <span class="block text-[#CC8033] text-xs font-bold mt-0.5">+ {{ formatVND(s.giaCongThem) }}</span></span>
+                <span class="text-sm font-bold text-[#2A231E]">Lớn (L) <span class="block text-[#CC8033] text-xs font-bold mt-0.5">+ 10.000đ</span></span>
+                <div v-if="selectedSize === 'L'" class="absolute right-0 bottom-0 w-12 h-12 bg-[#CC8033]/5 rounded-tl-full transition-transform group-hover:scale-110"></div>
               </button>
             </div>
           </div>
 
           <!-- Topping -->
-          <div v-if="selectedItem?.tenDanhMuc !== 'Bánh'" class="space-y-4">
+          <div v-if="selectedItem?.category !== 'pastry'" class="space-y-4">
             <h3 class="text-[11px] uppercase tracking-[0.15em] font-bold text-[#8A8178] flex items-center gap-2"><Plus class="w-4 h-4" /> Thêm Topping</h3>
             
             <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4">
-              <div v-for="topping in availableToppings" :key="topping.maSanPham" class="relative flex flex-col p-2 rounded-2xl bg-white transition-all group" :class="(selectedToppings[topping.maSanPham] || 0) > 0 ? 'border-2 border-[#CC8033] shadow-md bg-[#FFF9F2]' : 'border-2 border-[#EAE3D9] shadow-sm hover:shadow-md'">
-                <div class="w-full aspect-[4/3] rounded-xl overflow-hidden bg-[#F5F2ED] mb-2.5 relative z-10 cursor-pointer" @click="updateTopping(topping.maSanPham, 1)">
-                  <img v-if="topping.hinhAnh" :src="topping.hinhAnh" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                  <div v-else class="w-full h-full flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">🧋</div>
-                  <div class="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent transition-opacity" :class="(selectedToppings[topping.maSanPham] || 0) > 0 ? 'opacity-100' : 'opacity-0'"></div>
+              <div v-for="topping in availableToppings" :key="topping.id" class="relative flex flex-col p-2 rounded-2xl bg-white transition-all group" :class="(selectedToppings[topping.id] || 0) > 0 ? 'border-2 border-[#CC8033] shadow-md bg-[#FFF9F2]' : 'border-2 border-[#EAE3D9] shadow-sm hover:shadow-md'">
+                <div class="w-full aspect-[4/3] rounded-xl overflow-hidden bg-[#F5F2ED] mb-2.5 relative z-10 cursor-pointer" @click="updateTopping(topping.id, 1)">
+                  <img :src="topping.image" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <div class="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent transition-opacity" :class="(selectedToppings[topping.id] || 0) > 0 ? 'opacity-100' : 'opacity-0'"></div>
                   
                   <!-- Quantity Badge -->
-                  <div v-if="(selectedToppings[topping.maSanPham] || 0) > 0" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[#CC8033] border-2 border-white flex items-center justify-center shadow-md">
-                    <span class="text-white text-[10px] font-bold">x{{ selectedToppings[topping.maSanPham] }}</span>
+                  <div v-if="(selectedToppings[topping.id] || 0) > 0" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[#CC8033] border-2 border-white flex items-center justify-center shadow-md">
+                    <span class="text-white text-[10px] font-bold">x{{ selectedToppings[topping.id] }}</span>
                   </div>
                 </div>
                 
                 <div class="text-center w-full px-1 z-10 pb-1 flex flex-col items-center flex-1 justify-between">
                   <div>
-                    <div class="text-[11px] sm:text-xs font-bold text-[#2A231E] leading-tight line-clamp-1">{{ topping.tenSanPham }}</div>
-                    <div class="text-[10px] font-bold text-[#CC8033] mt-0.5">+ {{ formatVND(topping.giaBan) }}</div>
+                    <div class="text-[11px] sm:text-xs font-bold text-[#2A231E] leading-tight line-clamp-1">{{ topping.name }}</div>
+                    <div class="text-[10px] font-bold text-[#CC8033] mt-0.5">+ {{ formatVND(topping.price) }}</div>
                   </div>
                   
                   <!-- Quantity Controls -->
-                  <div v-if="(selectedToppings[topping.maSanPham] || 0) > 0" class="flex items-center justify-between w-full mt-2 px-1">
-                    <button @click.stop="updateTopping(topping.maSanPham, -1)" class="w-6 h-6 rounded-full bg-white border border-[#EAE3D9] flex items-center justify-center text-[#8A8178] hover:bg-[#F5F2ED] shadow-sm">
+                  <div v-if="(selectedToppings[topping.id] || 0) > 0" class="flex items-center justify-between w-full mt-2 px-1">
+                    <button @click.stop="updateTopping(topping.id, -1)" class="w-6 h-6 rounded-full bg-white border border-[#EAE3D9] flex items-center justify-center text-[#8A8178] hover:bg-[#F5F2ED] shadow-sm">
                       <Minus class="w-3 h-3" stroke-width="3" />
-                     </button>
-                    <span class="text-xs font-bold text-[#CC8033]">{{ selectedToppings[topping.maSanPham] }}</span>
-                    <button @click.stop="updateTopping(topping.maSanPham, 1)" class="w-6 h-6 rounded-full bg-[#CC8033] flex items-center justify-center text-white hover:bg-[#B8722D] shadow-sm">
+                    </button>
+                    <span class="text-xs font-bold text-[#CC8033]">{{ selectedToppings[topping.id] }}</span>
+                    <button @click.stop="updateTopping(topping.id, 1)" class="w-6 h-6 rounded-full bg-[#CC8033] flex items-center justify-center text-white hover:bg-[#B8722D] shadow-sm">
                       <Plus class="w-3 h-3" stroke-width="3" />
                     </button>
                   </div>
-                  <button v-else @click.stop="updateTopping(topping.maSanPham, 1)" class="w-full mt-2 py-1.5 rounded-lg bg-[#F5F2ED] text-[#8A8178] text-[10px] font-bold uppercase tracking-wider hover:bg-[#EAE3D9] transition-colors border border-transparent">
+                  <button v-else @click.stop="updateTopping(topping.id, 1)" class="w-full mt-2 py-1.5 rounded-lg bg-[#F5F2ED] text-[#8A8178] text-[10px] font-bold uppercase tracking-wider hover:bg-[#EAE3D9] transition-colors border border-transparent">
                     Thêm
                   </button>
                 </div>
@@ -840,30 +928,23 @@
               class="w-full p-4 rounded-2xl border border-[#EAE3D9] focus:border-[#CC8033] focus:ring-1 focus:ring-[#CC8033] bg-[#FAF6F0] outline-none text-sm font-medium text-[#2A231E] resize-none transition-colors shadow-inner"
             ></textarea>
           </div>
-        </div> <!-- Kết thúc v-if/v-else -->
-      </div> <!-- Kết thúc phần Body cuộn -->
+        </div>
 
-      <!-- Footer Add to cart -->
-      <div class="p-6 bg-white border-t border-[#EAE3D9] shadow-[0_-10px_30px_rgba(42,35,30,0.06)] shrink-0 flex items-center justify-center gap-4">
+        <!-- Footer Add to cart -->
+        <div class="p-6 bg-white border-t border-[#EAE3D9] shadow-[0_-10px_30px_rgba(42,35,30,0.06)] shrink-0 flex items-center justify-center gap-4">
           <div class="flex w-full items-center gap-4">
-            <div class="flex items-center bg-[#F5F2ED] rounded-2xl border border-[#EAE3D9] p-1.5 shadow-inner h-[60px]" :class="{'opacity-50 pointer-events-none': isViewMode}">
-              <button @click="changeQuantity(-1)" :disabled="quantity <= 1" class="w-11 h-full rounded-xl flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all disabled:opacity-40">
+            <div class="flex items-center bg-[#F5F2ED] rounded-2xl border border-[#EAE3D9] p-1.5 shadow-inner h-[60px]">
+              <button @click="changeQuantity(-1)" :disabled="quantity <= 1" class="w-11 h-full rounded-xl flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                 <Minus class="w-4 h-4" stroke-width="2.5" />
               </button>
               <span class="w-12 text-center text-lg font-bold text-[#2A231E]">{{ quantity }}</span>
-              <button @click="changeQuantity(1)" class="w-11 h-full rounded-xl flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
+              <button @click="changeQuantity(1)" class="w-11 h-full rounded-xl flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-colors">
                 <Plus class="w-4 h-4" stroke-width="2.5" />
               </button>
             </div>
-            
-            <button v-if="isViewMode" @click="itemOptionsOpen = false" class="flex-1 h-[60px] rounded-2xl bg-[#4A3224] hover:bg-[#2A231E] text-white flex items-center justify-center gap-3 shadow-xl transition-colors">
-              <span class="text-sm font-bold uppercase tracking-widest">Đóng chi tiết</span>
-            </button>
-            <button v-else @click="submitOptions" class="flex-1 h-[60px] rounded-2xl bg-[#D97724] hover:bg-[#C2661B] text-white flex items-center justify-center gap-3 shadow-xl transition-colors">
-              <span class="text-sm font-bold uppercase tracking-widest">
-                {{ editingLineId ? 'Cập nhật món' : 'Đặt ngay' }}
-              </span>
-              <span class="text-sm font-bold opacity-90">• {{ formatVND(((selectedItem?.giaBan || 0) + currentOptionsTotalExtra) * quantity) }}</span>
+            <button @click="submitOptions" class="flex-1 h-[60px] rounded-2xl bg-[#D97724] hover:bg-[#C2661B] text-white flex items-center justify-center gap-3 shadow-xl transition-colors">
+              <span class="text-sm font-bold uppercase tracking-widest">Đặt ngay</span>
+              <span class="text-sm font-bold opacity-90">• {{ formatVND(((selectedItem?.price || 0) + currentOptionsTotalExtra) * quantity) }}</span>
             </button>
           </div>
         </div>
@@ -901,84 +982,38 @@
         </div>
       </TransitionGroup>
     </div>
-
-    <!-- Modal Xác Nhận Xóa (Custom Design) -->
-    <Transition name="sheet-backdrop">
-      <div v-if="confirmDeleteOpen" class="fixed inset-0 z-[110] bg-[#1A1512]/40 backdrop-blur-sm" @click="confirmDeleteOpen = false"></div>
-    </Transition>
-    <Transition name="fade-scale">
-      <div v-if="confirmDeleteOpen" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[111] w-[90%] max-w-[340px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(42,35,30,0.3)] p-8 text-center border border-[#EAE3D9]/50 overflow-hidden">
-        <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#EF4444] to-[#D97724]"></div>
-        
-        <div class="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-5 text-red-500">
-          <Trash2 class="w-7 h-7" stroke-width="2.5" />
-        </div>
-        
-        <h3 class="font-premium-serif text-xl font-bold text-[#2A231E] mb-3">Xác nhận xóa?</h3>
-        <p class="text-[13px] text-[#8A8178] font-medium leading-relaxed mb-8 px-2">
-          Bạn có chắc muốn xóa món này khỏi đơn hàng không? Hành động này không thể hoàn tác.
-        </p>
-        
-        <div class="flex flex-col gap-3">
-          <button @click="confirmDelete" class="w-full py-4 rounded-2xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold shadow-lg shadow-red-500/20 transition-all active:scale-[0.98]">
-            Xóa món này
-          </button>
-          <button @click="confirmDeleteOpen = false" class="w-full py-4 rounded-2xl bg-[#F5F2ED] text-[#5C544E] text-sm font-bold hover:bg-[#EAE3D9] transition-all">
-            Để tôi xem lại
-          </button>
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ShoppingBag, Plus, Minus, Trash2, Coffee, X, ChevronLeft, ChevronRight, Gift, CheckCircle2, User, Check, AlertCircle, Search, Star, Settings2, Sparkles, Eye, History } from 'lucide-vue-next'
-import { ordersApi, type MenuItem, type MenuSize } from '@/services/orders'
+import { ShoppingBag, Plus, Minus, Trash2, Coffee, X, ChevronLeft, ChevronRight, Gift, CheckCircle2, User, Check, AlertCircle, Search, Star, Settings2, Sparkles, Mail, Ticket } from 'lucide-vue-next'
+import { menuItems, categories, formatVND, type Category } from '@/data/menu'
 import { useCartStore } from '@/stores/cart'
+import { useOrderStore } from '@/stores/orders'
 import { useStoreInfoStore } from '@/stores/storeInfo'
 import Button from '@/components/ui/Button.vue'
 import ChatbotWidget from '@/components/ChatbotWidget.vue'
-import ServiceRequestFAB from '@/components/ServiceRequestFAB.vue'
+import { loyaltyApi } from '@/services/loyalty'
+import { promotionsApi } from '@/services/promotions'
 
 const route = useRoute()
 const router = useRouter()
 const tableId = route.params.tableId || "5"
-const activeCat = ref<any>("all")
+const activeCat = ref<Category | "all">("all")
 const search = ref("")
 const open = ref(false)
 const openLoginSheet = ref(false)
 const phoneNumber = ref('')
 const customerName = ref('')
+const customerEmail = ref('')
+const customerPoints = ref(0)
+const customerTier = ref('Đồng')
+const isNewCustomer = ref(false)
 const cart         = useCartStore()
+const orderStore   = useOrderStore()
 const storeInfoStore = useStoreInfoStore()
-
-// --- REAL DATA FROM BACKEND ---
-const menu = ref<MenuItem[]>([])
-const loading = ref(false)
-const formatVND = (n: number) => (n || 0).toLocaleString('vi-VN') + 'đ'
-
-onMounted(async () => {
-  localStorage.setItem('customerTableId', tableId.toString())
-  loading.value = true
-  try {
-    menu.value = await ordersApi.menu()
-  } catch (e) {
-    console.error('Lỗi tải menu:', e)
-  } finally {
-    loading.value = false
-  }
-})
-
-const categories = computed(() => {
-  const cats = Array.from(new Set(menu.value.filter(m => m.kieuMon !== 'Topping').map(m => m.tenDanhMuc).filter(Boolean)))
-  return [
-    { id: 'all', label: 'Tất cả' },
-    ...cats.map(c => ({ id: c, label: c }))
-  ]
-})
 
 const toasts = ref<{ id: number, title?: string, message: string, type: 'success' | 'error' }[]>([])
 let toastId = 0
@@ -1000,91 +1035,235 @@ const toast = {
 }
 
 const customerPhone = ref('')
-const usePoints = ref(false)
+const selectedRewardPoints = ref<number>(0)
+const usePoints = computed({
+  get: () => selectedRewardPoints.value > 0,
+  set: (val) => {
+    if (!val) selectedRewardPoints.value = 0
+  }
+})
+
+const pointsDiscount = computed(() => {
+  const pts = selectedRewardPoints.value
+  if (pts === 50) return 20000
+  if (pts === 100) return 10000
+  if (pts === 200) return Math.round(cart.total() * 0.1)
+  if (pts === 350) return 35000
+  if (pts === 500) return 50000
+  return 0
+})
+
+const availableRewards = ref<{ id: number; name: string; cost: number; description?: string }[]>([])
+
+const loadRewards = async () => {
+  try {
+    availableRewards.value = await loyaltyApi.getPublicRewards()
+  } catch (e) {
+    console.error('Không tải được danh sách ưu đãi đổi điểm:', e)
+    // Fallback rewards
+    availableRewards.value = [
+      { id: 1, name: 'Free 1 topping', cost: 100 },
+      { id: 2, name: 'Giảm 10% hóa đơn', cost: 200 },
+      { id: 3, name: 'Tặng 1 ly cà phê', cost: 350 },
+      { id: 4, name: 'Voucher 50.000đ', cost: 500 },
+    ]
+  }
+}
+
+const customerId = ref<number | null>(null)
+const otpModalOpen = ref(false)
+const otpCode = ref('')
+const otpError = ref('')
+const otpBusy = ref(false)
+const otpSent = ref(false)
+
+watch(selectedRewardPoints, async (newVal) => {
+  if (newVal > 0) {
+    if (customerPoints.value < newVal) {
+      toast.error('Không đủ điểm', `Bạn cần tối thiểu ${newVal} điểm thưởng để đổi ưu đãi này.`)
+      selectedRewardPoints.value = 0
+      return
+    }
+    otpCode.value = ''
+    otpError.value = ''
+    otpModalOpen.value = true
+    otpSent.value = false
+    await triggerSendOtp()
+  }
+})
+
+const triggerSendOtp = async () => {
+  if (!customerId.value) {
+    toast.error('Lỗi danh tính', 'Vui lòng đăng nhập tài khoản thành viên để nhận mã OTP.')
+    otpModalOpen.value = false
+    selectedRewardPoints.value = 0
+    return
+  }
+  otpBusy.value = true
+  try {
+    await loyaltyApi.sendPublicOtp(customerId.value)
+    otpSent.value = true
+    toast.success('Đã gửi mã OTP', 'Mã xác thực đã được gửi về email của bạn!')
+  } catch (e: any) {
+    toast.error('Lỗi gửi OTP', e.message || 'Không thể gửi mã OTP.')
+    otpModalOpen.value = false
+    selectedRewardPoints.value = 0
+  } finally {
+    otpBusy.value = false
+  }
+}
+
+const verifyAndRedeem = async () => {
+  if (!otpCode.value.trim()) {
+    otpError.value = 'Vui lòng nhập mã OTP!'
+    return
+  }
+  if (!customerId.value) return
+  
+  otpBusy.value = true
+  otpError.value = ''
+  try {
+    const res = await loyaltyApi.redeemPublicPoints(
+      customerId.value, 
+      selectedRewardPoints.value, 
+      otpCode.value.trim()
+    )
+    customerPoints.value = res.points
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const profile = JSON.parse(saved)
+      profile.points = res.points
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(profile))
+    }
+    toast.success('Đổi điểm thành công', `Đã khấu trừ ${selectedRewardPoints.value} điểm và áp dụng giảm giá!`)
+    otpModalOpen.value = false
+  } catch (e: any) {
+    otpError.value = e.message || 'Mã OTP không chính xác.'
+    selectedRewardPoints.value = 0
+  } finally {
+    otpBusy.value = false
+  }
+}
+
+const cancelOtp = () => {
+  otpModalOpen.value = false
+  selectedRewardPoints.value = 0
+}
+
+const handleLogout = () => {
+  localStorage.removeItem(STORAGE_KEY)
+  customerEmail.value = ''
+  customerPhone.value = ''
+  customerName.value = ''
+  customerPoints.value = 0
+  customerTier.value = 'Đồng'
+  customerId.value = null
+  selectedRewardPoints.value = 0
+  toast.success('Đã đăng xuất', 'Bạn đã đăng xuất tài khoản thành viên.')
+}
+
+const savedVouchers = ref<string[]>([])
+const voucherCode = ref('')
+const voucherError = ref('')
+const appliedPromo = ref<any>(null)
+const promoBusy = ref(false)
+
+const loadSavedVouchers = () => {
+  try {
+    const key = 'savedVouchers'
+    savedVouchers.value = JSON.parse(localStorage.getItem(key) || '[]')
+  } catch (e) {
+    savedVouchers.value = []
+  }
+}
+
+const applySavedVoucher = (code: string) => {
+  voucherCode.value = code
+  applyVoucherCode(code)
+}
+
+const applyVoucherCode = async (code: string) => {
+  if (!code.trim()) return
+  voucherError.value = ''
+  promoBusy.value = true
+  try {
+    const res = await promotionsApi.preview(cart.total(), { code })
+    appliedPromo.value = res
+  } catch (e: any) {
+    voucherError.value = e.message || 'Mã giảm giá không hợp lệ.'
+    appliedPromo.value = null
+  } finally {
+    promoBusy.value = false
+  }
+}
+
+const clearPromo = () => {
+  appliedPromo.value = null
+  voucherCode.value = ''
+  voucherError.value = ''
+}
 
 const selectedItem = ref<any>(null)
 const itemOptionsOpen = ref(false)
 
-const availableToppings = computed(() => menu.value.filter(m => m.kieuMon === 'Topping'))
+const availableToppings = [
+  { id: 'tran_chau_den', name: 'Trân châu đen', price: 10000, image: '/toppings/tran_chau_den.png' },
+  { id: 'tran_chau_trang', name: 'Trân châu trắng', price: 15000, image: '/toppings/tran_chau_trang.png' },
+  { id: 'thach_pho_mai', name: 'Thạch phô mai', price: 15000, image: '/toppings/thach_pho_mai.png' },
+  { id: 'pudding', name: 'Pudding', price: 15000, image: '/toppings/pudding.png' },
+  { id: 'thach_suong_sao', name: 'Thạch sương sáo', price: 10000, image: '/toppings/thach_suong_sao.png' },
+]
 
 const selectedToppings = ref<Record<string, number>>({})
 const itemNote = ref('')
-const selectedSizeId = ref<number | null>(null)
+const selectedSize = ref('M')
 const selectedSugar = ref('100%')
 const selectedIce = ref('100%')
 const quantity = ref(1)
-const isViewMode = ref(false)
-const editingLineId = ref<string | null>(null)
-const confirmDeleteOpen = ref(false)
-const itemToDelete = ref<string | null>(null)
 
 const changeQuantity = (delta: number) => {
   quantity.value = Math.max(1, quantity.value + delta)
 }
 
 const currentOptionsTotalExtra = computed(() => {
-  let extra = 0
-  if (selectedItem.value) {
-    const size = selectedItem.value.kichCos.find((s: any) => s.maKichCo === selectedSizeId.value)
-    if (size) extra += size.giaCongThem
-  }
-  for (const t of availableToppings.value) {
-    if (selectedToppings.value[t.maSanPham]) {
-      extra += (selectedToppings.value[t.maSanPham] || 0) * t.giaBan
+  let extra = selectedSize.value === 'L' ? 10000 : 0
+  for (const t of availableToppings) {
+    if (selectedToppings.value[t.id]) {
+      extra += (selectedToppings.value[t.id] || 0) * t.price
     }
   }
   return extra
 })
 
-const updateTopping = (maSanPham: number, delta: number) => {
-  if (!selectedToppings.value[maSanPham]) selectedToppings.value[maSanPham] = 0
-  if (selectedToppings.value[maSanPham] + delta >= 0) {
-    selectedToppings.value[maSanPham] += delta
+const updateTopping = (id: string, delta: number) => {
+  if (!selectedToppings.value[id]) selectedToppings.value[id] = 0
+  if (selectedToppings.value[id] + delta >= 0) {
+    selectedToppings.value[id] += delta
   }
 }
 
-const openItemOptions = (m: any, editingLine?: any, viewOnly = false) => {
+const openItemOptions = (m: any) => {
   selectedItem.value = m
-  selectedToppings.value = {}
-  itemNote.value = ''
-  selectedSizeId.value = null
+  selectedToppings.value = {} // reset toppings when opening
+  itemNote.value = '' // reset note
+  selectedSize.value = 'M'
   selectedSugar.value = '100%'
   selectedIce.value = '100%'
   quantity.value = 1
-  
-  isViewMode.value = viewOnly
-  editingLineId.value = editingLine?.cartLineId || null
-
-  if (editingLine && editingLine.options) {
-    const opt = editingLine.options
-    selectedSizeId.value = opt.maKichCo
-    selectedSugar.value = opt.sugar
-    selectedIce.value = opt.ice
-    itemNote.value = opt.note
-    quantity.value = editingLine.qty
-    // Topping
-    opt.toppings.forEach((t: any) => {
-      selectedToppings.value[t.maSanPham] = t.qty
-    })
-  }
-
   itemOptionsOpen.value = true
 }
 
 const submitOptions = () => {
   const toppingsArr = []
-  for (const t of availableToppings.value) {
-    const qty = selectedToppings.value[t.maSanPham] || 0
+  for (const t of availableToppings) {
+    const qty = selectedToppings.value[t.id] || 0
     if (qty > 0) {
-      toppingsArr.push({ maSanPham: t.maSanPham, name: t.tenSanPham, price: t.giaBan, qty, hinhAnh: t.hinhAnh })
+      toppingsArr.push({ name: t.name, price: t.price, qty })
     }
   }
 
-  const selSize = selectedItem.value?.kichCos.find((s: any) => s.maKichCo === selectedSizeId.value)
-
   const options = {
-    maKichCo: selectedSizeId.value,
-    size: selSize?.tenKichCo || 'M',
+    size: selectedSize.value,
     sugar: selectedSugar.value,
     ice: selectedIce.value,
     toppings: toppingsArr,
@@ -1092,17 +1271,11 @@ const submitOptions = () => {
     extraPrice: currentOptionsTotalExtra.value
   }
 
-  if (editingLineId.value) {
-    cart.updateOptions(editingLineId.value, options)
-    cart.setQty(editingLineId.value, quantity.value)
-    toast.success('Đã cập nhật', 'Thông tin món ăn của bạn đã được cập nhật.')
-  } else {
-    cart.add(selectedItem.value, options)
-    const addedLine = cart.lines[cart.lines.length - 1]
-    if (addedLine && quantity.value > 1) {
-      cart.setQty(addedLine.cartLineId, quantity.value)
-    }
-    toast.success('Thêm thành công', `Đã thêm món ${selectedItem.value.tenSanPham} vào giỏ hàng.`)
+  cart.add(selectedItem.value, options)
+  // Áp dụng số lượng đã chọn cho dòng vừa thêm
+  const addedLine = cart.lines[cart.lines.length - 1]
+  if (addedLine && quantity.value > 1) {
+    cart.setQty(addedLine.cartLineId, quantity.value)
   }
 
   itemOptionsOpen.value = false
@@ -1115,11 +1288,108 @@ const loginBenefits = [
   { emoji: '🎂', label: 'Ưu đãi sinh nhật' },
 ]
 
-const submitLogin = () => {
-  if (!customerName.value.trim() || phoneNumber.value.length < 9) return
-  customerPhone.value = phoneNumber.value
-  toast.success('Đã tích điểm thành viên', `Chào ${customerName.value.trim()}! Điểm sẽ được cộng vào đơn này.`)
-  openLoginSheet.value = false
+const STORAGE_KEY = 'brewCustomerProfile'
+
+const syncCustomerStatus = async () => {
+  const saved = localStorage.getItem(STORAGE_KEY)
+  if (saved) {
+    try {
+      const basic = JSON.parse(saved)
+      if (basic && basic.email) {
+        try {
+          const res = await loyaltyApi.checkPublicEmail(basic.email)
+          customerEmail.value = res.email
+          customerPhone.value = res.phone
+          customerName.value = res.name
+          customerPoints.value = res.points
+          customerTier.value = res.tier
+          customerId.value = res.id
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(res))
+        } catch (e) {
+          customerEmail.value = basic.email
+          customerPhone.value = basic.phone || ''
+          customerName.value = basic.name || ''
+          customerPoints.value = basic.points || 0
+          customerTier.value = basic.tier || 'Đồng'
+          customerId.value = basic.id || null
+        }
+      }
+    } catch (e) {
+      customerEmail.value = ''
+      customerPhone.value = ''
+      customerName.value = ''
+      customerPoints.value = 0
+      customerTier.value = ''
+      customerId.value = null
+    }
+  }
+}
+
+onMounted(() => {
+  syncCustomerStatus()
+  loadSavedVouchers()
+  loadRewards()
+})
+
+const resetLoginSheet = () => {
+  isNewCustomer.value = false
+  customerName.value = ''
+  phoneNumber.value = ''
+}
+
+const handleCustomerLogin = async () => {
+  const emailVal = customerEmail.value.trim().toLowerCase()
+  if (!emailVal) {
+    toast.error('Nhập email', 'Vui lòng điền địa chỉ email!')
+    return
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+    toast.error('Nhập email', 'Địa chỉ email không hợp lệ!')
+    return
+  }
+
+  if (isNewCustomer.value) {
+    const nameVal = customerName.value.trim()
+    const phoneVal = phoneNumber.value.trim()
+    if (!nameVal) {
+      toast.error('Đăng ký hội viên', 'Vui lòng nhập họ và tên!')
+      return
+    }
+    if (!phoneVal || !/^0\d{9}$/.test(phoneVal)) {
+      toast.error('Đăng ký hội viên', 'Số điện thoại không hợp lệ!')
+      return
+    }
+
+    try {
+      const customer = await loyaltyApi.registerPublic({ name: nameVal, phone: phoneVal, email: emailVal })
+      toast.success('Đăng ký thành công', `Chào mừng hội viên mới ${customer.name}!`)
+      customerEmail.value = customer.email || emailVal
+      customerPhone.value = customer.phone
+      customerName.value = customer.name
+      customerPoints.value = customer.points
+      customerTier.value = customer.tier
+      customerId.value = customer.id
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(customer))
+      openLoginSheet.value = false
+    } catch (err: any) {
+      toast.error('Lỗi đăng ký', err.message || 'Không thể đăng ký thành viên.')
+    }
+  } else {
+    try {
+      const customer = await loyaltyApi.checkPublicEmail(emailVal)
+      toast.success('Đăng nhập thành công', `Chào mừng ${customer.name} trở lại!`)
+      customerEmail.value = customer.email || emailVal
+      customerPhone.value = customer.phone
+      customerName.value = customer.name
+      customerPoints.value = customer.points
+      customerTier.value = customer.tier
+      customerId.value = customer.id
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(customer))
+      openLoginSheet.value = false
+    } catch (err: any) {
+      isNewCustomer.value = true
+    }
+  }
 }
 
 // --- LOGIC LỌC VÀ PHÂN TRANG ---
@@ -1127,15 +1397,14 @@ const itemsPerPage = 8
 const currentPage = ref(1)
 
 const filtered = computed(() => {
-  let items = menu.value.filter(m => m.kieuMon !== 'Topping')
-  if (activeCat.value !== "all") {
-    items = items.filter((m) => m.tenDanhMuc === activeCat.value)
-  }
+  let items = activeCat.value === "all"
+    ? menuItems
+    : menuItems.filter((m) => m.category === activeCat.value)
   const q = search.value.trim().toLowerCase()
   if (q) {
     items = items.filter((m) =>
-      m.tenSanPham.toLowerCase().includes(q) ||
-      (m.moTa?.toLowerCase().includes(q) ?? false)
+      m.name.toLowerCase().includes(q) ||
+      (m.description?.toLowerCase().includes(q) ?? false)
     )
   }
   return items
@@ -1167,61 +1436,42 @@ const goToPage = (page: number) => {
 
 const addToCart = (m: any) => {
   cart.add(m)
-  toast.success('Thêm thành công', `${m.tenSanPham} đã được thêm vào giỏ.`)
 }
 
-const removeWithConfirm = (cartLineId: string) => {
-  itemToDelete.value = cartLineId
-  confirmDeleteOpen.value = true
-}
-
-const confirmDelete = () => {
-  if (itemToDelete.value) {
-    cart.remove(itemToDelete.value)
-    toast.success('Đã xóa', 'Món ăn đã được xóa khỏi đơn thành công.')
-    confirmDeleteOpen.value = false
-    itemToDelete.value = null
-  }
-}
-
-const handleOrder = async () => {
+const handleOrder = () => {
   if (cart.lines.length === 0) return
 
-  try {
-    const itemsList: any[] = []
-    cart.lines.forEach(l => {
-      // Món chính
-      itemsList.push({
-        maSanPham: l.item.maSanPham,
-        maKichCo: l.options?.maKichCo || null,
-        soLuong: l.qty,
-        ghiChuMon: l.options?.note || null
-      })
-      // Topping đi kèm (nếu Backend thiết kế topping là line riêng)
-      l.options?.toppings?.forEach((t: any) => {
-        itemsList.push({
-          maSanPham: t.maSanPham,
-          maKichCo: null,
-          soLuong: t.qty * l.qty,
-          ghiChuMon: `Topping · ${l.item.tenSanPham}`
-        })
-      })
-    })
+  // Chuyển giỏ hàng thành các dòng món của đơn (gộp topping/size vào ghi chú)
+  const items = cart.lines.map(l => {
+    const opt = l.options
+    const noteParts: string[] = []
+    if (opt?.size) noteParts.push(`Size ${opt.size}`)
+    if (opt?.sugar) noteParts.push(`Đường ${opt.sugar}`)
+    if (opt?.ice) noteParts.push(`Đá ${opt.ice}`)
+    if (opt?.toppings?.length) noteParts.push(opt.toppings.map(t => `${t.name}${t.qty > 1 ? ' x' + t.qty : ''}`).join(', '))
+    if (opt?.note) noteParts.push(opt.note)
+    return {
+      name: l.item.name,
+      qty: l.qty,
+      price: l.item.price + (opt?.extraPrice || 0),
+      note: noteParts.join(' · ') || undefined,
+    }
+  })
 
-    await ordersApi.create({
-      maBan: parseInt(tableId),
-      items: itemsList,
-      ghiChuDonHang: null
-    })
+  // Tạo đơn thật trong store → đơn này sẽ xuất hiện ở Bếp và trang Đơn hàng
+  const order = orderStore.createOrder({
+    table: `Bàn ${tableId}`,
+    items,
+    customer: customerName.value || undefined,
+    pointsDiscount: pointsDiscount.value,
+    promoDiscount: appliedPromo.value?.tienGiam ?? 0,
+    maKhuyenMai: appliedPromo.value?.maKhuyenMai,
+  })
 
-    toast.success('Gửi đơn thành công', `Đơn hàng đã được gửi đi. Đang chờ pha chế.`)
-    cart.clear()
-    open.value = false
-    // Chuyển sang lịch sử đơn của khách (giả sử có route này)
-    setTimeout(() => router.push(`/lich-su-don`), 1500)
-  } catch (e) {
-    toast.error('Lỗi khi gửi đơn', e instanceof Error ? e.message : 'Vui lòng thử lại sau')
-  }
+  toast.success('Gửi đơn thành công', `Đơn ${order.id} đang được pha chế cho Bàn ${tableId}`)
+  cart.clear()
+  open.value = false
+  setTimeout(() => router.push(`/payment/${order.id}`), 1000)
 }
 </script>
 
@@ -1260,16 +1510,6 @@ const handleOrder = async () => {
 .sheet-slide-enter-from,
 .sheet-slide-leave-to {
   transform: translateY(100%);
-}
-
-.fade-scale-enter-active,
-.fade-scale-leave-active {
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.fade-scale-enter-from,
-.fade-scale-leave-to {
-  opacity: 0;
-  transform: translate(-50%, -45%) scale(0.9);
 }
 
 /* Login modal (fade + pop) */
