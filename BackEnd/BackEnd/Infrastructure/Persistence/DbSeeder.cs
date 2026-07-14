@@ -51,6 +51,16 @@ public static class DbSeeder
                 new Ban { MaKhuVuc = kvSanVuon.MaKhuVuc, TenBan = "Bàn S2", SucChua = 4, MaQRHash = "qr-ban-s2", TrangThai = "Trong" },
                 new Ban { MaKhuVuc = kvSanVuon.MaKhuVuc, TenBan = "Bàn S3", SucChua = 6, MaQRHash = "qr-ban-s3", TrangThai = "Trong" }
             );
+        }
+
+        // 2.1 Seed ca làm việc mẫu (nếu chưa có)
+        if (!await db.CaLamViecs.AnyAsync())
+        {
+            db.CaLamViecs.AddRange(
+                new CaLamViec { TenCa = "Ca Sáng", GioBatDau = new TimeOnly(7, 0), GioKetThuc = new TimeOnly(14, 0), TrangThaiHoatDong = true },
+                new CaLamViec { TenCa = "Ca Chiều", GioBatDau = new TimeOnly(14, 0), GioKetThuc = new TimeOnly(22, 0), TrangThaiHoatDong = true },
+                new CaLamViec { TenCa = "Ca Tối", GioBatDau = new TimeOnly(18, 0), GioKetThuc = new TimeOnly(23, 59), TrangThaiHoatDong = true }
+            );
             await db.SaveChangesAsync();
         }
 

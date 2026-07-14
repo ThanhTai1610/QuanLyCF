@@ -294,7 +294,7 @@ const barChartData = {
   ]
 }
 
-const barChartOptions = {
+const barChartOptions: any = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -333,7 +333,7 @@ const doughnutChartData = {
   }]
 }
 
-const doughnutOptions = {
+const doughnutOptions: any = {
   responsive: true,
   maintainAspectRatio: false,
   cutout: '65%',

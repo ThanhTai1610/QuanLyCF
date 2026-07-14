@@ -48,7 +48,7 @@
             <div class="flex items-center gap-2">
               <Input v-model="heroImage" placeholder="Dán link ảnh bìa vào đây" class="bg-background border border-cream-deep rounded-lg shadow-card flex-1" />
               <input type="file" ref="fileInput" @change="handleFileUpload" accept="image/*" class="hidden" />
-              <Button variant="outline" @click="$refs.fileInput.click()" type="button" class="border border-cream-deep rounded-lg shadow-card text-caramel hover:text-brown bg-caramel-light px-3" title="Tải ảnh từ máy tính">
+              <Button variant="outline" @click="fileInput?.click()" type="button" class="border border-cream-deep rounded-lg shadow-card text-caramel hover:text-brown bg-caramel-light px-3" title="Tải ảnh từ máy tính">
                 <Upload class="w-4 h-4" />
               </Button>
             </div>

@@ -7,8 +7,6 @@ export interface OrderItem {
   note?: string;
   /** Trạng thái pha chế tại bếp */
   done?: boolean;
-  /** Nhân viên được phân công làm món */
-  assignee?: string;
   /** Báo hết nguyên liệu */
   outOfStock?: boolean;
 }
@@ -53,8 +51,8 @@ export const mockOrders: Order[] = [
     id: "DH-2040",
     table: "Bàn 12",
     items: [
-      { name: "Matcha đá xay", qty: 1, price: 55000, assignee: "Lan", done: true },
-      { name: "Bánh Tiramisu", qty: 1, price: 48000, assignee: "Huy" },
+      { name: "Matcha đá xay", qty: 1, price: 55000, done: true },
+      { name: "Bánh Tiramisu", qty: 1, price: 48000 },
     ],
     total: 103000,
     status: "preparing",
@@ -65,7 +63,7 @@ export const mockOrders: Order[] = [
     id: "DH-2039",
     table: "Bàn 3",
     items: [
-      { name: "Cà phê sữa đá", qty: 3, price: 35000, assignee: "Minh" },
+      { name: "Cà phê sữa đá", qty: 3, price: 35000 },
     ],
     total: 105000,
     status: "preparing",

@@ -487,7 +487,7 @@ const countVisible = computed(() => cats.value.filter(c => c.visible).length)
 const countHidden = computed(() => cats.value.filter(c => !c.visible).length)
 
 const filteredCats = computed(() => {
-  let result = cats.value.filter(c => c.categoryType === categoryType.value || (categoryType.value === 'MAIN' && !c.categoryType) || (c as any).loaiDanhMuc === categoryType.value)
+  let result = cats.value.filter(c => c.type === categoryType.value || (categoryType.value === 'MAIN' && !c.type))
  
   if (activeTab.value === 'visible') result = result.filter(c => c.visible)
   if (activeTab.value === 'hidden') result = result.filter(c => !c.visible)
@@ -519,8 +519,10 @@ const onDragEnter = (idx: number) => {
 const onDrop = async (dropIndex: number) => {
   if (dragIndex.value !== null && dragIndex.value !== dropIndex) {
     const currentList = [...filteredCats.value]
-    const [draggedItem] = currentList.splice(dragIndex.value, 1)
-    currentList.splice(dropIndex, 0, draggedItem)
+    const draggedItem = currentList.splice(dragIndex.value, 1)[0]
+    if (draggedItem) {
+      currentList.splice(dropIndex, 0, draggedItem)
+    }
     
     currentList.forEach((item, newIndex) => {
       const catRef = cats.value.find(c => c.id === item.id)

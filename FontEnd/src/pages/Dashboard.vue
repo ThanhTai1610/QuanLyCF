@@ -204,7 +204,7 @@ const lineChartData = computed(() => ({
   ]
 }))
 
-const lineChartOptions = {
+const lineChartOptions: any = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -258,7 +258,7 @@ const barChartData = computed(() => ({
   ]
 }))
 
-const barChartOptions = {
+const barChartOptions: any = {
   responsive: true,
   maintainAspectRatio: false,
   indexAxis: 'y' as const,

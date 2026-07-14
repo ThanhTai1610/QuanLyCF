@@ -193,6 +193,7 @@ const filters: { id: OrderStatus | "all"; label: string }[] = [
   { id: "all", label: "Tất cả" },
   { id: "pending", label: "Chờ xác nhận" },
   { id: "preparing", label: "Đang pha chế" },
+  { id: "ready", label: "Chờ lấy" },
   { id: "done", label: "Hoàn thành" },
   { id: "cancelled", label: "Đã hủy" },
 ]
@@ -229,6 +230,7 @@ const counts = computed(() => ({
   all: orders.value.length,
   pending: orders.value.filter((o) => o.status === "pending").length,
   preparing: orders.value.filter((o) => o.status === "preparing").length,
+  ready: orders.value.filter((o) => o.status === "ready").length,
   done: orders.value.filter((o) => o.status === "done").length,
   cancelled: orders.value.filter((o) => o.status === "cancelled").length,
 }))

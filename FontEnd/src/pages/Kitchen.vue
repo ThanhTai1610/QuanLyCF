@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen text-[#FDFBF7] font-premium-sans bg-[#0F0A07] flex flex-col" @click="openAssign = null">
+  <div class="min-h-screen text-[#FDFBF7] font-premium-sans bg-[#0F0A07] flex flex-col">
 
     <!-- ===== HEADER ===== -->
     <header class="h-16 px-6 flex items-center justify-between border-b-2 border-white/10 bg-[#1A1512] shadow-card shrink-0">
@@ -168,45 +168,28 @@
                 </div>
               </button>
 
-              <!-- Người làm + Báo hết nguyên liệu -->
+              <!-- Nhóm nút chức năng -->
               <div class="flex items-center gap-2 mt-2 pl-8">
-                <!-- Assignee chip + dropdown -->
-                <div class="relative">
-                  <button
-                    @click.stop="toggleAssign(o.id, i)"
-                    :class="['flex items-center gap-1.5 px-2 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wide transition-colors',
-                      it.assignee ? 'bg-[#CC8033]/10 border-[#CC8033]/30 text-[#CC8033]' : 'bg-white/5 border-white/10 text-[#8A8178] hover:text-white']"
-                  >
-                    <User class="w-3 h-3" stroke-width="2.5" />
-                    {{ it.assignee || 'Chưa gán' }}
-                    <ChevronDown class="w-3 h-3 opacity-60" />
-                  </button>
-                  <!-- Dropdown menu -->
-                  <div v-if="openAssign === o.id + '-' + i"
-                    class="absolute z-20 left-0 mt-1 w-32 rounded-lg border border-white/10 bg-[#1A1512] shadow-card py-1">
-                    <button v-for="s in staffList" :key="s"
-                      @click.stop="assign(o.id, i, s)"
-                      :class="['w-full text-left px-3 py-1.5 text-xs font-medium transition-colors hover:bg-white/5',
-                        it.assignee === s ? 'text-[#CC8033]' : 'text-white/80']">
-                      {{ s }}
-                    </button>
-                    <div class="h-px bg-white/10 my-1"></div>
-                    <button @click.stop="assign(o.id, i, '')"
-                      class="w-full text-left px-3 py-1.5 text-xs font-medium text-[#8A8178] hover:bg-white/5">
-                      Bỏ gán
-                    </button>
-                  </div>
-                </div>
-
                 <!-- Báo hết nguyên liệu -->
                 <button
                   @click.stop="reportOutOfStock(o.id, i)"
-                  :class="['ml-auto flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wide transition-colors',
+                  :class="['flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wide transition-colors',
                     it.outOfStock ? 'bg-red-500/15 border-red-500/40 text-red-400' : 'bg-white/5 border-white/10 text-[#8A8178] hover:text-red-400 hover:border-red-500/30']"
                   :title="it.outOfStock ? 'Bỏ báo hết nguyên liệu' : 'Báo hết nguyên liệu'"
                 >
                   <AlertTriangle class="w-3 h-3" stroke-width="2.5" />
                   {{ it.outOfStock ? 'Hết NL' : 'Báo hết' }}
+                </button>
+
+                <!-- In Tem Dán Ly -->
+                <button
+                  v-if="!it.outOfStock"
+                  @click.stop="openPrintPreview(o, it)"
+                  class="flex items-center gap-1 px-2 py-1 rounded-md border bg-white/5 border-white/10 text-[#8A8178] hover:text-[#CC8033] hover:border-[#CC8033]/30 transition-colors text-[10px] font-bold uppercase tracking-wide"
+                  title="In tem dán ly sản phẩm"
+                >
+                  <Printer class="w-3.5 h-3.5" stroke-width="2.5" />
+                  In Tem
                 </button>
               </div>
             </div>
@@ -373,11 +356,19 @@
             <div
               v-for="(it, i) in o.items"
               :key="i"
-              class="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/20 border border-white/5"
+              :class="['flex items-center gap-2 px-3 py-2 rounded-lg bg-black/20 border', it.outOfStock ? 'border-red-500/20 bg-red-500/5' : 'border-white/5']"
             >
-              <CheckCircle2 class="w-3.5 h-3.5 text-emerald-400 shrink-0" stroke-width="2" />
-              <span class="text-xs font-medium text-white/70 truncate">{{ it.name }}</span>
-              <span class="text-[#CC8033] text-xs font-bold ml-auto shrink-0">×{{ it.qty }}</span>
+              <XCircle v-if="it.outOfStock" class="w-3.5 h-3.5 text-red-500 shrink-0" stroke-width="2" />
+              <CheckCircle2 v-else class="w-3.5 h-3.5 text-emerald-400 shrink-0" stroke-width="2" />
+              <span :class="['text-xs font-medium truncate', it.outOfStock ? 'text-red-400/70 line-through' : 'text-white/70']">
+                {{ it.name }}
+              </span>
+              <span v-if="it.outOfStock" class="text-[9px] uppercase font-black text-red-500 bg-red-500/10 border border-red-500/20 px-1 py-0.5 rounded ml-2 shrink-0">
+                Hết NL
+              </span>
+              <span :class="it.outOfStock ? 'text-red-400/50' : 'text-[#CC8033]'" class="text-xs font-bold ml-auto shrink-0">
+                ×{{ it.qty }}
+              </span>
             </div>
           </div>
         </div>
@@ -392,6 +383,61 @@
         <p class="text-[9px] uppercase tracking-[0.3em] text-[#8A8178] font-bold mt-3">Hoàn tất đơn hàng để xem lịch sử tại đây</p>
       </div>
     </main>
+
+    <!-- Modal xem trước tem dán ly -->
+    <div v-if="showPrintModal" class="fixed inset-0 z-50 flex items-center justify-center bg-espresso/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div class="bg-white rounded-2xl shadow-2xl w-[360px] p-6 relative border border-cream-deep text-black animate-in zoom-in-95 duration-300">
+        <button @click="showPrintModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-black transition-colors bg-gray-100 hover:bg-gray-200 rounded-full p-1">
+          <X class="w-4 h-4" />
+        </button>
+
+        <div class="text-center mb-5">
+          <h3 class="font-display text-lg font-bold text-espresso">Xem trước tem dán ly</h3>
+          <p class="text-xs text-gray-500">Tem nhiệt kích thước tiêu chuẩn 50x30mm</p>
+        </div>
+
+        <!-- Thermal Label Mockup -->
+        <div id="print-label-content" class="bg-[#F8F9FA] border-2 border-dashed border-gray-300 p-4 rounded-xl font-mono text-xs text-black shadow-inner flex flex-col justify-between min-h-[160px]">
+          <div class="border-b border-gray-400 pb-2 text-center">
+            <div class="font-bold text-sm tracking-widest text-espresso">BREWMANAGER COFFEE</div>
+            <div class="text-[9px] text-gray-500">Mã đơn: {{ printLabelData?.orderId }}</div>
+          </div>
+          
+          <div class="py-3 space-y-1.5 font-sans">
+            <div class="flex justify-between items-baseline">
+              <span class="text-[10px] text-gray-500 uppercase">Khu vực:</span>
+              <span class="font-bold text-sm text-espresso">{{ printLabelData?.table }}</span>
+            </div>
+            <div class="flex justify-between items-baseline">
+              <span class="text-[10px] text-gray-500 uppercase">Sản phẩm:</span>
+              <span class="font-bold text-sm text-espresso">{{ printLabelData?.name }}</span>
+            </div>
+            <div class="flex justify-between items-baseline">
+              <span class="text-[10px] text-gray-500 uppercase">Số lượng:</span>
+              <span class="font-bold text-sm text-espresso">x{{ printLabelData?.qty }}</span>
+            </div>
+            <div v-if="printLabelData?.note" class="bg-yellow-50 border border-yellow-200 p-1.5 rounded text-[10px] mt-1 text-espresso">
+              <span class="font-bold text-amber-700">Lưu ý:</span> {{ printLabelData?.note }}
+            </div>
+          </div>
+
+          <div class="border-t border-gray-400 pt-2 flex justify-between text-[9px] text-gray-500">
+            <span>Giờ vào: {{ printLabelData?.time }}</span>
+            <span>KDS Printed</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mt-6">
+          <button @click="showPrintModal = false" class="py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold transition-colors">
+            Hủy bỏ
+          </button>
+          <button @click="triggerPrint" class="py-2.5 rounded-xl bg-espresso hover:bg-brown text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-md">
+            <Printer class="w-4 h-4" />
+            In tem ngay
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -400,22 +446,23 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import {
   Volume2, VolumeX, Coffee, ChevronLeft, ChevronRight, ChevronDown,
   Check, CheckCircle2, Search, Clock, Trash2, History, ClipboardList,
-  User, X, AlertTriangle, LayoutGrid, List, Bell, Zap
+  X, AlertTriangle, LayoutGrid, List, Bell, Zap, Printer, XCircle
 } from 'lucide-vue-next'
 import { useOrderStore } from '@/stores/orders'
 import { useStoreInfoStore } from '@/stores/storeInfo'
+import { useToast } from '@/stores/toast'
 import type { Order } from '@/data/orders'
 
 // ── Types ──────────────────────────────────────────────────────
 interface KItem    { name: string; qty: number; done: boolean }
 interface KDone    { id: string; table: string; items: KItem[]; duration: number; completedAt: string }
 
-// ── Danh sách nhân viên bếp ─────────────────────────────────────
-const staffList = ['Minh', 'Lan', 'Huy', 'Trang', 'Phúc']
+
 
 // ── Store đơn hàng (nguồn dữ liệu chung) ────────────────────────
 const orderStore     = useOrderStore()
 const storeInfoStore = useStoreInfoStore()
+const toast          = useToast()
 
 // Đơn đang làm = các đơn ở trạng thái chờ xác nhận / đang pha chế / chờ lấy (ready)
 const activeOrders = computed(() =>
@@ -426,12 +473,43 @@ const activeOrders = computed(() =>
 const completedOrders  = ref<KDone[]>([])
 const now              = ref(Date.now())
 const muted            = ref(false)
+
+// --- Print Label State ---
+const showPrintModal = ref(false)
+const printLabelData = ref<{
+  orderId: string
+  table: string
+  name: string
+  qty: number
+  note?: string
+  time: string
+} | null>(null)
+
+const openPrintPreview = (order: Order, item: any) => {
+  const timeFormatted = new Date(order.createdTs).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+  printLabelData.value = {
+    orderId: order.id.slice(-6).toUpperCase(),
+    table: order.table,
+    name: item.name,
+    qty: item.qty,
+    note: item.note,
+    time: timeFormatted
+  }
+  showPrintModal.value = true
+}
+
+const triggerPrint = () => {
+  window.print()
+  showPrintModal.value = false
+  if (printLabelData.value) {
+    toast.success(`Đã gửi lệnh in tem cho: ${printLabelData.value.name}`, 'In tem dán ly')
+  }
+}
 const activeTab        = ref<'active' | 'history'>('active')
 const currentPage      = ref(1)
 const itemsPerPage     = 8
 const historySearch    = ref('')
 const expandedHistory  = ref<Set<string>>(new Set())
-const openAssign       = ref<string | null>(null)
 const viewMode         = ref<'table' | 'item'>('table')
 const stationFilter    = ref<'all' | 'bar' | 'kitchen'>('all')
 
@@ -543,7 +621,7 @@ const filteredHistory = computed(() => {
 })
 
 const totalItemsDone = computed(() =>
-  completedOrders.value.reduce((s, o) => s + o.items.reduce((ss, i) => ss + i.qty, 0), 0)
+  completedOrders.value.reduce((s, o) => s + o.items.reduce((ss, i) => ss + (i.outOfStock ? 0 : i.qty), 0), 0)
 )
 
 const avgDuration = computed(() => {
@@ -581,24 +659,39 @@ const durationColor = (ms: number) => {
 }
 
 // ── Actions (uỷ thác cho store đơn hàng chung) ──────────────────
-const toggle = (oid: string, idx: number) => orderStore.toggleItemDone(oid, idx)
-
-const toggleAssign = (oid: string, idx: number) => {
-  const key = oid + '-' + idx
-  openAssign.value = openAssign.value === key ? null : key
+const toggle = (oid: string, idx: number) => {
+  const o = orderStore.getById(oid)
+  const it = o?.items[idx]
+  if (it) {
+    const wasDone = it.done
+    orderStore.toggleItemDone(oid, idx)
+    if (!wasDone) {
+      toast.success(`Đã làm xong món: ${it.name} (x${it.qty})`, `Đơn ${o?.table}`)
+    } else {
+      toast.info(`Chuyển món ${it.name} về hàng chờ`, `Đơn ${o?.table}`)
+    }
+  }
 }
 
-const assign = (oid: string, idx: number, name: string) => {
-  orderStore.setAssignee(oid, idx, name)
-  openAssign.value = null
+const reportOutOfStock = (oid: string, idx: number) => {
+  const o = orderStore.getById(oid)
+  const it = o?.items[idx]
+  if (it) {
+    const wasOutOfStock = it.outOfStock
+    orderStore.toggleOutOfStock(oid, idx)
+    if (!wasOutOfStock) {
+      toast.warning(`Đã báo hết nguyên liệu cho: ${it.name}`, 'Cảnh báo kho')
+    } else {
+      toast.success(`Đã khôi phục nguyên liệu cho: ${it.name}`, 'Cập nhật kho')
+    }
+  }
 }
-
-const reportOutOfStock = (oid: string, idx: number) => orderStore.toggleOutOfStock(oid, idx)
 
 const markReady = (o: Order) => {
   if (!isAllDone(o)) return
   orderStore.updateStatus(o.id, 'ready')
   orderStore.notifyPos(o.table)
+  toast.success(`Đơn hàng ${o.table} đã pha xong!`, 'Sẵn sàng giao')
 }
 
 const complete = (o: Order) => {
@@ -608,12 +701,13 @@ const complete = (o: Order) => {
   completedOrders.value.unshift({
     id: o.id,
     table: o.table,
-    items: o.items.map(i => ({ name: i.name, qty: i.qty, done: true })),
+    items: o.items.map(i => ({ name: i.name, qty: i.qty, done: i.done, outOfStock: i.outOfStock })),
     duration,
     completedAt,
   })
   orderStore.updateStatus(o.id, 'done')
   if (currentPage.value > totalPages.value && currentPage.value > 1) currentPage.value--
+  toast.success(`Đã hoàn tất giao đồ cho ${o.table}`, 'Hoàn tất đơn')
 }
 
 const toggleHistory = (id: string) => {
@@ -623,7 +717,10 @@ const toggleHistory = (id: string) => {
 }
 
 const clearHistory = () => {
-  if (confirm('Xoá toàn bộ lịch sử hôm nay?')) completedOrders.value = []
+  if (confirm('Xoá toàn bộ lịch sử hôm nay?')) {
+    completedOrders.value = []
+    toast.success('Đã xóa toàn bộ lịch sử hôm nay.', 'Lịch sử')
+  }
 }
 </script>
 
@@ -634,4 +731,36 @@ const clearHistory = () => {
 ::-webkit-scrollbar       { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.05); border-radius: 4px; }
+
+@media print {
+  /* Hide everything except the thermal label mockup */
+  :global(#app), :global(body) {
+    background: white !important;
+  }
+  :global(body *) {
+    visibility: hidden !important;
+  }
+  #print-label-content, #print-label-content * {
+    visibility: visible !important;
+  }
+  #print-label-content {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 50mm !important;
+    height: 30mm !important;
+    border: none !important;
+    background: white !important;
+    box-shadow: none !important;
+    padding: 2mm !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    color: black !important;
+    font-family: monospace !important;
+    font-size: 8pt !important;
+    box-sizing: border-box !important;
+  }
+}
 </style>

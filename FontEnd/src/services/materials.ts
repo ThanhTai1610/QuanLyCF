@@ -12,5 +12,11 @@ export interface MaterialItem {
 }
 
 export const materialsApi = {
-  list: (q?: string, trangThai?: string) => api.get<MaterialItem[]>('/api/materials', { params: { q, trangThai } })
+  list: (q?: string, trangThai?: string) => {
+    const params = new URLSearchParams()
+    if (q) params.append('q', q)
+    if (trangThai) params.append('trangThai', trangThai)
+    const qs = params.toString()
+    return api.get<MaterialItem[]>(`/api/materials${qs ? '?' + qs : ''}`)
+  }
 }

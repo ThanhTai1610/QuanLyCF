@@ -82,11 +82,6 @@ export const useOrderStore = defineStore('orders', () => {
     if (it && !it.outOfStock) it.done = !it.done
   }
 
-  function setAssignee(id: string, idx: number, name: string) {
-    const it = getById(id)?.items[idx]
-    if (it) it.assignee = name || undefined
-  }
-
   function toggleOutOfStock(id: string, idx: number) {
     const it = getById(id)?.items[idx]
     if (!it) return
@@ -112,7 +107,6 @@ export const useOrderStore = defineStore('orders', () => {
     updateStatus,
     markPaid,
     toggleItemDone,
-    setAssignee,
     toggleOutOfStock,
     notifyPos,
     globalOutOfStock,

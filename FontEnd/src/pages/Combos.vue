@@ -35,7 +35,7 @@
         <!-- Card image: single fixed image, consistent across all cards -->
         <div class="relative h-32 overflow-hidden bg-[#F0EDE9]">
           <img
-            :src="combo.coverImage || getMenuImg(combo.items[0]?.menuId)"
+            :src="combo.coverImage || getMenuImg(combo.items[0]?.menuId || '')"
             :alt="combo.name"
             class="w-full h-full object-cover"
           />
@@ -380,9 +380,14 @@ const saveCombo = () => {
   if (!form.value.name.trim() || form.value.items.length === 0) return
   if (editingId.value) {
     const idx = combos.value.findIndex(c => c.id === editingId.value)
-    if (idx !== -1) combos.value[idx] = { ...combos.value[idx], ...form.value }
+    if (idx !== -1) {
+      const existing = combos.value[idx]
+      if (existing) {
+        combos.value[idx] = { ...existing, ...form.value, id: existing.id, active: existing.active }
+      }
+    }
   } else {
-    combos.value.push({ id: Date.now(), active: true, ...form.value })
+    combos.value.push({ id: Date.now(), active: true, ...form.value } as any)
   }
   isModalOpen.value = false
 }

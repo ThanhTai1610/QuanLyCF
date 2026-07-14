@@ -58,6 +58,7 @@ namespace BackEnd
             builder.Services.AddScoped<Features.Sales.Promotions.PromotionService>();
             builder.Services.AddScoped<Features.Sales.Dashboard.DashboardService>();
             builder.Services.AddScoped<Features.Catalog.Categories.CategoryService>();
+            builder.Services.AddScoped<Features.Hr.HrService>();
             // System
             builder.Services.AddScoped<Features.System.SettingService>();
             builder.Services.AddScoped<Features.System.AuditLogService>();

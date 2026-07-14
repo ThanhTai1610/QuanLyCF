@@ -57,7 +57,7 @@ export const categoriesApi = {
   updateOrder: async (requests: CategoryOrderRequest[]) => {
     await api.put('/api/categories/reorder', requests)
   },
-  getAllProducts: async () => {
+  getAllProducts: async (): Promise<any[]> => {
     return await api.get('/api/categories/products')
   },
   getCategoryProducts: async (id: number) => {
