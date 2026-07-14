@@ -251,8 +251,10 @@ const currentTime = ref(Date.now())
 let timeInterval: any = null
 
 onMounted(() => {
+  orderStore.fetchOrders() // Fetch real data from BE
   timeInterval = setInterval(() => {
     currentTime.value = Date.now()
+    orderStore.fetchOrders() // Polling to get real-time updates
   }, 10000) // update every 10s
 })
 

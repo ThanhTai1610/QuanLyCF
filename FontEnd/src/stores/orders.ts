@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { mockOrders, type Order, type OrderItem, type OrderStatus } from '@/data/orders'
+import { ordersApi } from '@/services/orders'
 
 /**
  * Store đơn hàng trung tâm — nguồn dữ liệu DUY NHẤT cho toàn bộ luồng:
@@ -52,9 +53,77 @@ export const useOrderStore = defineStore('orders', () => {
     return order
   }
 
-  function updateStatus(id: string, status: OrderStatus) {
+  // Map BE status to FE status
+  const mapStatus = (beStatus: string): OrderStatus => {
+    switch (beStatus) {
+      case 'ChoXacNhan': return 'pending'
+      case 'DangPha': return 'preparing'
+      case 'HoanThanh': return 'done'
+      case 'Huy': return 'cancelled'
+      default: return 'pending'
+    }
+  }
+
+  // Map FE status to BE status
+  const unmapStatus = (feStatus: OrderStatus): string => {
+    switch (feStatus) {
+      case 'pending': return 'ChoXacNhan'
+      case 'preparing': return 'DangPha'
+      case 'done': return 'HoanThanh'
+      case 'cancelled': return 'Huy'
+      default: return 'ChoXacNhan'
+    }
+  }
+
+  async function fetchOrders() {
+    try {
+      const res = await ordersApi.active()
+      // Map BE to FE format
+      orders.value = res.map(o => ({
+        id: `DH-${o.maDonHang}`,
+        originalId: o.maDonHang, // Keep reference to real DB id
+        table: o.tenBan || (o.loaiDonHang === 'TakeAway' ? `Mang về - #${o.maDonHang}` : 'Bàn trống'),
+        items: o.items.map(i => ({
+          id: i.maChiTiet.toString(),
+          name: i.tenMon + (i.tenKichCo ? ` (${i.tenKichCo})` : ''),
+          qty: i.soLuong,
+          price: i.donGia,
+          note: i.ghiChuMon || '',
+          category: 'Đồ uống',
+          done: i.trangThaiBep === 'HoanThanh',
+        })),
+        total: o.thanhTien,
+        status: mapStatus(o.trangThaiDon),
+        createdAt: new Date(o.thoiGianTao).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        createdTs: new Date(o.thoiGianTao).getTime(),
+        paid: false, // You would need actual data for this if it's not in OrderDto
+      }))
+    } catch (err) {
+      console.error('Failed to fetch orders:', err)
+    }
+  }
+
+  async function updateStatus(id: string, status: OrderStatus, cancelReason?: string) {
     const o = getById(id)
-    if (o) o.status = status
+    if (o) {
+      const beId = parseInt(id.replace('DH-', ''))
+      try {
+        if (status === 'cancelled') {
+           await ordersApi.cancel(beId, cancelReason)
+        } else {
+           await ordersApi.updateStatus(beId, unmapStatus(status))
+        }
+        // Update local state optimistic
+        o.status = status
+        if (status === 'cancelled' && cancelReason) {
+          o.cancelReason = cancelReason
+        } else if (status !== 'cancelled') {
+          o.cancelReason = undefined
+        }
+      } catch (err) {
+        console.error('Failed to update status:', err)
+      }
+    }
   }
 
   /** Đánh dấu đã thanh toán (đồng thời coi như hoàn thành nếu còn đang xử lý) */
@@ -63,13 +132,14 @@ export const useOrderStore = defineStore('orders', () => {
     if (!o) return
     o.paid = true
     o.paymentMethod = method
-    if (o.status === 'pending' || o.status === 'preparing') o.status = 'done'
+    if (o.status === 'pending' || o.status === 'preparing') updateStatus(id, 'done')
   }
 
   // ── Thao tác tại bếp (theo mã đơn + vị trí món) ──────────────────
   function toggleItemDone(id: string, idx: number) {
     const it = getById(id)?.items[idx]
     if (it && !it.outOfStock) it.done = !it.done
+    // Ideally this should call an API to update item status
   }
 
   function setAssignee(id: string, idx: number, name: string) {
@@ -88,6 +158,7 @@ export const useOrderStore = defineStore('orders', () => {
     orders,
     getById,
     createOrder,
+    fetchOrders,
     updateStatus,
     markPaid,
     toggleItemDone,

@@ -52,9 +52,7 @@
         </div>
         <select v-model="typeFilter" class="bg-[#FDFBF7] border border-[#EAE3D9] h-10 rounded-lg px-4 text-sm font-medium text-[#2A231E] focus:outline-none focus:ring-2 focus:ring-[#CC8033]/20 w-full sm:w-52 cursor-pointer">
           <option value="all">Tất cả loại nguyên liệu</option>
-          <option value="Nguyên liệu thô">Nguyên liệu thô</option>
-          <option value="Topping">Bán thành phẩm / Topping</option>
-          <option value="Vật tư">Vật tư</option>
+          <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
         </select>
         <select v-model="statusFilter" class="bg-[#FDFBF7] border border-[#EAE3D9] h-10 rounded-lg px-4 text-sm font-medium text-[#2A231E] focus:outline-none focus:ring-2 focus:ring-[#CC8033]/20 w-full sm:w-48 cursor-pointer">
           <option value="all">Tất cả trạng thái</option>
@@ -78,6 +76,7 @@
               <th class="px-5 py-4 font-bold">Tên nguyên liệu</th>
               <th class="px-5 py-4 font-bold">Phân loại</th>
               <th class="px-5 py-4 font-bold">Tồn kho thực tế</th>
+              <th class="px-5 py-4 font-bold text-center">Hạn sử dụng</th>
               <th class="px-5 py-4 font-bold text-center">Ngưỡng (Min)</th>
               <th class="px-5 py-4 font-bold text-center">Đơn vị gốc</th>
               <th class="px-5 py-4 font-bold text-right">Thao tác</th>
@@ -111,6 +110,16 @@
                 </div>
               </td>
               <td class="px-5 py-4 text-center">
+                <div class="flex flex-col items-center">
+                  <span class="text-xs font-semibold" :class="isExpired(item.expiryDate) && item.qty > 0 ? 'text-red-500 font-bold' : 'text-[#5C544E]'">
+                    {{ formatExpiry(item.expiryDate) }}
+                  </span>
+                  <span v-if="isExpired(item.expiryDate) && item.qty > 0" class="text-[9px] font-black text-red-500 uppercase bg-red-50 border border-red-200 px-1.5 py-0.5 rounded mt-1 animate-pulse">
+                    Hết Hạn!
+                  </span>
+                </div>
+              </td>
+              <td class="px-5 py-4 text-center">
                 <span class="text-xs font-bold text-[#8A8178] px-2.5 py-1 rounded-md bg-[#FDFBF7] border border-[#EAE3D9]">{{ formatNumber(item.min) }}{{ item.unit }}</span>
               </td>
               <td class="px-5 py-4 text-center font-medium text-xs text-[#5C544E] uppercase">{{ item.unit }}</td>
@@ -139,68 +148,102 @@
     <!-- DRAWER: Chi tiết lô hàng FIFO -->
     <!-- ===================================================================== -->
     <div class="fixed inset-0 bg-[#2A231E]/40 backdrop-blur-sm z-40 transition-opacity duration-300" :class="selected && drawerMode === 'detail' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'" @click="closeDrawer"></div>
-    <div class="fixed top-0 right-0 h-full w-full max-w-[480px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col" :class="selected && drawerMode === 'detail' ? 'translate-x-0' : 'translate-x-full'">
+    <div class="fixed top-0 right-0 h-full w-full max-w-[480px] bg-[#FDFBF7] shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col" :class="selected && drawerMode === 'detail' ? 'translate-x-0' : 'translate-x-full'">
       <template v-if="selected">
-        <div class="px-6 py-5 border-b border-[#EAE3D9] flex items-center justify-between bg-[#FDFBF7]">
-          <div>
-            <h2 class="text-lg font-bold text-[#2A231E]">Chi tiết nguyên liệu</h2>
-            <p class="text-xs text-[#8A8178] mt-1 font-mono">SKU: {{ selected.sku }}</p>
+        <!-- HEADER CAO CẤP -->
+        <div class="px-6 py-6 border-b border-[#EAE3D9] flex flex-col justify-between bg-gradient-to-br from-[#2A231E] via-[#2A231E] to-[#3D332A] text-white relative overflow-hidden">
+          <div class="absolute inset-0 opacity-10 pointer-events-none">
+            <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+              <defs><pattern id="grid-pattern-drawer" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" stroke-width="0.5"/></pattern></defs>
+              <rect width="100%" height="100%" fill="url(#grid-pattern-drawer)" />
+            </svg>
           </div>
-          <button @click="closeDrawer" class="p-2 text-[#8A8178] hover:text-[#2A231E] hover:bg-[#EAE3D9]/50 rounded-lg transition-colors"><X class="w-5 h-5" /></button>
+          <div class="relative z-10 flex items-start justify-between">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-md shadow-inner flex-shrink-0">
+                <component :is="iconFor(selected)" class="w-7 h-7 text-yellow-400" stroke-width="1.5" />
+              </div>
+              <div>
+                <h2 class="text-xl font-black tracking-tight text-white drop-shadow-sm">{{ selected.name }}</h2>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="px-2 py-0.5 rounded bg-white/10 text-white text-[10px] font-bold uppercase tracking-wider font-mono border border-white/10">SKU: {{ selected.sku }}</span>
+                  <span class="px-2 py-0.5 rounded text-yellow-400 text-[10px] font-bold uppercase tracking-wider border border-yellow-400/30 bg-yellow-400/10">{{ selected.category }}</span>
+                </div>
+              </div>
+            </div>
+            <button @click="closeDrawer" class="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors backdrop-blur-md"><X class="w-5 h-5" /></button>
+          </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-          <div class="flex items-start gap-4">
-            <div class="w-16 h-16 rounded-xl border border-[#EAE3D9] bg-[#FDFBF7] flex items-center justify-center shadow-sm flex-shrink-0">
-              <component :is="iconFor(selected)" class="w-8 h-8 text-[#CC8033]" stroke-width="1.5" />
+        <div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[#FDFBF7]">
+          
+          <!-- THÔNG SỐ TỒN KHO -->
+          <div class="grid grid-cols-3 gap-3">
+            <div class="bg-white rounded-xl p-4 border border-[#EAE3D9] shadow-sm flex flex-col items-center justify-center text-center">
+              <p class="text-[10px] font-bold text-[#8A8178] uppercase tracking-wider mb-1">Tồn kho</p>
+              <p class="text-2xl font-black text-[#2A231E]">{{ formatNumber(selected.qty) }}<span class="text-sm font-medium text-[#8A8178] ml-1">{{ selected.unit }}</span></p>
             </div>
-            <div>
-              <h3 class="font-bold text-[#2A231E] text-lg">{{ selected.name }}</h3>
-              <p class="text-sm text-[#5C544E] mt-1">{{ selected.category }} • Đơn vị: {{ selected.unit }}</p>
-              <div class="mt-2 flex gap-2">
-                <span v-if="stockState(selected) === 'low'" class="inline-flex items-center px-2 py-1 rounded bg-[#EAE3D9]/50 text-[#CC8033] text-[10px] font-bold uppercase tracking-wider"><AlertTriangle class="w-3 h-3 mr-1" /> Sắp hết hàng</span>
-                <span v-else-if="stockState(selected) === 'empty'" class="inline-flex items-center px-2 py-1 rounded bg-red-50 text-red-500 text-[10px] font-bold uppercase tracking-wider"><AlertTriangle class="w-3 h-3 mr-1" /> Đã rỗng</span>
-                <span v-else class="inline-flex items-center px-2 py-1 rounded bg-green-50 text-[#4A7C59] text-[10px] font-bold uppercase tracking-wider"><CheckCircle2 class="w-3 h-3 mr-1" /> Đầy đủ</span>
+            <div class="bg-white rounded-xl p-4 border border-[#EAE3D9] shadow-sm flex flex-col items-center justify-center text-center">
+              <p class="text-[10px] font-bold text-[#8A8178] uppercase tracking-wider mb-1">Ngưỡng tối thiểu</p>
+              <p class="text-2xl font-black text-[#8A8178]">{{ formatNumber(selected.min) }}<span class="text-sm font-medium text-[#8A8178] ml-1">{{ selected.unit }}</span></p>
+            </div>
+            <div class="bg-white rounded-xl p-4 border border-[#EAE3D9] shadow-sm flex flex-col items-center justify-center text-center">
+              <p class="text-[10px] font-bold text-[#8A8178] uppercase tracking-wider mb-1">Trạng thái</p>
+              <div class="mt-1">
+                <span v-if="stockState(selected) === 'low'" class="inline-flex items-center px-2 py-1 rounded bg-[#FFF9F2] text-[#CC8033] border border-[#E8C5A5]/60 text-[10px] font-bold uppercase tracking-wider shadow-sm"><AlertTriangle class="w-3 h-3 mr-1" /> Sắp hết</span>
+                <span v-else-if="stockState(selected) === 'empty'" class="inline-flex items-center px-2 py-1 rounded bg-red-50 text-red-500 border border-red-200 text-[10px] font-bold uppercase tracking-wider shadow-sm"><AlertTriangle class="w-3 h-3 mr-1" /> Đã rỗng</span>
+                <span v-else class="inline-flex items-center px-2 py-1 rounded bg-green-50 text-[#4A7C59] border border-green-200 text-[10px] font-bold uppercase tracking-wider shadow-sm"><CheckCircle2 class="w-3 h-3 mr-1" /> Đầy đủ</span>
               </div>
             </div>
           </div>
 
-          <div class="h-px w-full bg-[#EAE3D9]"></div>
+          <div class="h-px w-full bg-gradient-to-r from-transparent via-[#EAE3D9] to-transparent"></div>
 
+          <!-- LÔ HÀNG -->
           <div>
             <div class="flex items-center justify-between mb-4">
-              <h4 class="font-bold text-[#2A231E] flex items-center gap-2"><Layers class="w-4 h-4 text-[#8A8178]" /> Chi tiết Lô hàng (FIFO)</h4>
-              <span class="text-xs text-[#8A8178] font-medium">Vào trước, xuất trước</span>
+              <h4 class="font-bold text-[#2A231E] flex items-center gap-2 text-sm uppercase tracking-wider"><Layers class="w-4 h-4 text-[#CC8033]" /> Chi tiết Lô hàng (FIFO)</h4>
+              <span class="text-[10px] text-[#8A8178] font-bold uppercase bg-[#EAE3D9]/50 px-2 py-1 rounded-md">Vào trước, xuất trước</span>
             </div>
 
-            <div v-if="selected.batches.length === 0" class="text-center py-8 text-[#8A8178] text-sm">Chưa có lô hàng nào.</div>
+            <div v-if="selected.batches.length === 0" class="flex flex-col items-center justify-center py-10 bg-white border border-dashed border-[#EAE3D9] rounded-xl">
+              <div class="w-12 h-12 bg-[#FDFBF7] rounded-full flex items-center justify-center mb-3"><PackageOpen class="w-6 h-6 text-[#8A8178] opacity-50" /></div>
+              <p class="text-[#8A8178] text-sm font-medium">Chưa có lô hàng nào khả dụng.</p>
+            </div>
             <div v-else class="space-y-3">
-              <div v-for="(b, i) in selected.batches" :key="b.code" class="border rounded-xl p-4 relative overflow-hidden shadow-sm"
-                   :class="i === 0 ? 'border-[#E8C5A5] bg-[#FFF9F2]' : 'border-[#EAE3D9] bg-white'">
-                <div v-if="i === 0" class="absolute top-0 right-0 bg-[#CC8033] text-white text-[9px] font-bold px-2 py-1 rounded-bl-lg uppercase tracking-wider">Đang xuất kho</div>
+              <div v-for="(b, i) in selected.batches" :key="b.code" class="group border rounded-xl p-4 relative overflow-hidden transition-all hover:shadow-md"
+                   :class="i === 0 ? 'border-[#E8C5A5] bg-gradient-to-br from-[#FFF9F2] to-white' : 'border-[#EAE3D9] bg-white'">
+                <div v-if="i === 0" class="absolute top-0 right-0 bg-gradient-to-r from-[#CC8033] to-[#B87029] text-white text-[9px] font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider shadow-sm">Đang xuất kho</div>
                 <div class="flex justify-between items-start mb-3">
                   <div>
-                    <p class="text-xs font-bold text-[#5C544E] mb-1">Mã lô: <span class="text-[#2A231E] font-mono">{{ b.code }}</span></p>
-                    <p class="text-[11px] text-[#8A8178]">Nhập: {{ b.importDate }}</p>
+                    <p class="text-[10px] font-bold text-[#8A8178] uppercase tracking-wider mb-0.5">Mã lô nhập</p>
+                    <p class="text-sm font-bold text-[#2A231E] font-mono bg-[#EAE3D9]/30 px-2 py-0.5 rounded inline-block">{{ b.code }}</p>
+                    <p class="text-[11px] text-[#8A8178] mt-2 flex items-center gap-1"><Truck class="w-3 h-3" /> Nhập: {{ b.importDate }}</p>
                   </div>
                   <div class="text-right">
-                    <p class="font-bold text-base" :class="i === 0 ? 'text-[#CC8033]' : 'text-[#2A231E]'">{{ formatNumber(b.qty) }}{{ selected.unit }}</p>
-                    <p class="text-[10px] text-[#8A8178]">Tồn khả dụng</p>
+                    <p class="text-[10px] font-bold text-[#8A8178] uppercase tracking-wider mb-0.5">Tồn khả dụng</p>
+                    <p class="font-black text-lg" :class="i === 0 ? 'text-[#CC8033]' : 'text-[#2A231E]'">{{ formatNumber(b.qty) }}<span class="text-xs font-bold text-[#8A8178] ml-0.5">{{ selected.unit }}</span></p>
                   </div>
                 </div>
-                <div class="flex items-center gap-2 text-[11px] font-medium px-2 py-1.5 rounded-md w-max border"
-                     :class="i === 0 ? 'text-[#C2410C] bg-white border-[#E8C5A5]/50' : 'text-[#4A7C59] bg-[#FDFBF7] border-[#EAE3D9]'">
-                  <Clock v-if="i === 0" class="w-3 h-3" /><CheckCircle2 v-else class="w-3 h-3" />
-                  HSD: {{ b.expiry }}
+                <div class="flex items-center justify-between mt-3 pt-3 border-t border-[#EAE3D9]/50">
+                  <div class="flex items-center gap-1.5 text-[11px] font-bold px-2 py-1 rounded-md border"
+                       :class="i === 0 ? 'text-[#C2410C] bg-orange-50 border-orange-200/50' : 'text-[#4A7C59] bg-green-50 border-green-200/50'">
+                    <Clock v-if="i === 0" class="w-3 h-3" /><CheckCircle2 v-else class="w-3 h-3" />
+                    HSD: {{ b.expiry }}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="p-5 border-t border-[#EAE3D9] bg-[#FDFBF7] flex justify-end gap-3">
-          <router-link to="/suppliers" class="px-5 py-2.5 rounded-lg border border-[#EAE3D9] text-[#5C544E] text-xs font-bold uppercase tracking-wider hover:bg-[#EAE3D9]/50 transition-colors bg-white shadow-sm">Nhập hàng thêm</router-link>
-          <button @click="openAdjust(selected)" class="px-5 py-2.5 rounded-lg border border-[#CC8033] bg-[#CC8033] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#B87029] transition-colors shadow-sm">Điều chỉnh số lượng</button>
+        <div class="p-5 border-t border-[#EAE3D9] bg-white flex justify-end gap-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] relative z-20">
+          <router-link to="/suppliers" class="px-5 py-2.5 rounded-lg border-2 border-[#EAE3D9] text-[#2A231E] text-xs font-bold uppercase tracking-wider hover:bg-[#FDFBF7] transition-colors flex items-center gap-2">
+            <Truck class="w-4 h-4" /> Nhập hàng thêm
+          </router-link>
+          <button @click="openAdjust(selected)" class="px-5 py-2.5 rounded-lg bg-gradient-to-r from-[#2A231E] to-[#3D332A] text-yellow-400 text-xs font-bold uppercase tracking-wider hover:from-black hover:to-[#2A231E] transition-colors shadow-md flex items-center gap-2">
+            <ClipboardCheck class="w-4 h-4" /> Điều chỉnh
+          </button>
         </div>
       </template>
     </div>
@@ -296,10 +339,9 @@
           <div class="grid grid-cols-2 gap-3">
             <div class="space-y-1.5">
               <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178]">Phân loại</label>
-              <select v-model="newItem.category" class="w-full bg-white border border-[#EAE3D9] h-10 rounded-lg px-3 text-sm font-medium focus:outline-none">
-                <option>Nguyên liệu thô</option>
-                <option>Topping</option>
-                <option>Vật tư</option>
+              <select v-model="newItem.category" @change="handleCategoryChange" class="w-full bg-white border border-[#EAE3D9] h-10 rounded-lg px-3 text-sm font-medium focus:outline-none cursor-pointer">
+                <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+                <option value="ADD_NEW" class="font-bold text-[#CC8033]">+ Thêm loại mới...</option>
               </select>
             </div>
             <div class="space-y-1.5">
@@ -317,10 +359,36 @@
               <input type="number" min="0" v-model.number="newItem.min" class="w-full bg-white border border-[#EAE3D9] h-10 rounded-lg px-3 text-sm font-medium focus:outline-none focus:border-[#CC8033]" />
             </div>
           </div>
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178]">Hạn sử dụng</label>
+            <input type="date" v-model="newItem.expiryDate" class="w-full bg-white border border-[#EAE3D9] h-10 rounded-lg px-3 text-sm font-medium focus:outline-none focus:border-[#CC8033]" />
+          </div>
         </div>
         <div class="p-4 border-t border-[#EAE3D9] bg-gray-50 flex justify-end gap-2">
           <button @click="isAddOpen = false" class="px-4 py-2 rounded-lg text-[#5C544E] text-xs font-bold uppercase hover:bg-[#EAE3D9]/50 transition-colors">Hủy</button>
           <button @click="saveNewItem" class="px-5 py-2 rounded-lg bg-[#CC8033] text-white text-xs font-bold uppercase shadow-md hover:bg-[#B87029] transition-colors">Thêm SKU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL: Thêm Phân Loại Nguyên Liệu -->
+    <!-- ===================================================================== -->
+    <div v-if="isAddCategoryOpen" class="fixed inset-0 bg-[#2A231E]/60 backdrop-blur-sm z-[70] flex justify-center items-center p-4" @click.self="cancelAddCategory">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+        <div class="px-5 py-4 border-b border-[#EAE3D9] bg-[#FDFBF7] flex justify-between items-center">
+          <h2 class="text-base font-bold text-[#2A231E]">Thêm phân loại mới</h2>
+          <button @click="cancelAddCategory" class="p-1 text-[#8A8178] hover:text-red-500 rounded-md"><X class="w-4 h-4" /></button>
+        </div>
+        <div class="p-5 space-y-4">
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178]">Tên phân loại <span class="text-red-500">*</span></label>
+            <input v-model="newCategoryName" placeholder="VD: Bao bì, Đồ nhựa..." class="w-full bg-white border border-[#EAE3D9] h-10 rounded-lg px-3 text-sm font-medium focus:outline-none focus:border-[#CC8033]" @keyup.enter="saveAddCategory" />
+          </div>
+        </div>
+        <div class="p-4 border-t border-[#EAE3D9] bg-gray-50 flex justify-end gap-2">
+          <button @click="cancelAddCategory" class="px-4 py-2 rounded-lg text-[#5C544E] text-xs font-bold uppercase hover:bg-[#EAE3D9]/50 transition-colors">Hủy</button>
+          <button @click="saveAddCategory" class="px-5 py-2 rounded-lg bg-[#CC8033] text-white text-xs font-bold uppercase shadow-md hover:bg-[#B87029] transition-colors">Thêm</button>
         </div>
       </div>
     </div>
@@ -336,79 +404,126 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import {
   Package, AlertTriangle, Clock, Search, Plus, Coffee, CupSoda, Milk,
   History, SlidersHorizontal, X, Layers, CheckCircle2, PackageOpen,
   Truck, ClipboardList, ChevronRight, ClipboardCheck
 } from 'lucide-vue-next'
+import { materialsApi, type MaterialItem } from '@/services/materials'
+
+// ── Categories ──────────────────────────────────────────
+const categories = ref<string[]>(JSON.parse(localStorage.getItem('materialCategories') || '["Nguyên liệu thô", "Bán thành phẩm / Topping", "Vật tư"]'))
+watch(categories, (val) => { localStorage.setItem('materialCategories', JSON.stringify(val)) }, { deep: true })
+
+const isAddCategoryOpen = ref(false)
+const newCategoryName = ref('')
+
+const handleCategoryChange = (e: Event) => {
+  const target = e.target as HTMLSelectElement;
+  if (target.value === 'ADD_NEW') {
+    newCategoryName.value = '';
+    isAddCategoryOpen.value = true;
+  }
+}
+
+const saveAddCategory = () => {
+  const name = newCategoryName.value.trim();
+  if (name !== '') {
+    if (!categories.value.includes(name)) {
+      categories.value.push(name);
+    }
+    newItem.value.category = name;
+  } else {
+    newItem.value.category = categories.value[0];
+  }
+  isAddCategoryOpen.value = false;
+}
+
+const cancelAddCategory = () => {
+  newItem.value.category = categories.value[0];
+  isAddCategoryOpen.value = false;
+}
 
 // ── Types ───────────────────────────────────────────────
 interface Batch { code: string; importDate: string; qty: number; expiry: string }
 interface Move { time: string; by: string; title: string; note: string; delta: number; kind: 'in' | 'out' | 'adjust' }
 interface Item {
   sku: string; name: string; category: string; unit: string; qty: number; min: number;
-  icon: 'coffee' | 'cup' | 'milk'; batches: Batch[]; history: Move[]
+  icon: 'coffee' | 'cup' | 'milk'; batches: Batch[]; history: Move[]; originalId: number;
+  expiryDate: string | null;
 }
 
-const items = ref<Item[]>([
-  {
-    sku: 'RAW-CF-001', name: 'Hạt cà phê Robusta', category: 'Nguyên liệu thô', unit: 'g', qty: 10450, min: 15000, icon: 'coffee',
-    batches: [
-      { code: 'BAT-2605-01', importDate: '10/05/2026', qty: 450, expiry: '30/06/2026' },
-      { code: 'BAT-2605-09', importDate: '25/05/2026', qty: 5000, expiry: '25/11/2026' },
-      { code: 'BAT-2606-02', importDate: '01/06/2026', qty: 5000, expiry: '01/12/2026' },
-    ],
-    history: [
-      { time: 'Hôm nay, 15:30', by: 'Hệ thống', title: 'Xuất kho bán hàng', note: 'Tự động trừ kho qua POS', delta: -40, kind: 'out' },
-      { time: '03/06/2026, 10:00', by: 'Nguyễn Văn A', title: 'Nhập kho từ phiếu INB-2406-003', note: 'NCC: Đại lý Cà phê Quận 1', delta: 5000, kind: 'in' },
-      { time: '01/06/2026, 18:00', by: 'Trần Thị B', title: 'Điều chỉnh kiểm kê kho', note: 'Hao hụt tự nhiên', delta: -150, kind: 'adjust' },
-    ],
-  },
-  {
-    sku: 'SEM-TC-012', name: 'Trân châu đen nấu sẵn', category: 'Topping', unit: 'g', qty: 4200, min: 2000, icon: 'cup',
-    batches: [{ code: 'BAT-2606-05', importDate: '02/06/2026', qty: 4200, expiry: '05/06/2026' }],
-    history: [{ time: 'Hôm nay, 09:00', by: 'Bếp', title: 'Mẻ nấu topping', note: 'Trân châu sống → chín', delta: 4200, kind: 'in' }],
-  },
-  {
-    sku: 'RAW-MK-005', name: 'Sữa đặc Ngôi sao Phương Nam', category: 'Nguyên liệu thô', unit: 'Lon', qty: 293, min: 50, icon: 'milk',
-    batches: [{ code: 'BAT-2605-11', importDate: '20/05/2026', qty: 293, expiry: '20/05/2027' }],
-    history: [{ time: '20/05/2026, 11:00', by: 'Nguyễn Văn A', title: 'Nhập kho', note: 'NCC: Vinamilk Q1', delta: 288, kind: 'in' }],
-  },
-  {
-    sku: 'SUP-CUP-01', name: 'Ly giấy Takeaway 450ml', category: 'Vật tư', unit: 'Chiếc', qty: 0, min: 500, icon: 'coffee',
-    batches: [],
-    history: [{ time: 'Hôm qua, 20:00', by: 'Hệ thống', title: 'Xuất hết tồn', note: 'Bán mang về', delta: -120, kind: 'out' }],
-  },
-])
+const items = ref<Item[]>([])
+const lowStockCount = ref(0)
+const emptyCount = ref(0)
 
 // ── Filters ─────────────────────────────────────────────
 const search = ref('')
 const typeFilter = ref('all')
 const statusFilter = ref('all')
 
+const fetchData = async () => {
+  try {
+    const [listRes, summaryRes] = await Promise.all([
+      materialsApi.list(search.value, typeFilter.value, statusFilter.value),
+      materialsApi.summary()
+    ]);
+    
+    items.value = listRes.map((r: MaterialItem) => ({
+      originalId: r.maNguyenLieu,
+      sku: r.maVach_SKU || `SKU-${r.maNguyenLieu}`,
+      name: r.tenNguyenLieu,
+      category: r.phanLoai,
+      unit: r.donViTinh,
+      qty: r.soLuongTon,
+      min: r.mucTonToiThieu || 0,
+      icon: r.phanLoai === 'Bán thành phẩm / Topping' ? 'cup' : (r.phanLoai === 'Vật tư' ? 'coffee' : 'milk'),
+      batches: [],
+      history: [],
+      expiryDate: r.ngayHetHan
+    }));
+    
+    lowStockCount.value = summaryRes.sapHet;
+    emptyCount.value = summaryRes.daHet;
+  } catch (err) {
+    console.error('Lỗi khi lấy dữ liệu từ cơ sở dữ liệu:', err);
+    toast('Lỗi kết nối máy chủ!');
+  }
+}
+
+onMounted(fetchData)
+
+let searchTimer: ReturnType<typeof setTimeout>
+watch([search, typeFilter, statusFilter], () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(fetchData, 300)
+})
+
 const stockState = (it: Item): 'ok' | 'low' | 'empty' => {
   if (it.qty <= 0) return 'empty'
   if (it.qty <= it.min) return 'low'
   return 'ok'
 }
-const lowStockCount = computed(() => items.value.filter(i => stockState(i) === 'low').length)
-const emptyCount = computed(() => items.value.filter(i => stockState(i) === 'empty').length)
 
-const filteredItems = computed(() => {
-  const q = search.value.toLowerCase().trim()
-  return items.value.filter(it => {
-    const matchSearch = !q || it.name.toLowerCase().includes(q) || it.sku.toLowerCase().includes(q)
-    const matchType = typeFilter.value === 'all' || it.category === typeFilter.value
-    const matchStatus = statusFilter.value === 'all' || stockState(it) === statusFilter.value
-    return matchSearch && matchType && matchStatus
-  })
-})
+const filteredItems = computed(() => items.value)
 
 // ── Display helpers ─────────────────────────────────────
 const formatNumber = (n: number) => (n || 0).toLocaleString('vi-VN')
 const iconFor = (it: Item) => (it.icon === 'cup' ? CupSoda : it.icon === 'milk' ? Milk : Coffee)
 const displayQty = (it: Item) => `${formatNumber(it.qty)}${it.unit}`
+const isExpired = (expiryDate: string | null) => {
+  if (!expiryDate) return false
+  const today = new Date()
+  today.setHours(0,0,0,0)
+  const exp = new Date(expiryDate)
+  exp.setHours(0,0,0,0)
+  return exp < today
+}
+const formatExpiry = (dStr: string | null) => {
+  if (!dStr) return 'Không có hạn'
+  return new Date(dStr).toLocaleDateString('vi-VN')
+}
 const stockColor = (it: Item) => {
   const s = stockState(it)
   return s === 'empty' ? 'text-red-600' : s === 'low' ? 'text-[#CC8033]' : 'text-[#4A7C59]'
@@ -417,7 +532,7 @@ const stockLabel = (it: Item) => {
   const s = stockState(it)
   if (s === 'empty') return 'Đã rỗng kho!'
   if (s === 'low') return 'Dưới ngưỡng tối thiểu'
-  return `${it.batches.length} lô khả dụng`
+  return `Đầy đủ`
 }
 
 // ── Toast ───────────────────────────────────────────────
@@ -442,31 +557,44 @@ const adjustActual = ref<number | null>(null)
 const adjustReason = ref('Hao hụt tự nhiên')
 const adjustDiff = computed(() => adjustTarget.value && adjustActual.value !== null ? adjustActual.value - adjustTarget.value.qty : 0)
 const openAdjust = (it: Item) => { adjustTarget.value = it; adjustActual.value = it.qty; adjustReason.value = 'Hao hụt tự nhiên' }
-const confirmAdjust = () => {
+const confirmAdjust = async () => {
   if (!adjustTarget.value || adjustActual.value === null) { toast('Nhập số lượng thực tế'); return }
-  const diff = adjustDiff.value
-  const it = adjustTarget.value
-  it.history.unshift({ time: 'Vừa xong', by: 'Bạn', title: 'Điều chỉnh kho', note: adjustReason.value, delta: diff, kind: 'adjust' })
-  it.qty = adjustActual.value
-  toast(`Đã điều chỉnh ${it.name}: ${diff > 0 ? '+' : ''}${formatNumber(diff)} ${it.unit}`)
-  adjustTarget.value = null
+  try {
+    await materialsApi.adjust(adjustTarget.value.originalId, adjustActual.value, adjustReason.value)
+    toast(`Đã điều chỉnh kho thành công`)
+    adjustTarget.value = null
+    fetchData()
+  } catch (err) {
+    toast('Lỗi khi điều chỉnh')
+  }
 }
 
 // ── Add SKU ─────────────────────────────────────────────
 const isAddOpen = ref(false)
-let skuCounter = 1
-const newItem = ref<{ name: string; category: string; unit: string; qty: number; min: number }>({ name: '', category: 'Nguyên liệu thô', unit: 'g', qty: 0, min: 0 })
-const openAdd = () => { newItem.value = { name: '', category: 'Nguyên liệu thô', unit: 'g', qty: 0, min: 0 }; isAddOpen.value = true }
-const saveNewItem = () => {
+const newItem = ref<{ name: string; category: string; unit: string; qty: number; min: number; expiryDate: string }>({ name: '', category: 'Nguyên liệu thô', unit: 'g', qty: 0, min: 0, expiryDate: '' })
+const openAdd = () => { newItem.value = { name: '', category: 'Nguyên liệu thô', unit: 'g', qty: 0, min: 0, expiryDate: '' }; isAddOpen.value = true }
+const saveNewItem = async () => {
   if (!newItem.value.name.trim()) { toast('Vui lòng nhập tên nguyên liệu'); return }
-  const prefix = newItem.value.category === 'Vật tư' ? 'SUP' : newItem.value.category === 'Topping' ? 'SEM' : 'RAW'
-  items.value.push({
-    sku: `${prefix}-NEW-${String(skuCounter++).padStart(3, '0')}`,
-    name: newItem.value.name, category: newItem.value.category, unit: newItem.value.unit || 'cái',
-    qty: newItem.value.qty, min: newItem.value.min, icon: 'coffee', batches: [], history: [],
-  })
-  toast(`Đã thêm SKU ${newItem.value.name}`)
-  isAddOpen.value = false
+  try {
+    const res = await materialsApi.create({
+      tenNguyenLieu: newItem.value.name,
+      phanLoai: newItem.value.category,
+      donViTinh: newItem.value.unit || 'cái',
+      mucTonToiThieu: newItem.value.min,
+      ngayHetHan: newItem.value.expiryDate || null
+    })
+    
+    // Nếu có tồn ban đầu, gọi API điều chỉnh kho ngay lập tức
+    if (newItem.value.qty > 0) {
+      await materialsApi.adjust(res.maNguyenLieu, newItem.value.qty, 'Tồn ban đầu hệ thống')
+    }
+    
+    toast(`Đã thêm SKU ${newItem.value.name}`)
+    isAddOpen.value = false
+    fetchData()
+  } catch (err: any) {
+    toast(err.response?.data?.message || 'Lỗi khi tạo SKU')
+  }
 }
 </script>
 

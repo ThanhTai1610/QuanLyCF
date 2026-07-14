@@ -36,13 +36,11 @@ namespace BackEnd.Features.System
             if (string.IsNullOrWhiteSpace(request.Message))
                 return BadRequest(new { message = "Tin nhắn không được để trống." });
 
-            // 1. Lấy danh sách keys từ .env (nếu chạy local và có file)
             var keysEnv = _config["GEMINI_API_KEYS"] ?? Environment.GetEnvironmentVariable("GEMINI_API_KEYS");
-            var apiKeys = string.IsNullOrEmpty(keysEnv) 
-                ? new List<string>() 
+            var apiKeys = string.IsNullOrEmpty(keysEnv)
+                ? new List<string>()
                 : keysEnv.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(k => k.Trim()).ToList();
 
-            // 2. Nếu deploy lên server không có .env, sử dụng Hardcode Key đã mã hoá đảo ngược để CHỐNG BỌ QUÉT
             if (apiKeys.Count == 0)
             {
                 var scrambledKeys = new string[] {
@@ -92,10 +90,11 @@ HƯỚNG DẪN QUAN TRỌNG:
 1. Hãy trả lời cực kỳ NGẮN GỌN (tối đa 2-3 câu), thân thiện, tự nhiên và mang lại cảm giác ấm áp, tử tế.
 2. Nếu khách hỏi về món ăn/thức uống, CHỈ tư vấn những món có trong THỰC ĐƠN ở trên.
 3. Nếu khách hỏi thông tin quán (giờ mở cửa, địa chỉ, wifi, sdt...), hãy dùng thông tin ở phần THÔNG TIN VỀ QUÁN.
-4. Nếu bạn muốn gợi ý món nào, hãy trích xuất các ID tương ứng. Nếu khách hỏi điểm nổi bật hoặc món bán chạy, hãy nhớ giới thiệu Bạc xỉu hoặc các món đặc sản của quán.
-5. BẮT BUỘC TRẢ VỀ CHÍNH XÁC MỘT ĐỐI TƯỢNG JSON CÓ CẤU TRÚC SAU (không có thẻ ```json):
+4. TUYỆT ĐỐI KHÔNG viết ID của món vào câu trả lời (phần 'reply'). Chỉ được nhắc đến tên món.
+5. Khi bạn gợi ý món, hãy lấy ID của món đó ở THỰC ĐƠN và chỉ điền vào mảng 'recommend_item_ids'.
+6. BẮT BUỘC TRẢ VỀ CHÍNH XÁC MỘT ĐỐI TƯỢNG JSON CÓ CẤU TRÚC SAU (không có thẻ ```json):
 {{
-  ""reply"": ""Câu trả lời của bạn ở đây..."",
+  ""reply"": ""Câu trả lời tự nhiên của bạn (Không chứa ID)..."",
   ""recommend_item_ids"": [danh_sách_các_ID_món_bạn_muốn_gợi_ý_nếu_có_nhưng_tối_đa_3_id]
 }}";
 
@@ -123,7 +122,6 @@ HƯỚNG DẪN QUAN TRỌNG:
                 int attemptIndex;
                 lock (_keyLock) { attemptIndex = _currentKeyIndex; }
                 var currentKey = apiKeys[attemptIndex];
-                
                 var geminiUrl = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={currentKey}";
 
                 try

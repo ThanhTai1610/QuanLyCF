@@ -69,9 +69,16 @@ public class ComboService
     {
         var c = await _db.Combos.FindAsync(id);
         if (c is null) return ServiceResult<bool>.Fail("Không tìm thấy combo.");
-        _db.Combos.Remove(c);
-        await _db.SaveChangesAsync();
-        return ServiceResult<bool>.Ok(true);
+        try 
+        {
+            _db.Combos.Remove(c);
+            await _db.SaveChangesAsync();
+            return ServiceResult<bool>.Ok(true);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+        {
+            return ServiceResult<bool>.Fail("Không thể xoá vì đã có khách hàng đặt combo này. Vui lòng bấm 'Tắt' thay vì xoá để giữ nguyên lịch sử doanh thu.");
+        }
     }
 
     private async Task<string?> KiemTraSanPham(List<ComboLineDto> lines)

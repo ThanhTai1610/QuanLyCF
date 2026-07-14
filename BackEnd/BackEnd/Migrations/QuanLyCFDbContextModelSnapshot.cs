@@ -1146,6 +1146,16 @@ namespace BackEnd.Migrations
                     b.Property<decimal?>("MucTonToiThieu")
                         .HasColumnType("decimal(10,3)");
 
+                    b.Property<DateTime?>("NgayHetHan")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PhanLoai")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("Nguyên liệu thô");
+
                     b.Property<decimal>("SoLuongTon")
                         .HasColumnType("decimal(10,3)");
 

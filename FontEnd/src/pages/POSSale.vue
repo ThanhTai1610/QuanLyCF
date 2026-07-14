@@ -27,7 +27,7 @@
         <p v-if="loadingMenu" class="text-sm text-[#8A8178]">Đang tải thực đơn...</p>
         <p v-else-if="menu.length===0" class="text-sm text-[#8A8178]">Chưa có món nào đang bán. Hãy thêm sản phẩm ở mục Thực đơn.</p>
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-          <button v-for="item in filteredMenu" :key="item.maSanPham" @click="!orderStore.globalOutOfStock.has(item.tenSanPham) && openOptions(item)"
+          <button v-for="item in filteredMenu" :key="item.maSanPham" @click="!orderStore.globalOutOfStock.has(item.tenSanPham) && handleItemClick(item)"
             class="group bg-white rounded-2xl border border-[#EAE3D9] overflow-hidden hover:shadow-xl hover:shadow-[#CC8033]/10 hover:-translate-y-1 hover:border-[#CC8033]/40 transition-all duration-200 text-left relative"
             :class="orderStore.globalOutOfStock.has(item.tenSanPham) ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : ''">
             
@@ -39,12 +39,17 @@
               <div v-else class="w-full h-full flex items-center justify-center text-[#C5BEB8]"><Coffee class="w-8 h-8" /></div>
               <div class="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent"></div>
               <div v-if="cartQty(item.maSanPham)>0" class="absolute top-2 left-2 min-w-[20px] h-5 px-1.5 rounded-full bg-[#CC8033] text-white text-[10px] font-bold flex items-center justify-center shadow-md ring-2 ring-white z-10">{{ cartQty(item.maSanPham) }}</div>
-              <div class="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-white/90 backdrop-blur text-[#CC8033] flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all z-10">
+              <!-- COMBO badge -->
+              <span v-if="item.kieuMon === 'Combo'" class="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[9px] font-bold uppercase tracking-widest shadow-lg z-10 flex items-center gap-1">
+                <Layers class="w-2.5 h-2.5" stroke-width="3" /> Combo
+              </span>
+              <div v-else class="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-white/90 backdrop-blur text-[#CC8033] flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all z-10">
                 <Plus class="w-4 h-4" stroke-width="2.5" />
               </div>
             </div>
             <div class="p-2.5">
               <p class="text-xs font-bold text-[#2A231E] leading-snug truncate">{{ item.tenSanPham }}</p>
+              <p v-if="item.kieuMon === 'Combo' && item.moTa" class="text-[10px] text-[#8A8178] font-medium truncate mt-0.5" :title="item.moTa">{{ item.moTa }}</p>
               <p class="text-sm font-premium-serif font-bold text-[#CC8033] mt-1">{{ formatVND(item.giaBan) }}</p>
             </div>
           </button>
@@ -591,6 +596,32 @@ function updTopping(maSanPham: number, delta: number) {
   const n = (selToppings.value[maSanPham] || 0) + delta
   if (n <= 0) delete selToppings.value[maSanPham]
   else selToppings.value[maSanPham] = n
+}
+
+// Combo → thêm thẳng vào giỏ; Món thường → mở modal tuỳ chọn
+function handleItemClick(item: MenuItem) {
+  if (item.kieuMon === 'Combo') {
+    // Thêm combo trực tiếp vào giỏ hàng (không chọn size/đá/đường/topping)
+    const existing = cart.value.find(c => c.maSanPham === item.maSanPham && c.optionText === '[Combo]')
+    if (existing) {
+      existing.qty++
+    } else {
+      cart.value.push({
+        cartId: cartIdSeq++,
+        maSanPham: item.maSanPham,
+        name: item.tenSanPham,
+        image: item.hinhAnh,
+        maKichCo: null,
+        unitPrice: item.giaBan,
+        qty: 1,
+        optionText: '[Combo]',
+        ghiChuMon: item.moTa ? `[Combo] ${item.moTa}` : '[Combo]',
+        toppings: [],
+      })
+    }
+    return
+  }
+  openOptions(item)
 }
 
 function openOptions(item: MenuItem) {

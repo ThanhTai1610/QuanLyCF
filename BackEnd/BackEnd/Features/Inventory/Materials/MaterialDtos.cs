@@ -4,17 +4,26 @@ public record MaterialItem(
     int MaNguyenLieu,
     string TenNguyenLieu,
     string? MaVach_SKU,
+    string PhanLoai,
     string DonViTinh,
     decimal SoLuongTon,
     decimal? MucTonToiThieu,
     decimal? GiaVonTrungBinh,
-    string TrangThaiTon);   // Ok, SapHet, Het
+    string TrangThaiTon,
+    DateTime? NgayHetHan);
 
 public record SaveMaterialRequest(
     string TenNguyenLieu,
     string? MaVach_SKU,
+    string PhanLoai,
     string DonViTinh,
     decimal? MucTonToiThieu,
     decimal? MucTonToiDa,
     int? HanSuDungNgay,
-    string? HinhAnh);
+    string? HinhAnh,
+    DateTime? NgayHetHan);
+
+public record AdjustStockRequest(
+    decimal SoLuongThucTe,
+    string LyDo
+);

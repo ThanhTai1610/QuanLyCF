@@ -25,5 +25,5 @@ export const suppliersApi = {
   create: (req: SaveSupplierRequest) => api.post<{ maNhaCungCap: number }>('/api/suppliers', req),
   update: (id: number, req: SaveSupplierRequest) => api.put(`/api/suppliers/${id}`, req),
   pay: (id: number, soTien: number, phuongThucThanhToan: string = 'Tiền mặt') => api.post(`/api/suppliers/${id}/pay`, { soTien, phuongThucThanhToan }),
-  delete: (id: number) => api.delete(`/api/suppliers/${id}`)
+  delete: (id: number) => api.del(`/api/suppliers/${id}`)
 }

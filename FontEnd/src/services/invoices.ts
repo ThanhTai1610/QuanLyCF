@@ -36,7 +36,14 @@ export interface InvoiceQueryParams {
   denNgay?: string
 }
 
+export interface InvoiceListResponse {
+  items: InvoiceListItemDto[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
 export const invoicesApi = {
-  list: (params?: InvoiceQueryParams) => api.get<InvoiceListItemDto[]>('/api/invoices', { params }),
+  list: (params?: InvoiceQueryParams) => api.get<InvoiceListResponse>('/api/invoices', { params }),
   get: (id: number) => api.get<InvoiceDetailDto>(`/api/invoices/${id}`)
 }

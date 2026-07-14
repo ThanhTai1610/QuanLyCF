@@ -47,7 +47,7 @@ public class StockTakesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = Quyens.KhoQuanLy)]
+    [Authorize(Policy = Quyens.KhoXem)]
     public async Task<IActionResult> Create(CreateStockTakeRequest req)
     {
         var r = await _service.TaoAsync(req, User.MaNhanVien());

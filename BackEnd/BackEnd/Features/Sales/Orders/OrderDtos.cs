@@ -55,3 +55,4 @@ public record CheckoutRequest(
 public record CheckoutResult(int MaDonHang, int MaHoaDon, decimal TienGiam, decimal ThanhTien, decimal TienThoiLai, string PhuongThuc);
 public record MoveOrderResult(string KetQua, string? TenBanCu, string? TenBanMoi); // KetQua: moved | merged
 public record CancelOrderRequest(string? LyDo);
+public record UpdateOrderStatusRequest(string Status);

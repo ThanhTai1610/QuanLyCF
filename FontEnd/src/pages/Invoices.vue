@@ -90,7 +90,7 @@
               <!-- NÚT LUÔN HIỂN THỊ -->
               <td class="pl-4 pr-8 py-2.5">
                 <div class="flex justify-end gap-1.5">
-                  <button @click="preview = inv" class="p-2 text-[#8A8178] border border-[#EAE3D9] rounded-md shadow-xl" title="Xem chi tiết">
+                  <button @click="openPreview(inv)" class="p-2 text-[#8A8178] border border-[#EAE3D9] rounded-md shadow-xl" title="Xem chi tiết">
                     <Eye class="w-4 h-4" stroke-width="2" />
                   </button>
                   <button @click="printInv" class="p-2 text-[#8A8178] border border-[#EAE3D9] rounded-md shadow-xl" title="In lại">
@@ -152,41 +152,27 @@
           </div>
          
           <div class="py-2 text-[11px] font-medium text-[#5C544E] space-y-2">
-            <div class="flex justify-between"><span class="text-[#8A8178] uppercase tracking-wider">Mã HĐ:</span><span class="font-bold text-[#2A231E]">{{ preview.id }}</span></div>
-            <div class="flex justify-between"><span class="text-[#8A8178] uppercase tracking-wider">{{ preview.table }}:</span><span class="font-bold text-[#2A231E]">{{ preview.time }}</span></div>
-            <div class="flex justify-between"><span class="text-[#8A8178] uppercase tracking-wider">Thu ngân:</span><span class="font-bold text-[#2A231E]">{{ preview.staff }}</span></div>
+            <div class="flex justify-between"><span class="text-[#8A8178] uppercase tracking-wider">Mã HĐ:</span><span class="font-bold text-[#2A231E]">HD-{{ preview.maHoaDon.toString().padStart(4, '0') }}</span></div>
+            <div class="flex justify-between"><span class="text-[#8A8178] uppercase tracking-wider">{{ preview.tenBan || 'Mang về' }}:</span><span class="font-bold text-[#2A231E]">{{ formatDateTime(preview.thoiGianThanhToan) }}</span></div>
+            <div class="flex justify-between"><span class="text-[#8A8178] uppercase tracking-wider">Thu ngân:</span><span class="font-bold text-[#2A231E]">{{ preview.tenThuNgan || 'Hệ thống' }}</span></div>
           </div>
          
           <div class="border-t border-dashed border-[#EAE3D9] my-4 pt-4 pb-2 space-y-3 text-[11px] font-medium text-[#2A231E]">
-            <div class="flex justify-between items-start">
+            <div v-for="(it, idx) in preview.items" :key="idx" class="flex justify-between items-start">
               <div>
-                <span class="font-bold">Cappuccino</span>
-                <div class="text-[#8A8178] text-[10px] mt-0.5">45.000₫ × 2</div>
+                <span class="font-bold">{{ it.tenMon }}</span>
+                <div class="text-[#8A8178] text-[10px] mt-0.5">{{ formatVND(it.donGia) }} × {{ it.soLuong }}</div>
               </div>
-              <span class="font-bold">90.000₫</span>
-            </div>
-            <div class="flex justify-between items-start">
-              <div>
-                <span class="font-bold">Bánh sừng bò (Croissant)</span>
-                <div class="text-[#8A8178] text-[10px] mt-0.5">32.000₫ × 2</div>
-              </div>
-              <span class="font-bold">64.000₫</span>
-            </div>
-            <div class="flex justify-between items-start">
-              <div>
-                <span class="font-bold">Tiramisu Ý</span>
-                <div class="text-[#8A8178] text-[10px] mt-0.5">48.000₫ × 1</div>
-              </div>
-              <span class="font-bold">48.000₫</span>
+              <span class="font-bold">{{ formatVND(it.thanhTien) }}</span>
             </div>
           </div>
          
           <div class="border-t border-black/10 pt-4 mt-2">
             <div class="flex justify-between items-end font-premium-sans">
               <span class="text-xl font-bold text-[#2A231E]">Tổng cộng</span>
-              <span class="text-3xl font-bold text-[#CC8033]">{{ formatVND(preview.total) }}</span>
+              <span class="text-3xl font-bold text-[#CC8033]">{{ formatVND(preview.tongThanhTien) }}</span>
             </div>
-            <p class="text-right text-[10px] uppercase tracking-widest text-[#8A8178] font-bold mt-2">Thanh toán qua: <span class="text-[#CC8033]">{{ preview.method }}</span></p>
+            <p class="text-right text-[10px] uppercase tracking-widest text-[#8A8178] font-bold mt-2">Thanh toán qua: <span class="text-[#CC8033]">{{ preview.phuongThuc || 'Không rõ' }}</span></p>
           </div>
          
           <div class="text-center mt-8">
@@ -212,19 +198,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { Search, Calendar, Download, Eye, Printer, FileText, Filter, Coffee, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Modal from '@/components/ui/Modal.vue'
 import { useStoreInfoStore } from '@/stores/storeInfo'
+import { invoicesApi, type InvoiceListItemDto, type InvoiceDetailDto } from '@/services/invoices'
+import { useToast } from '@/stores/toast'
 
 const storeInfoStore = useStoreInfoStore()
+const toast = useToast()
 
 const formatVND = (val: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)
+const formatDateTime = (val: string) => {
+  const d = new Date(val)
+  return d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })
+}
 
 interface Invoice {
   id: string
+  originalId: number
   table: string
   time: string
   total: number
@@ -233,20 +227,29 @@ interface Invoice {
   status: "paid" | "unprinted" | "printed"
 }
 
-const invoices = ref<Invoice[]>([
-  { id: "HD-1045", table: "Bàn 2", time: "21/04/2026 11:30", total: 450000, method: "Tiền mặt", staff: "Lan Trần", status: "paid" },
-  { id: "HD-1044", table: "Bàn 9", time: "21/04/2026 11:15", total: 120000, method: "MoMo", staff: "Vy Hoàng", status: "paid" },
-  { id: "HD-1043", table: "Bàn 5", time: "21/04/2026 10:45", total: 85000, method: "ZaloPay", staff: "Lan Trần", status: "unprinted" },
-  { id: "HD-1042", table: "Bàn 5", time: "21/04/2026 10:24", total: 178000, method: "Chuyển khoản", staff: "Lan Trần", status: "paid" },
-  { id: "HD-1041", table: "Bàn 12", time: "21/04/2026 10:18", total: 235000, method: "MoMo", staff: "Vy Hoàng", status: "printed" },
-  { id: "HD-1040", table: "Bàn 3", time: "21/04/2026 10:12", total: 105000, method: "Tiền mặt", staff: "Vy Hoàng", status: "unprinted" },
-  { id: "HD-1039", table: "Bàn 8", time: "21/04/2026 10:05", total: 320000, method: "VNPay", staff: "Lan Trần", status: "paid" },
-  { id: "HD-1038", table: "Bàn 1", time: "21/04/2026 09:58", total: 65000, method: "Tiền mặt", staff: "Vy Hoàng", status: "printed" },
-  { id: "HD-1037", table: "Bàn 7", time: "21/04/2026 09:42", total: 145000, method: "ZaloPay", staff: "Lan Trần", status: "printed" },
-  { id: "HD-1036", table: "Bàn 4", time: "21/04/2026 09:30", total: 192000, method: "Chuyển khoản", staff: "Lan Trần", status: "unprinted" },
-  { id: "HD-1035", table: "Bàn 6", time: "21/04/2026 09:15", total: 80000, method: "Tiền mặt", staff: "Vy Hoàng", status: "paid" },
-  { id: "HD-1034", table: "Bàn 10", time: "21/04/2026 08:50", total: 540000, method: "Thẻ VISA", staff: "Lan Trần", status: "paid" },
-])
+const invoices = ref<Invoice[]>([])
+
+const fetchInvoices = async () => {
+  try {
+    const res = await invoicesApi.list()
+    invoices.value = res.items.map(h => ({
+      id: `HD-${h.maHoaDon.toString().padStart(4, '0')}`,
+      originalId: h.maHoaDon,
+      table: h.tenBan || 'Bàn trống',
+      time: formatDateTime(h.thoiGianThanhToan),
+      total: h.tongThanhTien,
+      method: h.phuongThuc || 'Không rõ',
+      staff: h.tenThuNgan || 'Hệ thống',
+      status: h.trangThai === 'DaThanhToan' ? 'paid' : 'unprinted' // simplified mapping
+    }))
+  } catch (err) {
+    toast.error('Lỗi khi tải danh sách hóa đơn')
+  }
+}
+
+onMounted(() => {
+  fetchInvoices()
+})
 
 const statusBadge = {
   paid: { label: "Đã thanh toán", cls: "bg-[#F0FDF4] text-[#166534] border-[#BBF7D0]", dot: "bg-[#166534]" },
@@ -255,15 +258,31 @@ const statusBadge = {
 }
 
 const selected = ref<string[]>([])
-const preview = ref<Invoice | null>(null)
+const preview = ref<InvoiceDetailDto | null>(null)
+const previewBasic = ref<Invoice | null>(null)
 const search = ref("")
 const currentPage = ref(1)
 const itemsPerPage = ref(8)
 
 const isPreviewOpen = computed({
   get: () => preview.value !== null,
-  set: (val) => { if (!val) preview.value = null }
+  set: (val) => { 
+    if (!val) {
+      preview.value = null
+      previewBasic.value = null
+    }
+  }
 })
+
+const openPreview = async (inv: Invoice) => {
+  try {
+    const res = await invoicesApi.get(inv.originalId)
+    preview.value = res
+    previewBasic.value = inv
+  } catch (err) {
+    toast.error('Lỗi tải chi tiết hóa đơn')
+  }
+}
 
 const filteredInvoices = computed(() => {
   const query = search.value.toLowerCase()

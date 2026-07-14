@@ -395,6 +395,7 @@ public class QuanLyCFDbContext : DbContext
             e.Property(x => x.TenNguyenLieu).HasMaxLength(150).IsRequired();
             e.Property(x => x.MaVach_SKU).HasMaxLength(50);
             e.Property(x => x.DonViTinh).HasMaxLength(20).IsRequired();
+            e.Property(x => x.PhanLoai).HasMaxLength(50).HasDefaultValue("Nguyên liệu thô");
             e.Property(x => x.SoLuongTon).HasColumnType("decimal(10,3)");
             e.Property(x => x.MucTonToiThieu).HasColumnType("decimal(10,3)");
             e.Property(x => x.MucTonToiDa).HasColumnType("decimal(10,3)");
@@ -544,6 +545,7 @@ public class QuanLyCFDbContext : DbContext
             ("CAIDAT_QUANLY", "Quản lý cài đặt", "CaiDat"),
             ("BAN_XEM", "Xem bàn", "Ban"),
             ("BAN_QUANLY", "Quản lý bàn", "Ban"),
+            ("HOADON_XEM", "Xem hoá đơn", "HoaDon"),
         };
         var quyens = quyenMeta.Select((q, i) => new Quyen { MaQuyen = i + 1, MaCode = q.Code, TenQuyen = q.Ten, Nhom = q.Nhom }).ToArray();
         mb.Entity<Quyen>().HasData(quyens);
@@ -555,7 +557,7 @@ public class QuanLyCFDbContext : DbContext
         {
             [1] = quyenMeta.Select(q => q.Code).ToArray(), // Quản lý: full
             [2] = new[] { "SANPHAM_XEM", "KHO_XEM", "DONHANG_XEM", "DONHANG_XULY", "BEP_XEM" },                        // Pha chế
-            [3] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY", "THANHTOAN", "KHACHHANG_XEM", "BAN_XEM" },     // Thu ngân
+            [3] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY", "THANHTOAN", "KHACHHANG_XEM", "BAN_XEM", "HOADON_XEM" },     // Thu ngân
             [4] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY", "BAN_XEM" },                                   // Phục vụ
         };
 
