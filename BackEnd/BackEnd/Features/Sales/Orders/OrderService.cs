@@ -72,7 +72,7 @@ public class OrderService
 
     /// <summary>Tạo + lưu đơn hàng (entity). Dùng chung cho tạo đơn và thanh toán.</summary>
     private async Task<(DonHang? Don, string? Error)> TaoDonHangAsync(
-        int? maBan, List<OrderLineRequest>? items, string? ghiChu, int? maNhanVien)
+        int? maBan, List<OrderLineRequest>? items, string? ghiChu, int? maNhanVien, int? maKhachHang = null)
     {
         if (items is null || items.Count == 0) return (null, "Đơn phải có ít nhất 1 món.");
         Ban? ban = null;
@@ -91,6 +91,7 @@ public class OrderService
         {
             MaBan = maBan,
             MaNhanVien = maNhanVien,
+            MaKhachHang = maKhachHang,
             LoaiDonHang = maBan is null ? "TakeAway" : "DineIn",
             TrangThaiDon = "ChoXacNhan",
             GhiChuDonHang = ghiChu,
@@ -135,7 +136,7 @@ public class OrderService
 
     public async Task<(OrderDto? Data, string? Error)> TaoDonAsync(CreateOrderRequest req, int? maNhanVien)
     {
-        var (don, err) = await TaoDonHangAsync(req.MaBan, req.Items, req.GhiChuDonHang, maNhanVien);
+        var (don, err) = await TaoDonHangAsync(req.MaBan, req.Items, req.GhiChuDonHang, maNhanVien, req.MaKhachHang);
         if (err is not null) return (null, err);
 
         await _db.Entry(don!).Reference(d => d.Ban).LoadAsync();
@@ -151,7 +152,7 @@ public class OrderService
     public async Task<(CheckoutResult? Data, string? Error)> ThanhToanAsync(CheckoutRequest req, int? maNhanVien)
     {
         if (string.IsNullOrWhiteSpace(req.PhuongThuc)) return (null, "Thiếu phương thức thanh toán.");
-        var (don, err) = await TaoDonHangAsync(req.MaBan, req.Items, req.GhiChuDonHang, maNhanVien);
+        var (don, err) = await TaoDonHangAsync(req.MaBan, req.Items, req.GhiChuDonHang, maNhanVien, req.MaKhachHang);
         if (err is not null) return (null, err);
 
         // Áp dụng khuyến mãi (nếu có) — kiểm tra + tính giảm + tăng lượt đã dùng

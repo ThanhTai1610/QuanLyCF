@@ -291,16 +291,18 @@
     <!-- Modal thanh toán -->
     <Transition name="modal-fade">
       <div v-if="payOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="payOpen=false"></div>
-        <div class="relative w-full max-w-md bg-[#FDFBF7] rounded-2xl shadow-2xl overflow-hidden">
-          <div class="p-5 border-b border-[#EAE3D9] flex items-center justify-between">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closePayModal"></div>
+        <div class="relative w-full max-w-md bg-[#FDFBF7] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+          <div class="p-5 border-b border-[#EAE3D9] flex items-center justify-between shrink-0">
             <div>
               <h2 class="font-premium-serif text-xl font-bold text-[#2A231E]">Thanh toán</h2>
               <p class="text-xs text-[#8A8178] font-medium">{{ orderType==='takeaway' ? 'Mang về' : (selectedTable?.tenBan || '') }} · {{ cartTotalQty }} phần</p>
             </div>
-            <button @click="payOpen=false" class="w-9 h-9 rounded-full bg-[#F5F2ED] flex items-center justify-center text-[#8A8178] hover:bg-[#EAE3D9]"><X class="w-4 h-4"/></button>
+            <button @click="closePayModal" class="w-9 h-9 rounded-full bg-[#F5F2ED] flex items-center justify-center text-[#8A8178] hover:bg-[#EAE3D9]"><X class="w-4 h-4"/></button>
           </div>
-          <div class="p-5 space-y-4">
+
+          <!-- BƯỚC 1: Chọn phương thức (chưa tạo đơn) -->
+          <div v-if="payStep === 'select'" class="flex-1 overflow-y-auto p-5 space-y-4">
             <!-- Khuyến mãi -->
             <div class="rounded-xl border border-[#EAE3D9] p-3 space-y-2">
               <div class="flex items-center gap-2">
@@ -330,8 +332,10 @@
                 <span class="text-2xl font-premium-serif font-bold text-[#CC8033]">{{ formatVND(finalTotal) }}</span>
               </div>
             </div>
-            <div class="grid grid-cols-2 gap-2">
-              <button v-for="m in payMethods" :key="m.id" @click="payMethod=m.id; ckType=null"
+
+            <!-- Chọn phương thức thanh toán -->
+            <div class="grid grid-cols-3 gap-2">
+              <button v-for="m in payMethods" :key="m.id" @click="payMethod = m.id; ckType = null"
                 :class="payMethod===m.id ? 'border-[#CC8033] bg-[#FDF7EF] text-[#CC8033]' : 'border-[#EAE3D9] text-[#8A8178]'"
                 class="flex flex-col items-center gap-1 py-3 rounded-xl border-2 transition-colors">
                 <component :is="m.icon" class="w-5 h-5" />
@@ -339,18 +343,7 @@
               </button>
             </div>
 
-            <!-- Loại chuyển khoản: MoMo / Ngân hàng -->
-            <div v-if="payMethod==='ChuyenKhoan'" class="space-y-2">
-              <label class="text-[10px] uppercase tracking-widest font-bold text-[#8A8178]">Hình thức chuyển khoản</label>
-              <div class="grid grid-cols-2 gap-2">
-                <button v-for="c in ckOptions" :key="c.id" @click="ckType=c.id"
-                  :class="ckType===c.id ? 'border-[#CC8033] bg-[#FDF7EF] text-[#CC8033]' : 'border-[#EAE3D9] text-[#8A8178]'"
-                  class="flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 transition-colors">
-                  <component :is="c.icon" class="w-4 h-4" />
-                  <span class="text-xs font-bold">{{ c.label }}</span>
-                </button>
-              </div>
-            </div>
+            <!-- Tiền mặt: nhập số tiền -->
             <div v-if="payMethod==='TienMat'" class="space-y-2">
               <label class="text-[10px] uppercase tracking-widest font-bold text-[#8A8178]">Tiền khách đưa</label>
               <input v-model.number="cashReceived" type="number" placeholder="0"
@@ -358,19 +351,99 @@
               <div class="flex gap-1.5 flex-wrap">
                 <button v-for="a in quickAmounts" :key="a" @click="cashReceived=a"
                   class="px-3 py-1.5 rounded-lg border border-[#EAE3D9] text-[11px] font-bold text-[#5C544E] hover:border-[#CC8033] hover:text-[#CC8033]">{{ (a/1000)+'k' }}</button>
-                <button @click="cashReceived=cartTotal" class="px-3 py-1.5 rounded-lg border border-[#CC8033] text-[11px] font-bold text-[#CC8033]">Vừa đủ</button>
+                <button @click="cashReceived=finalTotal" class="px-3 py-1.5 rounded-lg border border-[#CC8033] text-[11px] font-bold text-[#CC8033]">Vừa đủ</button>
               </div>
               <div class="flex items-center justify-between px-3 py-2 rounded-xl" :class="change>0 ? 'bg-emerald-50 text-emerald-700' : 'bg-[#F5F2ED] text-[#8A8178]'">
                 <span class="text-sm font-semibold">Tiền thối</span>
                 <span class="text-lg font-bold">{{ formatVND(change) }}</span>
               </div>
             </div>
+
             <p v-if="posError" class="text-xs font-semibold text-red-600">{{ posError }}</p>
-          </div>
-          <div class="p-5 pt-0">
+
             <button @click="confirmPay" :disabled="!canPay || paying"
               class="w-full py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-[#CC8033] to-[#8A4F1A] text-white shadow-lg disabled:opacity-40 flex items-center justify-center gap-2">
-              <CheckCircle class="w-4 h-4" /> {{ paying ? 'Đang xử lý...' : 'Xác nhận thanh toán' }}
+              <CheckCircle class="w-4 h-4" />
+              <span>{{ paying ? 'Đang tạo đơn...' : (payMethod === 'TienMat' ? 'Xác nhận thanh toán' : (payMethod === 'Momo' ? 'Tạo mã QR MoMo' : 'Tạo mã VietQR')) }}</span>
+            </button>
+          </div>
+
+          <!-- BƯỚC 2: Hiển thị QR code MoMo / VietQR -->
+          <div v-else-if="payStep === 'qr'" class="flex-1 overflow-y-auto p-5 space-y-4">
+            <div class="text-center space-y-1">
+              <p class="text-sm font-bold text-[#2A231E]">
+                {{ payMethod === 'Momo' ? '🟣 Quét mã MoMo để thanh toán' : '🏦 Quét mã VietQR để chuyển khoản' }}
+              </p>
+              <p class="text-xs text-[#8A8178]">Sau khi thanh toán xong, hệ thống sẽ tự động xác nhận</p>
+            </div>
+
+            <!-- Số tiền cần thanh toán -->
+            <div class="flex justify-between items-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FDF7EF] to-[#F9F1E6] border border-[#F0E4D2]">
+              <span class="text-sm font-bold text-[#5C544E]">Số tiền</span>
+              <span class="text-xl font-premium-serif font-bold text-[#CC8033]">{{ formatVND(finalTotal) }}</span>
+            </div>
+
+            <!-- QR Code -->
+            <div class="flex flex-col items-center gap-3">
+              <div v-if="qrLoading" class="w-52 h-52 rounded-2xl bg-[#F5F2ED] flex items-center justify-center">
+                <div class="animate-spin w-8 h-8 border-2 border-[#CC8033] border-t-transparent rounded-full"></div>
+              </div>
+              <div v-else-if="qrError" class="w-52 h-52 rounded-2xl bg-red-50 flex flex-col items-center justify-center gap-2 p-4 text-center">
+                <span class="text-2xl">⚠️</span>
+                <p class="text-xs font-semibold text-red-600">{{ qrError }}</p>
+                <button @click="retryQr" class="text-xs underline text-[#CC8033] font-bold">Thử lại</button>
+              </div>
+              <!-- QR cho MoMo: render EMVCo raw string bằng QrcodeVue -->
+              <div v-else-if="qrRawString" class="w-52 h-52 rounded-2xl bg-white border-2 border-[#EAE3D9] flex items-center justify-center shadow-md p-3">
+                <QrcodeVue :value="qrRawString" :size="180" level="H" render-as="svg" />
+              </div>
+              <!-- QR cho VietQR: dùng ảnh URL từ img.vietqr.io -->
+              <div v-else-if="qrCodeUrl" class="w-52 h-52 rounded-2xl bg-white border-2 border-[#EAE3D9] overflow-hidden p-2 shadow-md">
+                <img :src="qrCodeUrl" alt="QR Code VietQR" class="w-full h-full object-contain" />
+              </div>
+
+              <!-- Nút mở App MoMo -->
+              <a v-if="payUrl && payMethod === 'Momo'" :href="payUrl" target="_blank"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#AE2070] text-white text-sm font-bold hover:opacity-90 transition-opacity shadow-md">
+                <Smartphone class="w-4 h-4" /> Mở App MoMo thanh toán
+              </a>
+            </div>
+
+            <!-- Trạng thái polling -->
+            <div class="flex items-center justify-center gap-2 text-xs text-[#8A8178] font-medium">
+              <div class="animate-pulse w-2 h-2 rounded-full bg-amber-400"></div>
+              Đang chờ thanh toán... ({{ pollCount }}s)
+            </div>
+
+            <!-- Thông tin chuyển khoản (VietQR) -->
+            <div v-if="payMethod === 'NganHang'" class="rounded-xl border border-[#EAE3D9] p-3 text-xs space-y-1 text-[#5C544E]">
+              <p class="font-bold text-[10px] uppercase tracking-widest text-[#8A8178] mb-1">Thông tin chuyển khoản</p>
+              <div class="flex justify-between"><span>Ngân hàng</span><span class="font-bold">MB Bank</span></div>
+              <div class="flex justify-between"><span>Nội dung CK</span><span class="font-bold text-[#CC8033]">BrewManager DH{{ createdOrderId }}</span></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button @click="cancelQrAndBack" class="py-3 rounded-2xl font-bold text-sm border-2 border-[#EAE3D9] text-[#5C544E] hover:border-[#CC8033] transition-colors">
+                ← Quay lại
+              </button>
+              <button @click="manualConfirm" :disabled="paying"
+                class="py-3 rounded-2xl font-bold text-sm bg-gradient-to-r from-[#CC8033] to-[#8A4F1A] text-white shadow-lg disabled:opacity-40 flex items-center justify-center gap-1.5">
+                <CheckCircle class="w-4 h-4" /> {{ paying ? 'Đang xử lý...' : 'Xác nhận đã nhận tiền' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- BƯỚC 3: Thành công -->
+          <div v-else-if="payStep === 'success'" class="flex-1 p-6 flex flex-col items-center justify-center gap-4 text-center">
+            <div class="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center">
+              <CheckCircle class="w-10 h-10 text-emerald-500" stroke-width="2" />
+            </div>
+            <div>
+              <h3 class="text-xl font-premium-serif font-bold text-[#2A231E]">Thanh toán thành công!</h3>
+              <p class="text-sm text-[#8A8178] mt-1">{{ payMethod === 'TienMat' ? 'Tiền thối: ' + formatVND(toastChange) : 'Hệ thống đã ghi nhận giao dịch' }}</p>
+            </div>
+            <button @click="closePayModal" class="w-full py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-[#CC8033] to-[#8A4F1A] text-white shadow-lg">
+              Đóng
             </button>
           </div>
         </div>
@@ -410,11 +483,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { Search, ShoppingCart, Trash2, X, MessageSquare, CheckCircle, Plus, Coffee, Store, ShoppingBag, Banknote, Smartphone, Wallet, Landmark, Zap, Bell } from 'lucide-vue-next'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { Search, ShoppingCart, Trash2, X, MessageSquare, CheckCircle, Plus, Coffee, Store, ShoppingBag, Banknote, Smartphone, Wallet, Landmark, Zap, Bell, Layers } from 'lucide-vue-next'
+import QrcodeVue from 'qrcode.vue'
 import { ordersApi, type MenuItem } from '@/services/orders'
 import { tablesApi, type TableItem } from '@/services/tables'
 import { promotionsApi, type Promotion, type ApplyResult } from '@/services/promotions'
+import { paymentsApi } from '@/services/payments'
 import { useOrderStore } from '@/stores/orders'
 
 const orderStore = useOrderStore()
@@ -567,8 +642,8 @@ function clearCart() { cart.value = []; note.value = '' }
 
 // ── Thanh toán ────────────────────────────────────────────────
 const payOpen = ref(false)
-const payMethod = ref<'TienMat' | 'ChuyenKhoan'>('TienMat')
-const ckType = ref<'Momo' | 'NganHang' | null>(null)   // loại chuyển khoản
+const payMethod = ref<'TienMat' | 'Momo' | 'NganHang'>('TienMat')
+const ckType = ref<'Momo' | 'NganHang' | null>(null)
 const cashReceived = ref<number | null>(null)
 const paying = ref(false)
 const showToast = ref(false)
@@ -596,14 +671,27 @@ watch(() => orderStore.posNotification, (newVal) => {
   }
 })
 
-const payMethods: { id: 'TienMat' | 'ChuyenKhoan'; label: string; icon: unknown }[] = [
+// Luồng thanh toán multi-step
+const payStep = ref<'select' | 'qr' | 'success'>('select')
+const createdOrderId = ref<number | null>(null)
+const qrCodeUrl = ref<string | null>(null)
+const qrRawString = ref<string | null>(null)  // EMVCo raw string cho MoMo
+const payUrl = ref<string | null>(null)
+const qrLoading = ref(false)
+const qrError = ref('')
+const pollCount = ref(0)
+let pollInterval: number | null = null
+
+const payMethods: { id: 'TienMat' | 'Momo' | 'NganHang'; label: string; icon: unknown }[] = [
   { id: 'TienMat', label: 'Tiền mặt', icon: Banknote },
-  { id: 'ChuyenKhoan', label: 'Chuyển khoản', icon: Smartphone },
+  { id: 'Momo', label: 'MoMo', icon: Wallet },
+  { id: 'NganHang', label: 'VietQR', icon: Landmark },
 ]
 const ckOptions: { id: 'Momo' | 'NganHang'; label: string; icon: unknown }[] = [
   { id: 'Momo', label: 'MoMo', icon: Wallet },
   { id: 'NganHang', label: 'Ngân hàng', icon: Landmark },
 ]
+
 // ── Khuyến mãi ──
 const activePromos = ref<Promotion[]>([])
 const voucherCode = ref('')
@@ -627,9 +715,30 @@ function clearPromo() { appliedPromo.value = null; voucherCode.value = ''; vouch
 const change = computed(() => Math.max(0, (cashReceived.value || 0) - finalTotal.value))
 const canPay = computed(() => {
   if (payMethod.value === 'TienMat') return (cashReceived.value || 0) >= finalTotal.value
-  if (payMethod.value === 'ChuyenKhoan') return ckType.value !== null
-  return true
+  return true  // MoMo / VietQR: tạo đơn trước, hiển thị QR sau
 })
+
+function stopPolling() {
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null }
+}
+
+function startPolling(maDonHang: number) {
+  stopPolling()
+  pollCount.value = 0
+  pollInterval = window.setInterval(async () => {
+    pollCount.value += 3
+    try {
+      const status = await paymentsApi.getStatus(maDonHang)
+      if (status.daThanhToan) {
+        stopPolling()
+        payStep.value = 'success'
+        clearCart()
+        selectedTableId.value = null
+        tables.value = await tablesApi.list()
+      }
+    } catch { /* bỏ qua lỗi poll */ }
+  }, 3000)
+}
 
 async function openPay() {
   if (!canCheckout.value) return
@@ -637,9 +746,24 @@ async function openPay() {
   ckType.value = null
   cashReceived.value = null
   posError.value = ''
+  payStep.value = 'select'
+  qrCodeUrl.value = null
+  qrRawString.value = null
+  payUrl.value = null
+  qrError.value = ''
+  createdOrderId.value = null
   clearPromo()
   payOpen.value = true
   try { if (activePromos.value.length === 0) activePromos.value = await promotionsApi.active() } catch { /* bỏ qua */ }
+}
+
+function closePayModal() {
+  stopPolling()
+  payOpen.value = false
+  if (payStep.value === 'success') {
+    showToast.value = true
+    setTimeout(() => (showToast.value = false), 3000)
+  }
 }
 
 async function confirmPay() {
@@ -647,23 +771,13 @@ async function confirmPay() {
   paying.value = true
   posError.value = ''
   try {
-    const items = []
+    // Gom items từ cart
+    const items: { maSanPham: number; maKichCo: number | null; soLuong: number; ghiChuMon: string | null }[] = []
     for (const i of cart.value) {
       items.push({ maSanPham: i.maSanPham, maKichCo: i.maKichCo, soLuong: i.qty, ghiChuMon: i.ghiChuMon })
       for (const t of i.toppings)
         items.push({ maSanPham: t.maSanPham, maKichCo: null, soLuong: t.qty * i.qty, ghiChuMon: 'Topping · ' + i.name })
     }
-    const res = await ordersApi.checkout({
-      maBan: orderType.value === 'dine-in' ? selectedTableId.value : null,
-      items,
-      ghiChuDonHang: note.value.trim() || null,
-      phuongThuc: payMethod.value === 'ChuyenKhoan'
-        ? (ckType.value === 'Momo' ? 'Momo' : 'ChuyenKhoan')
-        : payMethod.value,
-      soTienKhachTra: payMethod.value === 'TienMat' ? (cashReceived.value || finalTotal.value) : null,
-      maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null,
-    })
-    
     // Đẩy đơn ảo vào store Bếp KDS (Dành cho bản Demo Local)
     const tbName = orderType.value === 'dine-in' ? tables.value.find(t => t.maBan === selectedTableId.value)?.tenBan || '' : 'Mang về'
     orderStore.createOrder({
@@ -672,23 +786,123 @@ async function confirmPay() {
       isPriority: isPriority.value
     })
 
-    toastChange.value = res.tienThoiLai
-    orderIdResponse.value = res.maDonHang
-    isTakeawayResponse.value = orderType.value === 'takeaway'
-    
-    clearCart()
-    isPriority.value = false
-    selectedTableId.value = null
-    payOpen.value = false
-    tables.value = await tablesApi.list()
-    showToast.value = true
-    setTimeout(() => (showToast.value = false), 5000)
+    if (payMethod.value === 'TienMat') {
+      // Tiền mặt: checkout trực tiếp như cũ
+      const res = await ordersApi.checkout({
+        maBan: orderType.value === 'dine-in' ? selectedTableId.value : null,
+        items,
+        ghiChuDonHang: note.value.trim() || null,
+        phuongThuc: 'TienMat',
+        soTienKhachTra: cashReceived.value || finalTotal.value,
+        maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null,
+      })
+      toastChange.value = res.tienThoiLai
+      orderIdResponse.value = res.maDonHang
+      isTakeawayResponse.value = orderType.value === 'takeaway'
+      
+      clearCart()
+      isPriority.value = false
+      selectedTableId.value = null
+      tables.value = await tablesApi.list()
+      payStep.value = 'success'
+      showToast.value = true
+      setTimeout(() => (showToast.value = false), 5000)
+    } else {
+      // MoMo / VietQR: Bước 1 - Tạo đơn hàng trước
+      const order = await ordersApi.create({
+        maBan: orderType.value === 'dine-in' ? selectedTableId.value : null,
+        items,
+        ghiChuDonHang: note.value.trim() || null,
+      })
+      createdOrderId.value = order.maDonHang
+      orderIdResponse.value = order.maDonHang
+      isTakeawayResponse.value = orderType.value === 'takeaway'
+
+      // Bước 2 - Gọi API sinh QR tương ứng
+      qrLoading.value = true
+      payStep.value = 'qr'
+      qrCodeUrl.value = null
+      payUrl.value = null
+      qrError.value = ''
+
+      try {
+        const qrRes = payMethod.value === 'Momo'
+          ? await paymentsApi.payMomo({ maDonHang: order.maDonHang, maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null })
+          : await paymentsApi.payVietQr({ maDonHang: order.maDonHang, maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null })
+
+        if (qrRes.success) {
+          qrCodeUrl.value = qrRes.qrCodeUrl
+          qrRawString.value = qrRes.qrRawString ?? null
+          payUrl.value = qrRes.payUrl
+          // Bắt đầu polling kiểm tra trạng thái
+          startPolling(order.maDonHang)
+          tables.value = await tablesApi.list()  // cập nhật trạng thái bàn sang "Có khách"
+        } else {
+          qrError.value = qrRes.message || 'Không tạo được mã QR. Vui lòng thử lại.'
+        }
+      } catch (e) {
+        qrError.value = e instanceof Error ? e.message : 'Lỗi kết nối khi tạo QR.'
+      } finally {
+        qrLoading.value = false
+      }
+    }
   } catch (e) {
     posError.value = e instanceof Error ? e.message : 'Thanh toán thất bại.'
   } finally {
     paying.value = false
   }
 }
+
+async function retryQr() {
+  if (!createdOrderId.value) return
+  qrLoading.value = true
+  qrError.value = ''
+  try {
+    const qrRes = payMethod.value === 'Momo'
+      ? await paymentsApi.payMomo({ maDonHang: createdOrderId.value, maKhuyenMai: null })
+      : await paymentsApi.payVietQr({ maDonHang: createdOrderId.value, maKhuyenMai: null })
+    if (qrRes.success) {
+      qrCodeUrl.value = qrRes.qrCodeUrl
+      qrRawString.value = qrRes.qrRawString ?? null
+      payUrl.value = qrRes.payUrl
+      startPolling(createdOrderId.value)
+    } else {
+      qrError.value = qrRes.message
+    }
+  } catch (e) {
+    qrError.value = e instanceof Error ? e.message : 'Lỗi kết nối.'
+  } finally {
+    qrLoading.value = false
+  }
+}
+
+async function cancelQrAndBack() {
+  stopPolling()
+  payStep.value = 'select'
+}
+
+async function manualConfirm() {
+  if (!createdOrderId.value) return
+  paying.value = true
+  try {
+    const res = await paymentsApi.confirmTransfer(createdOrderId.value, finalTotal.value)
+    if (res.success) {
+      stopPolling()
+      payStep.value = 'success'
+      clearCart()
+      selectedTableId.value = null
+      tables.value = await tablesApi.list()
+    } else {
+      posError.value = res.message
+    }
+  } catch (e) {
+    posError.value = e instanceof Error ? e.message : 'Xác nhận thất bại.'
+  } finally {
+    paying.value = false
+  }
+}
+
+onUnmounted(() => stopPolling())
 </script>
 
 <style scoped>

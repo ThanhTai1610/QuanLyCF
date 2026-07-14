@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(QuanLyCFDbContext))]
-    partial class QuanLyCFDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260707133814_AddBankSettingsSeed")]
+    partial class AddBankSettingsSeed
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -558,25 +561,9 @@ namespace BackEnd.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaDanhMuc"));
 
-                    b.Property<bool>("ApDungKhungGio")
-                        .HasColumnType("bit");
-
-                    b.Property<TimeSpan?>("GioBatDau")
-                        .HasColumnType("time");
-
-                    b.Property<TimeSpan?>("GioKetThuc")
-                        .HasColumnType("time");
-
                     b.Property<string>("HinhAnh")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
-
-                    b.Property<bool>("LaNhomKichThuoc")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LoaiDanhMuc")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("MaDanhMucCha")
                         .HasColumnType("int");
@@ -592,12 +579,6 @@ namespace BackEnd.Migrations
                     b.Property<int>("ThuTuHienThi")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ToiDaChon")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ToiThieuChon")
-                        .HasColumnType("int");
-
                     b.Property<bool>("TrangThaiHoatDong")
                         .HasColumnType("bit");
 
@@ -611,9 +592,6 @@ namespace BackEnd.Migrations
                         new
                         {
                             MaDanhMuc = 1,
-                            ApDungKhungGio = false,
-                            LaNhomKichThuoc = false,
-                            LoaiDanhMuc = "MAIN",
                             TenDanhMuc = "Cà phê",
                             ThuTuHienThi = 1,
                             TrangThaiHoatDong = true
@@ -621,9 +599,6 @@ namespace BackEnd.Migrations
                         new
                         {
                             MaDanhMuc = 2,
-                            ApDungKhungGio = false,
-                            LaNhomKichThuoc = false,
-                            LoaiDanhMuc = "MAIN",
                             TenDanhMuc = "Trà",
                             ThuTuHienThi = 2,
                             TrangThaiHoatDong = true
@@ -631,9 +606,6 @@ namespace BackEnd.Migrations
                         new
                         {
                             MaDanhMuc = 3,
-                            ApDungKhungGio = false,
-                            LaNhomKichThuoc = false,
-                            LoaiDanhMuc = "MAIN",
                             TenDanhMuc = "Đá xay",
                             ThuTuHienThi = 3,
                             TrangThaiHoatDong = true
@@ -641,9 +613,6 @@ namespace BackEnd.Migrations
                         new
                         {
                             MaDanhMuc = 4,
-                            ApDungKhungGio = false,
-                            LaNhomKichThuoc = false,
-                            LoaiDanhMuc = "MAIN",
                             TenDanhMuc = "Bánh",
                             ThuTuHienThi = 4,
                             TrangThaiHoatDong = true
@@ -651,9 +620,6 @@ namespace BackEnd.Migrations
                         new
                         {
                             MaDanhMuc = 5,
-                            ApDungKhungGio = false,
-                            LaNhomKichThuoc = false,
-                            LoaiDanhMuc = "MAIN",
                             TenDanhMuc = "Khác",
                             ThuTuHienThi = 5,
                             TrangThaiHoatDong = true
