@@ -90,7 +90,7 @@ const router = createRouter({
         {
           path: 'revenue-report',
           name: 'revenue-report',
-          component: () => import('../pages/Dashboard.vue'),
+          component: () => import('../pages/RevenueReport.vue'),
         },
         {
           path: 'pos-sale',

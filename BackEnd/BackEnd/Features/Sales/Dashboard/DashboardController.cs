@@ -21,4 +21,15 @@ public class DashboardController : ControllerBase
         var data = await _service.GetDashboardDataAsync();
         return Ok(data);
     }
+
+    /// <summary>GET /api/dashboard/revenue-report?year=2026 hoặc ?year=2026&month=6</summary>
+    [HttpGet("revenue-report")]
+    public async Task<IActionResult> GetRevenueReport([FromQuery] int? year, [FromQuery] int? month)
+    {
+        int y = year ?? DateTime.UtcNow.Year;
+        if (month.HasValue && (month < 1 || month > 12))
+            return BadRequest("Tháng phải từ 1 đến 12.");
+        var data = await _service.GetMonthlyReportAsync(y, month);
+        return Ok(data);
+    }
 }
