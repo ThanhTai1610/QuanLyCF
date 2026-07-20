@@ -501,7 +501,13 @@ watch(() => activeOrders.value.length, (newVal, oldVal) => {
   }
 })
 
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted (() => { 
+  orderStore.fetchOrders()
+  pollTimer = setInterval(() => {
+    orderStore.fetchOrders()
+  }, 5000)
   timer = setInterval(() => { 
     now.value = Date.now() 
     if (!muted.value && Math.floor(now.value / 1000) % 10 === 0) {
@@ -512,7 +518,10 @@ onMounted (() => {
     }
   }, 1000) 
 })
-onUnmounted(() => { if (timer) clearInterval(timer) })
+onUnmounted(() => { 
+  if (timer) clearInterval(timer) 
+  if (pollTimer) clearInterval(pollTimer)
+})
 
 // ── Tabs ───────────────────────────────────────────────────────
 const tabs = computed(() => [

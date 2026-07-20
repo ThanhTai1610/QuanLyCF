@@ -91,12 +91,39 @@ public class OrdersController : ControllerBase
     [Authorize(Policy = Quyens.DonHangXem)]
     public async Task<IActionResult> Active() => Ok(await _svc.LayDonActiveAsync());
 
+    [HttpGet("{id:int}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var data = await _svc.LayDonTheoIdAsync(id);
+        return data == null ? NotFound(new { message = "Không tìm thấy đơn hàng." }) : Ok(data);
+    }
+
     [HttpPost]
     [Authorize(Policy = Quyens.DonHangXuLy)]
     public async Task<IActionResult> Create(CreateOrderRequest req)
     {
         var (data, err) = await _svc.TaoDonAsync(req, CurrentUserId);
         return err != null ? BadRequest(new { message = err }) : Ok(data);
+    }
+
+    [HttpPost("guest")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CreateGuest(CreateOrderRequest req)
+    {
+        if (req.MaBan == null)
+        {
+            return BadRequest(new { message = "Khách hàng phải chọn bàn để gọi món." });
+        }
+        var (data, err) = await _svc.TaoDonAsync(req, null);
+        if (err != null) return BadRequest(new { message = err });
+
+        var ban = await _db.Bans.FindAsync(req.MaBan.Value);
+        return Ok(new
+        {
+            order = data,
+            maPinSession = ban?.MaPinSession
+        });
     }
 
     /// <summary>Tạo đơn + thanh toán (POS bán hàng tại quầy): sinh hoá đơn.</summary>

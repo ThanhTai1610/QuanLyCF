@@ -193,7 +193,26 @@ public class OrderService
         don.TongTienHang = tong;
         don.ThanhTien = tong;
         _db.DonHangs.Add(don);
-        if (ban is not null) ban.TrangThai = "CoKhach";
+        if (ban is not null)
+        {
+            ban.TrangThai = "CoKhach";
+            if (string.IsNullOrEmpty(ban.MaPinSession))
+            {
+                ban.MaPinSession = Random.Shared.Next(1000, 9999).ToString();
+            }
+            ban.ThoiGianKhoaHetHan = DateTime.UtcNow.AddHours(2);
+
+            if (!string.IsNullOrWhiteSpace(ghiChu))
+            {
+                var match = global::System.Text.RegularExpressions.Regex.Match(ghiChu, @"0\d{8,10}");
+                if (match.Success) ban.SoDienThoaiDatBan = match.Value;
+            }
+            if (maKhachHang.HasValue && string.IsNullOrEmpty(ban.SoDienThoaiDatBan))
+            {
+                var kh = await _db.KhachHangs.FindAsync(maKhachHang.Value);
+                if (kh != null && !string.IsNullOrEmpty(kh.SoDienThoai)) ban.SoDienThoaiDatBan = kh.SoDienThoai;
+            }
+        }
         await _db.SaveChangesAsync();
         return (don, null);
     }
@@ -354,6 +373,9 @@ public class OrderService
             .Where(d => d.MaBan == maBan && TrangThaiActive.Contains(d.TrangThaiDon)).ToListAsync();
         foreach (var d in active) { d.TrangThaiDon = "HoanThanh"; d.ThoiGianCapNhat = now; }
         ban.TrangThai = "Trong";
+        ban.MaPinSession = null;
+        ban.ThoiGianKhoaHetHan = null;
+        ban.SoDienThoaiDatBan = null;
         await _db.SaveChangesAsync();
         return (true, null);
     }
@@ -389,6 +411,17 @@ public class OrderService
        }
         await _db.SaveChangesAsync();
         return (true, null);
+    }
+
+    /// <summary>Lấy thông tin chi tiết 1 đơn hàng theo ID.</summary>
+    public async Task<OrderDto?> LayDonTheoIdAsync(int maDon)
+    {
+        var don = await _db.DonHangs
+            .Include(d => d.Ban)
+            .Include(d => d.ChiTiets).ThenInclude(c => c.SanPham)
+            .Include(d => d.ChiTiets).ThenInclude(c => c.KichCo)
+            .FirstOrDefaultAsync(d => d.MaDonHang == maDon);
+        return don != null ? Map(don) : null;
     }
 
     /// <summary>Lịch sử tất cả đơn của 1 bàn (mới nhất trước).</summary>

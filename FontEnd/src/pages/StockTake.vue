@@ -300,8 +300,8 @@ const fetchMaterials = async () => {
   }
 }
 
-onMounted(() => {
-  fetchMaterials()
+onMounted(async () => {
+  await fetchMaterials()
   fetchRequests()
   checkDraft()
 })
@@ -398,16 +398,25 @@ const saveDraft = () => {
   checkDraft()
 }
 
-const loadDraft = () => {
+const loadDraft = async () => {
   if (!draftData.value) return
+  if (rows.value.length === 0) {
+    await fetchMaterials()
+  }
+  let loadedCount = 0
   draftData.value.items.forEach(dItem => {
-    const row = rows.value.find(r => r.id === dItem.maNguyenLieu)
+    const row = rows.value.find(r => String(r.id) === String(dItem.maNguyenLieu))
     if (row) {
       row.actual = dItem.actual
       row.note = dItem.note || ''
+      loadedCount++
     }
   })
-  toast('Đã tải dữ liệu từ bản nháp')
+  if (loadedCount > 0) {
+    toast(`✨ Đã tải thành công ${loadedCount} mặt hàng từ bản nháp!`)
+  } else {
+    toast('Không tìm thấy dữ liệu khớp trong bản nháp')
+  }
   checkDraft()
 }
 

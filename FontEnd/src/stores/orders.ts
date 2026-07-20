@@ -18,7 +18,10 @@ export const useOrderStore = defineStore('orders', () => {
   let seq = 2042
   const nextId = () => `DH-${seq++}`
 
-  const getById = (id: string) => orders.value.find(o => o.id === id)
+  const getById = (id: string) => {
+    const cleanId = id.replace('DH-', '')
+    return orders.value.find(o => o.id === id || o.id === `DH-${id}` || (o.originalId && String(o.originalId) === cleanId))
+  }
 
   /** Tạo đơn mới (mặc định: chờ xác nhận, chưa thanh toán) */
   function createOrder(payload: {
@@ -147,11 +150,28 @@ export const useOrderStore = defineStore('orders', () => {
     if (it) it.assignee = name || undefined
   }
 
+  const globalOutOfStock = ref<Set<string>>(new Set())
+  const posNotification = ref<{ table: string } | null>(null)
+
+  function notifyPos(table: string) {
+    posNotification.value = { table }
+  }
+
   function toggleOutOfStock(id: string, idx: number) {
     const it = getById(id)?.items[idx]
     if (!it) return
     it.outOfStock = !it.outOfStock
-    if (it.outOfStock) it.done = false
+    if (it.outOfStock) {
+      it.done = false
+      globalOutOfStock.value.add(it.name)
+      const cleanName = it.name.replace(/\s*\([^)]*\)$/, '')
+      globalOutOfStock.value.add(cleanName)
+    } else {
+      globalOutOfStock.value.delete(it.name)
+      const cleanName = it.name.replace(/\s*\([^)]*\)$/, '')
+      globalOutOfStock.value.delete(cleanName)
+    }
+    globalOutOfStock.value = new Set(globalOutOfStock.value)
   }
 
   return {
@@ -164,5 +184,8 @@ export const useOrderStore = defineStore('orders', () => {
     toggleItemDone,
     setAssignee,
     toggleOutOfStock,
+    globalOutOfStock,
+    posNotification,
+    notifyPos,
   }
 })

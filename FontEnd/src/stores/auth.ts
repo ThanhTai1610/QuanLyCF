@@ -72,6 +72,19 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value?.quyens?.includes(maQuyen) ?? false
   }
 
+  /** Tai lai thong tin va quyen han moi nhat tu backend */
+  async function refreshProfile() {
+    if (!accessToken.value) return
+    try {
+      const res = await api.get<NguoiDung>('/api/auth/me')
+      user.value = res
+      localStorage.setItem('user', JSON.stringify(res))
+    } catch (e) {
+      console.error('Không thể cập nhật thông tin tài khoản:', e)
+      xoaPhien()
+    }
+  }
+
   return {
     accessToken,
     refreshToken,
@@ -81,5 +94,6 @@ export const useAuthStore = defineStore('auth', () => {
     loginPin,
     logout,
     coQuyen,
+    refreshProfile,
   }
 })

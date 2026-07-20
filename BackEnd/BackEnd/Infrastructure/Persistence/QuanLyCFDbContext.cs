@@ -485,7 +485,7 @@ public class QuanLyCFDbContext : DbContext
             e.ToTable("Combo");
             e.HasKey(x => x.MaCombo);
             e.Property(x => x.TenCombo).HasMaxLength(150).IsRequired();
-            e.Property(x => x.HinhAnh).HasMaxLength(255);
+            e.Property(x => x.HinhAnh);
             e.Property(x => x.GiaCombo).HasColumnType("decimal(10,2)");
         });
 

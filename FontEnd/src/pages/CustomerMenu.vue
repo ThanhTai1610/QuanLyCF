@@ -17,7 +17,10 @@
         <div class="flex items-center gap-5">
           <div class="hidden sm:flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-[#EAE3D9] shadow-xl">
             <span class="w-2 h-2 rounded-full bg-[#CC8033]"></span>
-            <span class="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#5C544E]">Bàn số {{ tableId }}</span>
+            <span class="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#5C544E]">{{ realTenBan }}</span>
+            <span v-if="currentPinCode" class="ml-2 pl-2 border-l border-[#EAE3D9] text-[#CC8033] font-bold text-xs flex items-center gap-1">
+              <Key class="w-3 h-3" /> PIN: {{ currentPinCode }}
+            </span>
           </div>
          
           <button @click="open = true" class="relative w-11 h-11 bg-white rounded-lg border border-[#EAE3D9] shadow-xl flex items-center justify-center text-[#2A231E] lg:hidden">
@@ -340,6 +343,9 @@
                       </span>
                     </div>
                     <div v-if="l.options?.note" class="text-[10px] text-[#D97724] italic mt-1 break-words">"{{ l.options.note }}"</div>
+                    <button @click="openItemOptions(l.item, l)" class="mt-1 text-[10px] font-bold text-[#CC8033] hover:underline flex items-center gap-1">
+                      Chỉnh sửa món
+                    </button>
                   </div>
                   <button @click="cart.remove(l.cartLineId)" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center text-[#C5BEB8] hover:text-red-500 hover:bg-red-50 transition-colors">
                     <Trash2 class="w-3.5 h-3.5" stroke-width="2" />
@@ -524,6 +530,9 @@
                   <span v-for="t in l.options.toppings" :key="t.name" class="text-[9px] font-bold text-[#CC8033] bg-[#FFF9F2] px-1.5 py-0.5 rounded-md">+{{ t.name }}</span>
                 </div>
                 <div v-if="l.options?.note" class="text-[10px] text-[#D97724] italic mt-0.5">"{{ l.options.note }}"</div>
+                <button @click="openItemOptions(l.item, l)" class="mt-1 text-[10px] font-bold text-[#CC8033] hover:underline flex items-center gap-1">
+                  Chỉnh sửa món
+                </button>
               </div>
               <button @click="cart.remove(l.cartLineId)" class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-[#C5BEB8] hover:text-red-500 hover:bg-red-50 transition-colors">
                 <Trash2 class="w-3.5 h-3.5" stroke-width="2" />
@@ -684,6 +693,62 @@
       </div>
     </Transition>
 
+    <!-- Table Lock & PIN Verification Modal -->
+    <Transition name="login-modal">
+      <div
+        v-if="pinModalOpen"
+        class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      >
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-[#1A1512]/75 backdrop-blur-md"></div>
+
+        <!-- Card -->
+        <div class="relative w-full max-w-sm bg-white rounded-3xl shadow-[0_30px_90px_rgba(0,0,0,0.4)] border border-[#EAE3D9] overflow-hidden p-6 text-center space-y-5 animate-in zoom-in-95 duration-200">
+          <div class="w-16 h-16 mx-auto bg-[#FFF9F2] border-2 border-[#E8C5A5] rounded-3xl flex items-center justify-center text-[#CC8033] shadow-md">
+            <Lock class="w-8 h-8" />
+          </div>
+          <div>
+            <span class="px-3 py-1 rounded-full bg-[#CC8033]/12 text-[#CC8033] text-[11px] font-bold uppercase tracking-wider">
+              Bàn đang có khách / Khóa giữ bàn
+            </span>
+            <h3 class="font-premium-serif text-2xl font-bold text-[#1A1512] mt-2">
+              Xác thực {{ realTenBan }}
+            </h3>
+            <p class="text-xs text-[#8A8178] mt-2 leading-relaxed font-medium">
+              Bàn này đang trong phiên phục vụ. Vui lòng nhập <strong>Mã PIN (4 số)</strong> hoặc <strong>Số điện thoại</strong> của người đã gọi món trước để tiếp tục.
+            </p>
+          </div>
+
+          <div class="space-y-3">
+            <input
+              type="text"
+              v-model="inputPinCode"
+              placeholder="Nhập mã PIN 4 số hoặc SĐT..."
+              maxlength="11"
+              class="w-full h-13 text-center text-lg font-bold tracking-wider rounded-2xl border-2 border-[#EAE3D9] focus:border-[#CC8033] focus:outline-none bg-[#FAF6F0] text-[#2A231E] shadow-inner placeholder:text-[#A89F95]"
+              @keyup.enter="verifyTablePin"
+            />
+            <p v-if="pinVerifyError" class="text-xs font-bold text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200">
+              {{ pinVerifyError }}
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <button
+              @click="verifyTablePin"
+              :disabled="pinVerifyBusy"
+              class="w-full h-12 rounded-2xl bg-gradient-to-r from-[#CC8033] to-[#D97724] hover:shadow-lg text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50"
+            >
+              {{ pinVerifyBusy ? 'Đang kiểm tra...' : 'Xác thực & Gọi món' }}
+            </button>
+            <p class="text-[10px] text-[#A89F95] font-medium pt-1">
+              Nếu bạn là khách mới, vui lòng nhờ nhân viên dọn &amp; mở lại bàn.
+            </p>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Chatbot Widget -->
     <ChatbotWidget />
 
@@ -823,60 +888,59 @@
           </div>
 
           <!-- Kích cỡ (Size) -->
-          <div class="space-y-4">
+          <div v-if="selectedItem?.kichCos?.length" class="space-y-4">
             <h3 class="text-[11px] uppercase tracking-[0.15em] font-bold text-[#8A8178] flex items-center gap-2"><Coffee class="w-4 h-4" /> Chọn Kích Cỡ</h3>
             <div class="grid grid-cols-2 gap-3">
-              <button type="button" @click="selectedSize = 'M'" class="flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer shadow-sm relative overflow-hidden group transition-all text-left" :class="selectedSize === 'M' ? 'border-[#CC8033] bg-[#FFF9F2]' : 'border-[#EAE3D9] bg-white hover:border-[#CC8033]/50'">
-                <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedSize === 'M' ? 'border-[#CC8033]' : 'border-[#EAE3D9]'">
-                  <div class="w-2.5 h-2.5 rounded-full bg-[#CC8033] transition-transform" :class="selectedSize === 'M' ? 'scale-100' : 'scale-0'"></div>
+              <button 
+                v-for="size in selectedItem.kichCos" 
+                :key="size.maKichCo"
+                type="button" 
+                @click="selectedSizeId = size.maKichCo" 
+                class="flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer shadow-sm relative overflow-hidden group transition-all text-left" 
+                :class="selectedSizeId === size.maKichCo ? 'border-[#CC8033] bg-[#FFF9F2]' : 'border-[#EAE3D9] bg-white hover:border-[#CC8033]/50'"
+              >
+                <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedSizeId === size.maKichCo ? 'border-[#CC8033]' : 'border-[#EAE3D9]'">
+                  <div class="w-2.5 h-2.5 rounded-full bg-[#CC8033] transition-transform" :class="selectedSizeId === size.maKichCo ? 'scale-100' : 'scale-0'"></div>
                 </div>
-                <span class="text-sm font-bold text-[#2A231E]">Vừa (M) <span class="block text-[#8A8178] text-xs font-medium mt-0.5">+ 0đ</span></span>
-                <div v-if="selectedSize === 'M'" class="absolute right-0 bottom-0 w-12 h-12 bg-[#CC8033]/5 rounded-tl-full transition-transform group-hover:scale-110"></div>
-              </button>
-
-              <button type="button" @click="selectedSize = 'L'" class="flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer shadow-sm relative overflow-hidden group transition-all text-left" :class="selectedSize === 'L' ? 'border-[#CC8033] bg-[#FFF9F2]' : 'border-[#EAE3D9] bg-white hover:border-[#CC8033]/50'">
-                <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedSize === 'L' ? 'border-[#CC8033]' : 'border-[#EAE3D9]'">
-                  <div class="w-2.5 h-2.5 rounded-full bg-[#CC8033] transition-transform" :class="selectedSize === 'L' ? 'scale-100' : 'scale-0'"></div>
-                </div>
-                <span class="text-sm font-bold text-[#2A231E]">Lớn (L) <span class="block text-[#CC8033] text-xs font-bold mt-0.5">+ 10.000đ</span></span>
-                <div v-if="selectedSize === 'L'" class="absolute right-0 bottom-0 w-12 h-12 bg-[#CC8033]/5 rounded-tl-full transition-transform group-hover:scale-110"></div>
+                <span class="text-sm font-bold text-[#2A231E]">{{ size.tenKichCo }} <span class="block text-[#8A8178] text-xs font-medium mt-0.5">+ {{ formatVND(size.giaCongThem) }}</span></span>
+                <div v-if="selectedSizeId === size.maKichCo" class="absolute right-0 bottom-0 w-12 h-12 bg-[#CC8033]/5 rounded-tl-full transition-transform group-hover:scale-110"></div>
               </button>
             </div>
           </div>
 
           <!-- Topping -->
-          <div v-if="selectedItem?.category !== 'pastry'" class="space-y-4">
+          <div v-if="selectedItem?.category !== 'pastry' && availableToppings.length" class="space-y-4">
             <h3 class="text-[11px] uppercase tracking-[0.15em] font-bold text-[#8A8178] flex items-center gap-2"><Plus class="w-4 h-4" /> Thêm Topping</h3>
             
             <div class="grid grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4">
-              <div v-for="topping in availableToppings" :key="topping.id" class="relative flex flex-col p-2 rounded-2xl bg-white transition-all group" :class="(selectedToppings[topping.id] || 0) > 0 ? 'border-2 border-[#CC8033] shadow-md bg-[#FFF9F2]' : 'border-2 border-[#EAE3D9] shadow-sm hover:shadow-md'">
-                <div class="w-full aspect-[4/3] rounded-xl overflow-hidden bg-[#F5F2ED] mb-2.5 relative z-10 cursor-pointer" @click="updateTopping(topping.id, 1)">
-                  <img :src="topping.image" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                  <div class="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent transition-opacity" :class="(selectedToppings[topping.id] || 0) > 0 ? 'opacity-100' : 'opacity-0'"></div>
+              <div v-for="topping in availableToppings" :key="topping.maSanPham" class="relative flex flex-col p-2 rounded-2xl bg-white transition-all group" :class="(selectedToppings[topping.maSanPham] || 0) > 0 ? 'border-2 border-[#CC8033] shadow-md bg-[#FFF9F2]' : 'border-2 border-[#EAE3D9] shadow-sm hover:shadow-md'">
+                <div class="w-full aspect-[4/3] rounded-xl overflow-hidden bg-[#F5F2ED] mb-2.5 relative z-10 cursor-pointer" @click="updateTopping(topping.maSanPham, 1)">
+                  <img :src="topping.hinhAnh || '/toppings/default.png'" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <div class="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent transition-opacity" :class="(selectedToppings[topping.maSanPham] || 0) > 0 ? 'opacity-100' : 'opacity-0'"></div>
                   
                   <!-- Quantity Badge -->
-                  <div v-if="(selectedToppings[topping.id] || 0) > 0" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[#CC8033] border-2 border-white flex items-center justify-center shadow-md">
-                    <span class="text-white text-[10px] font-bold">x{{ selectedToppings[topping.id] }}</span>
+                  <div v-if="(selectedToppings[topping.maSanPham] || 0) > 0" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[#CC8033] border-2 border-white flex items-center justify-center shadow-md">
+                    <span class="text-white text-[10px] font-bold">x{{ selectedToppings[topping.maSanPham] }}</span>
                   </div>
                 </div>
                 
                 <div class="text-center w-full px-1 z-10 pb-1 flex flex-col items-center flex-1 justify-between">
                   <div>
-                    <div class="text-[11px] sm:text-xs font-bold text-[#2A231E] leading-tight line-clamp-1">{{ topping.name }}</div>
-                    <div class="text-[10px] font-bold text-[#CC8033] mt-0.5">+ {{ formatVND(topping.price) }}</div>
+                    <div class="text-[11px] sm:text-xs font-bold text-[#2A231E] leading-tight line-clamp-1">{{ topping.tenSanPham }}</div>
+                    <div class="text-[10px] font-bold text-[#CC8033] mt-0.5">+ {{ formatVND(topping.giaBan) }}</div>
                   </div>
                   
                   <!-- Quantity Controls -->
-                  <div v-if="(selectedToppings[topping.id] || 0) > 0" class="flex items-center justify-between w-full mt-2 px-1">
-                    <button @click.stop="updateTopping(topping.id, -1)" class="w-6 h-6 rounded-full bg-white border border-[#EAE3D9] flex items-center justify-center text-[#8A8178] hover:bg-[#F5F2ED] shadow-sm">
+                  <div v-if="(selectedToppings[topping.maSanPham] || 0) > 0" class="flex items-center justify-between w-full mt-2 px-1">
+                    <button @click.stop="updateTopping(topping.maSanPham, -1)" class="w-6 h-6 rounded-full bg-white border border-[#EAE3D9] flex items-center justify-center text-[#8A8178] hover:bg-[#F5F2ED] shadow-sm">
                       <Minus class="w-3 h-3" stroke-width="3" />
                     </button>
-                    <span class="text-xs font-bold text-[#CC8033]">{{ selectedToppings[topping.id] }}</span>
-                    <button @click.stop="updateTopping(topping.id, 1)" class="w-6 h-6 rounded-full bg-[#CC8033] flex items-center justify-center text-white hover:bg-[#B8722D] shadow-sm">
+                    <span class="text-xs font-bold text-[#CC8033]">{{ selectedToppings[topping.maSanPham] }}</span>
+                    <button @click.stop="updateTopping(topping.maSanPham, 1)" class="w-6 h-6 rounded-full bg-[#CC8033] flex items-center justify-center text-white hover:bg-[#B8722D] shadow-sm">
                       <Plus class="w-3 h-3" stroke-width="3" />
                     </button>
                   </div>
-                  <button v-else @click.stop="updateTopping(topping.id, 1)" class="w-full mt-2 py-1.5 rounded-lg bg-[#F5F2ED] text-[#8A8178] text-[10px] font-bold uppercase tracking-wider hover:bg-[#EAE3D9] transition-colors border border-transparent">
+                  <button v-else @click.stop="updateTopping(topping.maSanPham, 1)" class="w-full mt-2 py-1.5 rounded-lg bg-[#F5F2ED] text-[#8A8178] text-[10px] font-bold uppercase tracking-wider hover:bg-[#EAE3D9] transition-colors border border-transparent">
                     Thêm
                   </button>
                 </div>
@@ -942,8 +1006,8 @@
                 <Plus class="w-4 h-4" stroke-width="2.5" />
               </button>
             </div>
-            <button @click="submitOptions" class="flex-1 h-[60px] rounded-2xl bg-[#D97724] hover:bg-[#C2661B] text-white flex items-center justify-center gap-3 shadow-xl transition-colors">
-              <span class="text-sm font-bold uppercase tracking-widest">Đặt ngay</span>
+            <button v-if="!isViewMode" @click="submitOptions" class="flex-1 h-[60px] rounded-2xl bg-[#D97724] hover:bg-[#C2661B] text-white flex items-center justify-center gap-3 shadow-xl transition-colors">
+              <span class="text-sm font-bold uppercase tracking-widest">{{ editingLineId ? 'Cập nhật món' : 'Đặt ngay' }}</span>
               <span class="text-sm font-bold opacity-90">• {{ formatVND(((selectedItem?.price || 0) + currentOptionsTotalExtra) * quantity) }}</span>
             </button>
           </div>
@@ -988,8 +1052,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ShoppingBag, Plus, Minus, Trash2, Coffee, X, ChevronLeft, ChevronRight, Gift, CheckCircle2, User, Check, AlertCircle, Search, Star, Settings2, Sparkles, Mail, Ticket } from 'lucide-vue-next'
-import { menuItems, categories, formatVND, type Category } from '@/data/menu'
+import { ShoppingBag, Plus, Minus, Trash2, Coffee, X, ChevronLeft, ChevronRight, Gift, CheckCircle2, User, Check, AlertCircle, Search, Star, Settings2, Sparkles, Mail, Ticket, Lock, Key } from 'lucide-vue-next'
+import { formatVND } from '@/data/menu'
 import { useCartStore } from '@/stores/cart'
 import { useOrderStore } from '@/stores/orders'
 import { useStoreInfoStore } from '@/stores/storeInfo'
@@ -997,11 +1061,97 @@ import Button from '@/components/ui/Button.vue'
 import ChatbotWidget from '@/components/ChatbotWidget.vue'
 import { loyaltyApi } from '@/services/loyalty'
 import { promotionsApi } from '@/services/promotions'
+import { ordersApi } from '@/services/orders'
+import { tablesApi } from '@/services/tables'
+import coffeeImg from '@/assets/menu-coffee.jpg'
+import teaImg from '@/assets/menu-tea.jpg'
+import frappeImg from '@/assets/menu-frappe.jpg'
+import pastryImg from '@/assets/menu-pastry.jpg'
 
 const route = useRoute()
 const router = useRouter()
 const tableId = route.params.tableId || "5"
-const activeCat = ref<Category | "all">("all")
+const activeCat = ref<string>("all")
+
+// Khóa bàn 5 phút & mã PIN bảo mật
+const isTableLocked = ref(false)
+const pinModalOpen = ref(false)
+const inputPinCode = ref('')
+const pinVerifyError = ref('')
+const pinVerifyBusy = ref(false)
+const currentPinCode = ref('')
+const realMaBan = ref<number>(parseInt(String(tableId)) || 5)
+const realTenBan = ref<string>(`Bàn ${tableId}`)
+
+const checkTableLockStatus = async () => {
+  try {
+    const qrParam = String(route.params.tableId || '5')
+    const res = await tablesApi.getQrInfo(qrParam)
+    realMaBan.value = res.maBan
+    realTenBan.value = res.tenBan
+
+    if (res.requiresPin) {
+      const savedPin = sessionStorage.getItem(`table_pin_${res.maBan}`)
+      if (savedPin) {
+        try {
+          await tablesApi.verifyPin(res.maBan, savedPin)
+          isTableLocked.value = false
+          pinModalOpen.value = false
+          currentPinCode.value = savedPin
+          return
+        } catch {
+          sessionStorage.removeItem(`table_pin_${res.maBan}`)
+        }
+      }
+      isTableLocked.value = true
+      pinModalOpen.value = true
+    } else {
+      isTableLocked.value = false
+      pinModalOpen.value = false
+      if (res.maPinSession) {
+        currentPinCode.value = res.maPinSession
+        sessionStorage.setItem(`table_pin_${res.maBan}`, res.maPinSession)
+      }
+    }
+  } catch (e) {
+    console.error('Không kiểm tra được trạng thái khóa bàn:', e)
+  }
+}
+
+const verifyTablePin = async () => {
+  if (!inputPinCode.value.trim()) {
+    pinVerifyError.value = 'Vui lòng nhập Mã PIN 4 số hoặc Số điện thoại!'
+    return
+  }
+  pinVerifyBusy.value = true
+  pinVerifyError.value = ''
+  try {
+    const res = await tablesApi.verifyPin(realMaBan.value, inputPinCode.value.trim())
+    if (res.valid) {
+      sessionStorage.setItem(`table_pin_${realMaBan.value}`, inputPinCode.value.trim())
+      if (res.maPin) currentPinCode.value = res.maPin
+      isTableLocked.value = false
+      pinModalOpen.value = false
+      toast.success('Xác thực thành công', 'Bạn có thể tiếp tục gọi món cho bàn này.')
+    }
+  } catch (err: any) {
+    pinVerifyError.value = err?.message || 'Mã PIN 4 số hoặc Số điện thoại không chính xác.'
+  } finally {
+    pinVerifyBusy.value = false
+  }
+}
+
+const categories = ref<{ id: string; label: string }[]>([
+  { id: "all", label: "Tất cả" },
+  { id: "coffee", label: "Cà phê" },
+  { id: "tea", label: "Trà" },
+  { id: "frappe", label: "Đá xay" },
+  { id: "pastry", label: "Bánh" },
+  { id: "combo", label: "Combo" },
+  { id: "other", label: "Khác" }
+])
+
+const menuItems = ref<any[]>([])
 const search = ref("")
 const open = ref(false)
 const openLoginSheet = ref(false)
@@ -1203,20 +1353,25 @@ const clearPromo = () => {
   voucherError.value = ''
 }
 
+const rawMenuData = ref<any[]>([])
+
+const availableToppings = computed(() => {
+  return rawMenuData.value.filter(m => m.kieuMon === 'Topping').map(item => ({
+    maSanPham: item.maSanPham,
+    tenSanPham: item.tenSanPham,
+    giaBan: item.giaBan,
+    hinhAnh: item.hinhAnh
+  }))
+})
+
 const selectedItem = ref<any>(null)
 const itemOptionsOpen = ref(false)
+const isViewMode = ref(false)
+const editingLineId = ref<string | null>(null)
 
-const availableToppings = [
-  { id: 'tran_chau_den', name: 'Trân châu đen', price: 10000, image: '/toppings/tran_chau_den.png' },
-  { id: 'tran_chau_trang', name: 'Trân châu trắng', price: 15000, image: '/toppings/tran_chau_trang.png' },
-  { id: 'thach_pho_mai', name: 'Thạch phô mai', price: 15000, image: '/toppings/thach_pho_mai.png' },
-  { id: 'pudding', name: 'Pudding', price: 15000, image: '/toppings/pudding.png' },
-  { id: 'thach_suong_sao', name: 'Thạch sương sáo', price: 10000, image: '/toppings/thach_suong_sao.png' },
-]
-
-const selectedToppings = ref<Record<string, number>>({})
+const selectedToppings = ref<Record<number, number>>({})
 const itemNote = ref('')
-const selectedSize = ref('M')
+const selectedSizeId = ref<number | null>(null)
 const selectedSugar = ref('100%')
 const selectedIce = ref('100%')
 const quantity = ref(1)
@@ -1226,44 +1381,69 @@ const changeQuantity = (delta: number) => {
 }
 
 const currentOptionsTotalExtra = computed(() => {
-  let extra = selectedSize.value === 'L' ? 10000 : 0
-  for (const t of availableToppings) {
-    if (selectedToppings.value[t.id]) {
-      extra += (selectedToppings.value[t.id] || 0) * t.price
+  let extra = 0
+  if (selectedItem.value && selectedSizeId.value) {
+    const sz = selectedItem.value.kichCos?.find((s: any) => s.maKichCo === selectedSizeId.value)
+    if (sz) extra += sz.giaCongThem
+  }
+  for (const t of availableToppings.value) {
+    if (selectedToppings.value[t.maSanPham]) {
+      extra += (selectedToppings.value[t.maSanPham] || 0) * t.giaBan
     }
   }
   return extra
 })
 
-const updateTopping = (id: string, delta: number) => {
-  if (!selectedToppings.value[id]) selectedToppings.value[id] = 0
-  if (selectedToppings.value[id] + delta >= 0) {
-    selectedToppings.value[id] += delta
+const updateTopping = (maSanPham: number, delta: number) => {
+  if (!selectedToppings.value[maSanPham]) selectedToppings.value[maSanPham] = 0
+  if (selectedToppings.value[maSanPham] + delta >= 0) {
+    selectedToppings.value[maSanPham] += delta
   }
 }
 
-const openItemOptions = (m: any) => {
+const openItemOptions = (m: any, editingLine?: any, viewOnly = false) => {
   selectedItem.value = m
-  selectedToppings.value = {} // reset toppings when opening
-  itemNote.value = '' // reset note
-  selectedSize.value = 'M'
+  selectedToppings.value = {}
+  itemNote.value = ''
+  selectedSizeId.value = null
   selectedSugar.value = '100%'
   selectedIce.value = '100%'
   quantity.value = 1
+  
+  isViewMode.value = viewOnly
+  editingLineId.value = editingLine?.cartLineId || null
+
+  if (editingLine && editingLine.options) {
+    const opt = editingLine.options
+    selectedSizeId.value = opt.maKichCo || null
+    selectedSugar.value = opt.sugar || '100%'
+    selectedIce.value = opt.ice || '100%'
+    itemNote.value = opt.note || ''
+    quantity.value = editingLine.qty || 1
+    // Topping
+    opt.toppings?.forEach((t: any) => {
+      const maSp = t.maSanPham || t.id
+      if (maSp) selectedToppings.value[maSp] = t.qty
+    })
+  }
+
   itemOptionsOpen.value = true
 }
 
 const submitOptions = () => {
-  const toppingsArr = []
-  for (const t of availableToppings) {
-    const qty = selectedToppings.value[t.id] || 0
+  const toppingsArr: any[] = []
+  for (const t of availableToppings.value) {
+    const qty = selectedToppings.value[t.maSanPham] || 0
     if (qty > 0) {
-      toppingsArr.push({ name: t.name, price: t.price, qty })
+      toppingsArr.push({ maSanPham: t.maSanPham, name: t.tenSanPham, price: t.giaBan, qty, hinhAnh: t.hinhAnh })
     }
   }
 
+  const selSize = selectedItem.value?.kichCos?.find((s: any) => s.maKichCo === selectedSizeId.value)
+
   const options = {
-    size: selectedSize.value,
+    maKichCo: selectedSizeId.value,
+    size: selSize?.tenKichCo || 'M',
     sugar: selectedSugar.value,
     ice: selectedIce.value,
     toppings: toppingsArr,
@@ -1271,11 +1451,17 @@ const submitOptions = () => {
     extraPrice: currentOptionsTotalExtra.value
   }
 
-  cart.add(selectedItem.value, options)
-  // Áp dụng số lượng đã chọn cho dòng vừa thêm
-  const addedLine = cart.lines[cart.lines.length - 1]
-  if (addedLine && quantity.value > 1) {
-    cart.setQty(addedLine.cartLineId, quantity.value)
+  if (editingLineId.value) {
+    cart.updateOptions(editingLineId.value, options as any)
+    cart.setQty(editingLineId.value, quantity.value)
+    toast.success('Đã cập nhật', 'Thông tin món ăn của bạn đã được cập nhật.')
+  } else {
+    cart.add(selectedItem.value, options as any)
+    const addedLine = cart.lines[cart.lines.length - 1]
+    if (addedLine && quantity.value > 1) {
+      cart.setQty(addedLine.cartLineId, quantity.value)
+    }
+    toast.success('Thêm thành công', `Đã thêm món ${selectedItem.value.name} vào giỏ hàng.`)
   }
 
   itemOptionsOpen.value = false
@@ -1325,10 +1511,49 @@ const syncCustomerStatus = async () => {
   }
 }
 
+const fetchRealMenu = async () => {
+  try {
+    const data = await ordersApi.menu()
+    rawMenuData.value = data
+    // Lọc bỏ Topping vì topping được hiển thị riêng trong popup chọn món
+    const filteredData = data.filter(m => m.kieuMon !== 'Topping')
+    
+    menuItems.value = filteredData.map(item => {
+      let catId = 'other'
+      if (item.tenDanhMuc === 'Cà phê') catId = 'coffee'
+      else if (item.tenDanhMuc === 'Trà') catId = 'tea'
+      else if (item.tenDanhMuc === 'Đá xay') catId = 'frappe'
+      else if (item.tenDanhMuc === 'Bánh') catId = 'pastry'
+      else if (item.tenDanhMuc === 'Combo') catId = 'combo'
+      
+      return {
+        id: String(item.maSanPham),
+        maSanPham: item.maSanPham,
+        name: item.tenSanPham,
+        description: item.moTa || '',
+        price: item.giaBan,
+        category: catId,
+        image: item.hinhAnh || (
+          catId === 'coffee' ? coffeeImg :
+          catId === 'tea' ? teaImg :
+          catId === 'frappe' ? frappeImg :
+          catId === 'pastry' ? pastryImg : coffeeImg
+        ),
+        popular: item.laMonNoiBat,
+        kichCos: item.kichCos || []
+      }
+    })
+  } catch (e) {
+    console.error('Không tải được thực đơn từ backend:', e)
+  }
+}
+
 onMounted(() => {
   syncCustomerStatus()
   loadSavedVouchers()
   loadRewards()
+  fetchRealMenu()
+  checkTableLockStatus()
 })
 
 const resetLoginSheet = () => {
@@ -1398,8 +1623,8 @@ const currentPage = ref(1)
 
 const filtered = computed(() => {
   let items = activeCat.value === "all"
-    ? menuItems
-    : menuItems.filter((m) => m.category === activeCat.value)
+    ? menuItems.value
+    : menuItems.value.filter((m) => m.category === activeCat.value)
   const q = search.value.trim().toLowerCase()
   if (q) {
     items = items.filter((m) =>
@@ -1438,40 +1663,82 @@ const addToCart = (m: any) => {
   cart.add(m)
 }
 
-const handleOrder = () => {
+const handleOrder = async () => {
   if (cart.lines.length === 0) return
 
-  // Chuyển giỏ hàng thành các dòng món của đơn (gộp topping/size vào ghi chú)
-  const items = cart.lines.map(l => {
-    const opt = l.options
-    const noteParts: string[] = []
-    if (opt?.size) noteParts.push(`Size ${opt.size}`)
-    if (opt?.sugar) noteParts.push(`Đường ${opt.sugar}`)
-    if (opt?.ice) noteParts.push(`Đá ${opt.ice}`)
-    if (opt?.toppings?.length) noteParts.push(opt.toppings.map(t => `${t.name}${t.qty > 1 ? ' x' + t.qty : ''}`).join(', '))
-    if (opt?.note) noteParts.push(opt.note)
-    return {
-      name: l.item.name,
-      qty: l.qty,
-      price: l.item.price + (opt?.extraPrice || 0),
-      note: noteParts.join(' · ') || undefined,
+  try {
+    const itemsList: any[] = []
+    cart.lines.forEach(l => {
+      // Món chính
+      const opt = l.options
+      const maSp = l.item.maSanPham || parseInt(l.item.id)
+      itemsList.push({
+        maSanPham: maSp,
+        maKichCo: opt?.maKichCo || null,
+        soLuong: l.qty,
+        ghiChuMon: opt?.note || null
+      })
+      // Topping đi kèm
+      opt?.toppings?.forEach((t: any) => {
+        itemsList.push({
+          maSanPham: t.maSanPham || t.id,
+          maKichCo: null,
+          soLuong: (t.qty || 1) * l.qty,
+          ghiChuMon: `Topping · ${l.item.tenSanPham || l.item.name}`
+        })
+      })
+    })
+
+    const orderRes: any = await ordersApi.guestCreate({
+      maBan: realMaBan.value,
+      items: itemsList,
+      ghiChuDonHang: customerPhone.value ? `SĐT: ${customerPhone.value}` : null,
+      maKhachHang: customerId.value || null
+    })
+
+    const createdOrder = orderRes?.order || orderRes
+    const returnedPin = orderRes?.maPinSession
+
+    if (returnedPin) {
+      currentPinCode.value = returnedPin
+      sessionStorage.setItem(`table_pin_${realMaBan.value}`, returnedPin)
     }
-  })
 
-  // Tạo đơn thật trong store → đơn này sẽ xuất hiện ở Bếp và trang Đơn hàng
-  const order = orderStore.createOrder({
-    table: `Bàn ${tableId}`,
-    items,
-    customer: customerName.value || undefined,
-    pointsDiscount: pointsDiscount.value,
-    promoDiscount: appliedPromo.value?.tienGiam ?? 0,
-    maKhuyenMai: appliedPromo.value?.maKhuyenMai,
-  })
+    // Đồng thời tạo local record cho store
+    const items = cart.lines.map(l => {
+      const opt = l.options
+      const noteParts: string[] = []
+      if (opt?.size) noteParts.push(`Size ${opt.size}`)
+      if (opt?.sugar) noteParts.push(`Đường ${opt.sugar}`)
+      if (opt?.ice) noteParts.push(`Đá ${opt.ice}`)
+      if (opt?.toppings?.length) noteParts.push(opt.toppings.map((t: any) => `${t.name}${t.qty > 1 ? ' x' + t.qty : ''}`).join(', '))
+      if (opt?.note) noteParts.push(opt.note)
+      return {
+        id: String(l.item.maSanPham || l.item.id),
+        name: l.item.name || l.item.tenSanPham,
+        qty: l.qty,
+        price: (l.item.price || l.item.giaBan) + (opt?.extraPrice || 0),
+        note: noteParts.join(' · ') || undefined,
+      }
+    })
 
-  toast.success('Gửi đơn thành công', `Đơn ${order.id} đang được pha chế cho Bàn ${tableId}`)
-  cart.clear()
-  open.value = false
-  setTimeout(() => router.push(`/payment/${order.id}`), 1000)
+    orderStore.createOrder({
+      table: realTenBan.value,
+      items,
+      customer: customerName.value || undefined,
+      pointsDiscount: pointsDiscount.value,
+      promoDiscount: appliedPromo.value?.tienGiam ?? 0,
+      maKhuyenMai: appliedPromo.value?.maKhuyenMai,
+    })
+
+    const pinNotice = returnedPin ? ` · Mã PIN: ${returnedPin}` : ''
+    toast.success('Gửi đơn thành công', `Đơn #${createdOrder.maDonHang} đang được pha chế cho ${realTenBan.value}${pinNotice}`)
+    cart.clear()
+    open.value = false
+    setTimeout(() => router.push(`/payment/${createdOrder.maDonHang}`), 1200)
+  } catch (e: any) {
+    toast.error('Lỗi khi gửi đơn', e?.message || 'Vui lòng thử lại sau')
+  }
 }
 </script>
 

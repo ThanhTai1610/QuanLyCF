@@ -648,13 +648,13 @@ interface ReceiptRow { materialId: string; unit: string; qty: number; price: num
 interface Receipt { id: string; date: string; supplierCode: string; supplier: string; rows: ReceiptRow[]; total: number; paid: number; note: string; paymentMethod: string }
 
 // ── Master data (mock) ──────────────────────────────────
-const materials: Material[] = [
+const materials = ref<Material[]>([
   { id: 'RAW-CF-001', name: 'Hạt cà phê Robusta', category: 'Nguyên liệu thô', units: [{name: 'Bao', conversion: '50 Kg'}, {name: 'Kg', conversion: '1000g'}, {name: 'g'}] },
   { id: 'SEM-TC-012', name: 'Trân châu đen nấu sẵn', category: 'Bán thành phẩm / Topping', units: [{name: 'Khay', conversion: '10 Kg'}, {name: 'Kg', conversion: '1000g'}, {name: 'g'}] },
   { id: 'RAW-MK-005', name: 'Sữa đặc Ngôi sao Phương Nam', category: 'Nguyên liệu thô', units: [{name: 'Thùng', conversion: '24 Lon'}, {name: 'Lon', conversion: '380g'}] },
   { id: 'RAW-MK-002', name: 'Sữa tươi thanh trùng 1L', category: 'Nguyên liệu thô', units: [{name: 'Thùng', conversion: '12 Lốc'}, {name: 'Lốc', conversion: '4 Hộp'}, {name: 'Hộp', conversion: '1000ml'}] },
   { id: 'SUP-CUP-01', name: 'Ly giấy Takeaway 450ml', category: 'Vật tư', units: [{name: 'Thùng', conversion: '1000 Chiếc'}, {name: 'Cây', conversion: '50 Chiếc'}, {name: 'Chiếc'}] },
-]
+])
 
 const suppliers = ref<Supplier[]>([
   { code: 'SUP-001', name: 'Đại lý Sữa Vinamilk Quận 1', phone: '0901 234 567', group: 'Sữa & Chế phẩm', debt: 12500000 },
@@ -663,8 +663,8 @@ const suppliers = ref<Supplier[]>([
 ])
 
 const receipts = ref<Receipt[]>([
-  { id: 'INB-2406-003', date: '03/06/2026 08:30', supplierCode: 'SUP-001', supplier: 'Đại lý Sữa Vinamilk Quận 1', rows: [{ materialId: 'RAW-MK-002', unit: 'Thùng', qty: 100, price: 45000 }], total: 4500000, paid: 4500000, note: '' },
-  { id: 'INB-2406-002', date: '02/06/2026 14:15', supplierCode: 'SUP-002', supplier: 'NPP Cafe Trung Nguyên', rows: [{ materialId: 'RAW-CF-001', unit: 'Bao', qty: 16, price: 500000 }], total: 8000000, paid: 0, note: 'Hàng quý 2' },
+  { id: 'INB-2406-003', date: '03/06/2026 08:30', supplierCode: 'SUP-001', supplier: 'Đại lý Sữa Vinamilk Quận 1', rows: [{ materialId: 'RAW-MK-002', unit: 'Thùng', qty: 100, price: 45000, expiryDate: '' }], total: 4500000, paid: 4500000, note: '', paymentMethod: 'ChuyenKhoan' },
+  { id: 'INB-2406-002', date: '02/06/2026 14:15', supplierCode: 'SUP-002', supplier: 'NPP Cafe Trung Nguyên', rows: [{ materialId: 'RAW-CF-001', unit: 'Bao', qty: 16, price: 500000, expiryDate: '' }], total: 8000000, paid: 0, note: 'Hàng quý 2', paymentMethod: 'ChuyenKhoan' },
 ])
 
 // ── Tab + filters ───────────────────────────────────────
@@ -713,32 +713,37 @@ const formatCompactVND = (n: number) => {
   if (n >= 1e5) return (n / 1e3).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' ngàn'
   return formatNumber(n) + ' ₫'
 }
-const materialName = (id: string) => materials.find(m => m.id === id)?.name ?? '—'
-const materialObj = (id: string) => materials.find(m => m.id === id) || null
-const categoryFor = (id: string) => materials.find(m => m.id === id)?.category || null
+const materialName = (id: string) => materials.value.find(m => m.id === id)?.name ?? '—'
+const materialObj = (id: string) => materials.value.find(m => m.id === id) || null
+const categoryFor = (id: string) => materials.value.find(m => m.id === id)?.category || null
 const systemCategories = ref<string[]>(JSON.parse(localStorage.getItem('materialCategories') || '["Nguyên liệu thô", "Bán thành phẩm / Topping", "Vật tư"]'))
-const unitsFor = (id: string) => materials.find(m => m.id === id)?.units ?? [{name: 'Đơn vị'}]
+const unitsFor = (id: string) => materials.value.find(m => m.id === id)?.units ?? [{name: 'Đơn vị'}]
 const conversionFor = (matId: string, unitName: string) => {
-  const m = materials.find(x => x.id === matId)
+  const m = materials.value.find(x => x.id === matId)
   if (!m) return null
   return m.units.find(u => u.name === unitName)?.conversion || null
 }
 
 const isBaseUnit = (matId: string, unitName: string) => {
-  const m = materials.find(x => x.id === matId)
+  const m = materials.value.find(x => x.id === matId)
   if (!m || m.units.length === 0) return true;
-  return m.units[m.units.length - 1].name === unitName;
+  return m.units[m.units.length - 1]?.name === unitName;
 }
 
 const saveAiConversion = (row: ReceiptRow) => {
   if (!row._aiConversionInput) return;
-  const m = materials.find(x => x.id === row.materialId);
+  const m = materials.value.find(x => x.id === row.materialId);
   if (m) {
     const u = m.units.find(x => x.name === row.unit);
     if (u) {
       u.conversion = row._aiConversionInput;
-      row._isEditingConversion = false;
+    } else {
+      m.units.push({ name: row.unit, conversion: row._aiConversionInput });
     }
+    row._isEditingConversion = false;
+    const savedVal = row._aiConversionInput;
+    row._aiConversionInput = '';
+    toast(`✨ Đã lưu quy đổi: 1 ${row.unit} = ${savedVal}`);
   }
 }
 
@@ -754,8 +759,9 @@ const onMaterialSearchChange = (row: ReceiptRow) => {
   }
   const str = row._materialSearchStr.trim();
   const parts = str.split(' | ');
+  const codeCandidate = parts[0] ? parts[0].trim() : str;
   
-  const mat = materials.find(m => m.id === parts[0].trim() || m.name.toLowerCase() === str.toLowerCase());
+  const mat = materials.value.find(m => m.id === codeCandidate || m.name.toLowerCase() === str.toLowerCase());
   
   if (mat) {
     row.materialId = mat.id;
@@ -843,10 +849,10 @@ const analyzeWithAI = (row: ReceiptRow) => {
       units: suggestedUnits
     };
 
-    materials.push(newMat);
+    materials.value.push(newMat);
     row.materialId = newMat.id;
     row._materialSearchStr = `${newMat.id} | ${newMat.name}`;
-    row.unit = suggestedUnits[0].name;
+    row.unit = suggestedUnits[0]?.name || '';
     row.isAiLoading = false;
     
     toast(`✨ AI đã tạo "${newMat.name}" - Thuộc nhóm: ${newMat.category}`);
@@ -876,9 +882,10 @@ const draftDebt = computed(() => Math.max(0, draftTotal.value - (draft.value.pai
 
 const handleFileUpload = (e: Event) => {
   const target = e.target as HTMLInputElement;
-  if (target.files && target.files.length > 0) {
-    draft.value.billImageName = target.files[0].name;
-    toast(`Đã đính kèm ảnh: ${target.files[0].name}`);
+  const file = target.files?.[0];
+  if (file) {
+    draft.value.billImageName = file.name;
+    toast(`Đã đính kèm ảnh: ${file.name}`);
   }
 }
 
@@ -901,8 +908,8 @@ const saveReceipt = () => {
   
   // Validate Date
   if (!draft.value.date) {
-    toast('❌ Vui lòng chọn ngày nhập hàng!'); 
-    return; 
+    toast('❌ Vui lòng chọn ngày nhập hàng!');
+    return;
   }
 
   // Validate Rows
@@ -935,7 +942,7 @@ const saveReceipt = () => {
         return;
       }
     }
-    if (row._aiConversionInput || row._isEditingConversion) {
+    if (row._isEditingConversion) {
       toast(`❌ Dòng ${i+1}: Vui lòng lưu quy đổi đơn vị trước khi hoàn tất!`);
       return;
     }

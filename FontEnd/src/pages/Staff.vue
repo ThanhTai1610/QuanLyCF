@@ -40,9 +40,21 @@
 
     <!-- ── Toolbar ── -->
     <div class="flex flex-col sm:flex-row gap-3">
+      <!-- Fake input to intercept browser autofill at the page level -->
+      <input style="position: absolute; left: -9999px; top: -9999px; width: 100px; height: 30px;" type="text" name="fakeusernamemain" tabindex="-1"/>
       <div class="relative w-full sm:max-w-[240px]">
         <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <Input v-model="search" placeholder="Tìm tên, email..." class="pl-9 h-10 bg-card border-cream-deep rounded-xl" />
+        <Input 
+          v-model="search" 
+          type="search" 
+          :readonly="searchReadonly"
+          @focus="searchReadonly = false"
+          @mousedown="searchReadonly = false"
+          @blur="searchReadonly = true"
+          placeholder="Tìm tên, email..." 
+          autocomplete="off" 
+          class="pl-9 h-10 bg-card border-cream-deep rounded-xl" 
+        />
       </div>
       <div class="flex gap-2 flex-wrap">
         <button @click="roleFilter = 'all'"
@@ -258,6 +270,9 @@
         <h2 class="font-display text-xl text-espresso font-bold">{{ editing ? 'Chỉnh sửa tài khoản' : 'Thêm tài khoản mới' }}</h2>
         <p class="text-sm text-muted-foreground">{{ editing ? 'Cập nhật thông tin và vai trò.' : 'Tạo tài khoản đăng nhập cho nhân viên.' }}</p>
       </template>
+      <!-- Fake inputs to capture browser autofill -->
+      <input style="position: absolute; left: -9999px; top: -9999px; width: 100px; height: 30px;" type="text" name="fakeusernameremembered" tabindex="-1"/>
+      <input style="position: absolute; left: -9999px; top: -9999px; width: 100px; height: 30px;" type="password" name="fakepasswordremembered" tabindex="-1"/>
       <div class="space-y-4">
         <!-- Họ và tên -->
         <div>
@@ -322,7 +337,7 @@
             </div>
             <div class="relative">
               <Input v-model="form.matKhau" :type="showMatKhau ? 'text' : 'password'" maxlength="50"
-                placeholder="Tối thiểu 6 ký tự"
+                placeholder="Tối thiểu 6 ký tự" autocomplete="new-password"
                 @input="fieldErrors.matKhau = ''"
                 :class="['bg-card h-10 rounded-xl pr-10', fieldErrors.matKhau ? 'border-red-400 focus-visible:ring-red-400/30' : 'border-cream-deep']" />
               <button type="button" @click="showMatKhau = !showMatKhau"
@@ -364,6 +379,9 @@
         </h2>
         <p class="text-sm text-muted-foreground">{{ resetTarget?.hoTen }} · {{ resetTarget?.email }}</p>
       </template>
+      <!-- Fake inputs to capture browser autofill -->
+      <input style="position: absolute; left: -9999px; top: -9999px; width: 100px; height: 30px;" type="text" name="fakeusernameremembered" tabindex="-1"/>
+      <input style="position: absolute; left: -9999px; top: -9999px; width: 100px; height: 30px;" type="password" name="fakepasswordremembered" tabindex="-1"/>
       <div class="space-y-4">
         <!-- Đặt lại Mật khẩu (Web) -->
         <div v-if="resetTarget?.maVaiTro === 1">
@@ -373,7 +391,7 @@
           </div>
           <div class="relative">
             <Input v-model="newPassword" :type="showResetPwd ? 'text' : 'password'" maxlength="50"
-              placeholder="Tối thiểu 6 ký tự"
+              placeholder="Tối thiểu 6 ký tự" autocomplete="new-password"
               @input="resetError = ''"
               :class="['bg-card h-10 rounded-xl pr-10', resetError ? 'border-red-400' : 'border-cream-deep']" />
             <button type="button" @click="showResetPwd = !showResetPwd"
@@ -518,6 +536,7 @@ async function loadAll() {
 onMounted(loadAll)
 
 const search = ref('')
+const searchReadonly = ref(true)
 const roleFilter = ref<number | 'all'>('all')
 const currentPage = ref(1)
 const itemsPerPage = ref(8)

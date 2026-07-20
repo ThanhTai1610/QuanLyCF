@@ -27,6 +27,7 @@ export interface OrderItem {
   donGia: number
   thanhTien: number
   ghiChuMon: string | null
+  trangThaiBep?: string | null
 }
 export interface OrderDto {
   maDonHang: number
@@ -99,4 +100,6 @@ export const ordersApi = {
     api.post<any>('/api/service-requests', body),
   getActiveServiceRequests: () => api.get<any[]>('/api/service-requests/active'),
   resolveServiceRequest: (id: string) => api.post<void>(`/api/service-requests/${id}/resolve`),
+  getById: (maDon: number) => api.get<OrderDto>(`/api/orders/${maDon}`),
+  guestCreate: (body: CreateOrderBody) => api.post<OrderDto>('/api/orders/guest', body),
 }

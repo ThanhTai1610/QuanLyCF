@@ -1,12 +1,14 @@
 export type OrderStatus = "pending" | "preparing" | "done" | "cancelled";
 
 export interface OrderItem {
+  id?: string;
   name: string;
   qty: number;
   price: number;
   note?: string;
   /** Trạng thái pha chế tại bếp */
   done?: boolean;
+  trangThaiBep?: string;
   /** Nhân viên được phân công làm món */
   assignee?: string;
   /** Báo hết nguyên liệu */
@@ -15,6 +17,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  originalId?: number;
   table: string;
   items: OrderItem[];
   total: number;
@@ -31,6 +34,8 @@ export interface Order {
   pointsDiscount?: number;
   promoDiscount?: number;
   maKhuyenMai?: number;
+  cancelReason?: string;
+  isPriority?: boolean;
 }
 
 /** Mốc thời gian gốc để seed dữ liệu mẫu (cố định theo lúc khởi tạo app) */

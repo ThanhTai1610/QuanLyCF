@@ -47,8 +47,8 @@ async function request<T>(method: string, endpoint: string, body?: unknown, daTh
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 
-  // Token het han → thu lam moi 1 lan roi goi lai (bo qua chinh cac endpoint auth va public)
-  if (res.status === 401 && !daThuLai && !endpoint.startsWith('/api/auth/') && !endpoint.includes('/public/')) {
+  // Token het han → thu lam moi 1 lan roi goi lai (bo qua cac endpoint auth chinh va public)
+  if (res.status === 401 && !daThuLai && (!endpoint.startsWith('/api/auth/') || endpoint === '/api/auth/me') && !endpoint.includes('/public/')) {
     refreshPromise ??= lamMoiToken().finally(() => { refreshPromise = null })
     const ok = await refreshPromise
     if (ok) return request<T>(method, endpoint, body, true)
