@@ -16,4 +16,9 @@ public class Ban
     // Ghép bàn: bàn chính của nhóm. null = bàn đứng riêng hoặc chính là bàn chính của nhóm.
     public int? MaBanChinh { get; set; }
     public Ban? BanChinh { get; set; }
+
+    // Khóa bàn & Mã PIN bảo mật khi quét QR
+    public string? MaPinSession { get; set; }
+    public DateTime? ThoiGianKhoaHetHan { get; set; }
+    public string? SoDienThoaiDatBan { get; set; }
 }

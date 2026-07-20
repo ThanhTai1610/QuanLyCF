@@ -63,4 +63,18 @@ export const tablesApi = {
   merge: (maBanChinh: number, maThanhVien: number[]) =>
     api.post<void>('/api/tables/merge', { maBanChinh, maThanhVien }),
   unmerge: (id: number) => api.post<void>(`/api/tables/${id}/unmerge`),
+
+  // Khóa bàn & Mã PIN bảo mật khi quét QR
+  getQrInfo: (hash: string) =>
+    api.get<{
+      maBan: number
+      tenBan: string
+      trangThai: string
+      requiresPin: boolean
+      maPinSession?: string
+      thoiGianKhoaHetHan?: string
+    }>(`/api/tables/qr-info/${hash}`),
+
+  verifyPin: (tableId: number, code: string) =>
+    api.post<{ valid: boolean; maPin?: string }>(`/api/tables/${tableId}/verify-pin`, { code: code.trim() }),
 }

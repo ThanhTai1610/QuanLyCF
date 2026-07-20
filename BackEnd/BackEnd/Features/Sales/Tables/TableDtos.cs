@@ -15,10 +15,14 @@ public record TableItem(
     string MaQRHash,
     string UrlDatMon,
     int? MaBanChinh,
-    string? TenBanChinh);
+    string? TenBanChinh,
+    string? MaPinSession = null,
+    DateTime? ThoiGianKhoaHetHan = null,
+    string? SoDienThoaiDatBan = null);
 
 public record SaveTableRequest(string TenBan, int MaKhuVuc, int? SucChua);
 public record UpdateTableStatusRequest(string TrangThai);   // Trong, CoKhach, BaoTri
+public record VerifyPinRequest(string Code);
 
 // Ghép bàn: gộp các bàn thành viên về 1 bàn chính
 public record MergeTablesRequest(int MaBanChinh, int[] MaThanhVien);

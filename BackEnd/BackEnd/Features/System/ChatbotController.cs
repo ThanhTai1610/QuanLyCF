@@ -36,6 +36,7 @@ namespace BackEnd.Features.System
             if (string.IsNullOrWhiteSpace(request.Message))
                 return BadRequest(new { message = "Tin nhắn không được để trống." });
 
+            // Doc key tu bien moi truong, neu khong co thi doc tu appsettings
             var keysEnv = _config["GEMINI_API_KEYS"] ?? Environment.GetEnvironmentVariable("GEMINI_API_KEYS");
             var apiKeys = string.IsNullOrEmpty(keysEnv)
                 ? new List<string>()
@@ -43,16 +44,13 @@ namespace BackEnd.Features.System
 
             if (apiKeys.Count == 0)
             {
-                var scrambledKeys = new string[] {
-                    "wafizBVlus5bcaFwgj69rFzeTmCs1WhaNMYgB1i4NYpI6NR8bA.QA",
-                    "gY2_3zALdFAK42q2vxc0yzy-TOLhlNNtLfvsqu5Ik9GL6NR8bA.QA",
-                    "QKxcqZzuuPZoTLUOLHC27YkMJVNaS1QN05QM__1x1y8K6NR8bA.QA"
-                };
-                apiKeys = scrambledKeys.Select(k => new string(k.Reverse().ToArray())).ToList();
+                var appsettingsKey = _config["Gemini:ApiKey"];
+                if (!string.IsNullOrWhiteSpace(appsettingsKey))
+                    apiKeys.Add(appsettingsKey.Trim());
             }
 
             if (apiKeys.Count == 0)
-                return StatusCode(500, new { message = "Hệ thống AI đang bảo trì (Chưa cấu hình API Key)." });
+                return StatusCode(500, new { message = "He thong AI dang bao tri (Chua cau hinh API Key)." });
 
             var sanPhams = await _dbContext.SanPhams
                 .Where(s => s.TrangThaiBan && s.KieuMon != "Topping")

@@ -215,7 +215,7 @@
                   <button @click="openEditTable(u.primary)" class="text-muted-foreground hover:text-espresso" title="Sửa bàn">
                     <Pencil class="w-4 h-4" />
                   </button>
-                  <button @click="removeTable(u.primary)" class="text-muted-foreground hover:text-destructive" title="Xoá bàn">
+                  <button @click="removeTable(u.primary)" :class="[u.trangThai === 'CoKhach' || u.orders.length > 0 ? 'opacity-30 cursor-not-allowed' : 'hover:text-destructive text-muted-foreground']" :title="u.trangThai === 'CoKhach' || u.orders.length > 0 ? 'Không thể xoá bàn đang có khách hoặc đơn hàng' : 'Xoá bàn'">
                     <Trash2 class="w-4 h-4" />
                   </button>
                 </template>
@@ -1320,6 +1320,12 @@ async function saveTable() {
   }
 }
 function removeTable(t: TableItem) {
+  const tableOrders = ordersByTable.value.get(t.maBan) ?? []
+  if (t.trangThai === 'CoKhach' || tableOrders.length > 0) {
+    errorMsg.value = `❌ Bàn "${t.tenBan}" đang có khách hoặc đơn hàng. Vui lòng thanh toán/huỷ đơn và dọn bàn về Trống trước khi xoá.`
+    return
+  }
+
   askConfirm({
     title: 'Xoá bàn',
     message: `Bạn chắc chắn muốn xoá "${t.tenBan}"? Hành động này không thể hoàn tác.`,

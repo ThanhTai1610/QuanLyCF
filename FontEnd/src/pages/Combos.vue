@@ -182,7 +182,8 @@
 
               <!-- Cover image upload -->
               <div>
-                <label class="block text-[10px] uppercase tracking-widest font-bold text-[#8A8178] mb-1.5">Ảnh bìa combo</label>
+                <label class="block text-[10px] uppercase tracking-widest font-bold mb-1.5"
+                  :class="errors.coverImage ? 'text-red-500' : 'text-[#8A8178]'">Ảnh bìa combo *</label>
                 <input ref="fileInputRef" type="file" accept="image/*" class="hidden" @change="handleImageUpload" />
                 <div v-if="form.coverImage" class="relative rounded-xl overflow-hidden border border-[#EAE3D9] mb-2">
                   <img :src="form.coverImage" alt="preview" class="w-full h-28 object-cover" />
@@ -193,10 +194,12 @@
                   <span class="absolute bottom-2 left-2 text-[9px] uppercase tracking-widest text-white font-bold bg-black/40 px-2 py-1 rounded-full backdrop-blur-sm">Ảnh bìa</span>
                 </div>
                 <button @click="fileInputRef?.click()"
-                  class="w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-[#EAE3D9] rounded-xl text-[#8A8178] hover:border-[#CC8033] hover:text-[#CC8033] hover:bg-[#FDF9F5] transition-all text-xs font-bold uppercase tracking-wider">
+                  :class="errors.coverImage ? 'border-red-300 hover:border-red-400 hover:bg-red-50/20 text-red-500' : 'border-[#EAE3D9] hover:border-[#CC8033] hover:text-[#CC8033] hover:bg-[#FDF9F5]'"
+                  class="w-full flex items-center justify-center gap-2 py-2.5 border-2 border-dashed rounded-xl transition-all text-xs font-bold uppercase tracking-wider">
                   <UploadCloud class="w-4 h-4" stroke-width="2" />
                   {{ form.coverImage ? 'Đổi ảnh bìa' : 'Tải ảnh bìa lên' }}
                 </button>
+                <p v-if="errors.coverImage" class="text-[11px] text-red-500 font-semibold mt-1">{{ errors.coverImage }}</p>
               </div>
 
               <!-- Savings preview -->
@@ -311,8 +314,10 @@ import { Plus, CheckCircle, Tag, Pencil, Power, Trash2, X, Check, Layers, Search
 import { combosApi } from '@/services/combos'
 import { productsApi, type ProductListItem, type CategoryItem } from '@/services/products'
 import { useToast } from '@/stores/toast'
+import { useAlert } from '@/stores/alert'
 
 const toast = useToast()
+const alert = useAlert()
 const formatVND = (v: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v)
 
 interface ComboItem { menuId: number; name: string; image: string; qty: number; price: number }
@@ -398,12 +403,13 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const errors = ref({
   name: '',
   comboPrice: '',
-  items: ''
+  items: '',
+  coverImage: ''
 })
 
 const validateForm = () => {
   let isValid = true
-  errors.value = { name: '', comboPrice: '', items: '' }
+  errors.value = { name: '', comboPrice: '', items: '', coverImage: '' }
 
   if (!form.value.name.trim()) {
     errors.value.name = 'Tên combo không được để trống'
@@ -426,6 +432,11 @@ const validateForm = () => {
     isValid = false
   }
 
+  if (!form.value.coverImage) {
+    errors.value.coverImage = 'Vui lòng tải ảnh bìa cho combo'
+    isValid = false
+  }
+
   return isValid
 }
 
@@ -440,6 +451,10 @@ watch(() => form.value.comboPrice, (newVal) => {
 
 watch(() => form.value.items, (newVal) => {
   if (newVal.length > 0) errors.value.items = ''
+})
+
+watch(() => form.value.coverImage, (newVal) => {
+  if (newVal) errors.value.coverImage = ''
 }, { deep: true })
 
 const handleImageUpload = (e: Event) => {
@@ -552,7 +567,8 @@ const toggleActive = async (c: Combo) => {
 }
 
 const deleteCombo = async (id: number) => {
-  if (!confirm('Bạn có chắc muốn xóa combo này?')) return
+  const confirmed = await alert.confirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa combo này?')
+  if (!confirmed) return
   try {
     await combosApi.delete(id)
     toast.success('Đã xóa combo')

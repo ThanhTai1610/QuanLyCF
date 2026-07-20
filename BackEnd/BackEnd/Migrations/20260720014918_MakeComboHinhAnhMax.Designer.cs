@@ -4,6 +4,7 @@ using BackEnd.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BackEnd.Migrations
 {
     [DbContext(typeof(QuanLyCFDbContext))]
-    partial class QuanLyCFDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260720014918_MakeComboHinhAnhMax")]
+    partial class MakeComboHinhAnhMax
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -36,16 +39,10 @@ namespace BackEnd.Migrations
                     b.Property<int>("MaKhuVuc")
                         .HasColumnType("int");
 
-                    b.Property<string>("MaPinSession")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("MaQRHash")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("SoDienThoaiDatBan")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("SucChua")
                         .HasColumnType("int");
@@ -54,9 +51,6 @@ namespace BackEnd.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime?>("ThoiGianKhoaHetHan")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("TrangThai")
                         .IsRequired()

@@ -9,14 +9,19 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useStoreInfoStore } from '@/stores/storeInfo'
+import { useAuthStore } from '@/stores/auth'
 import ToastContainer from '@/components/ui/ToastContainer.vue'
 import AlertDialog from '@/components/ui/AlertDialog.vue'
 
 const storeInfoStore = useStoreInfoStore()
+const authStore = useAuthStore()
 
 // Fetch thông tin quán 1 lần khi app khởi động — dùng chung toàn bộ ứng dụng
 onMounted(() => {
   storeInfoStore.fetchInfo()
+  if (authStore.isAuthenticated) {
+    authStore.refreshProfile()
+  }
 })
 </script>
 
