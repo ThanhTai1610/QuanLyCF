@@ -27,6 +27,18 @@ namespace BackEnd.Features.System
             if (q.MaNhanVien.HasValue)
                 query = query.Where(x => x.MaNhanVien == q.MaNhanVien.Value);
 
+            if (!string.IsNullOrWhiteSpace(q.Search))
+            {
+                var s = q.Search.ToLower();
+                query = query.Where(x =>
+                    x.HanhDong.ToLower().Contains(s) ||
+                    x.Module.ToLower().Contains(s) ||
+                    (x.NhanVien != null && x.NhanVien.HoTen.ToLower().Contains(s)) ||
+                    (x.DiaChiIP != null && x.DiaChiIP.ToLower().Contains(s)) ||
+                    (x.ThietBi != null && x.ThietBi.ToLower().Contains(s))
+                );
+            }
+
             int total = await query.CountAsync();
 
             int pageSize = Math.Clamp(q.PageSize, 1, 100);
@@ -60,5 +72,12 @@ namespace BackEnd.Features.System
                 .Distinct()
                 .OrderBy(x => x)
                 .ToListAsync();
+
+        /// <summary>Xoá tất cả nhật ký (chỉ Admin thực hiện).</summary>
+        public async Task ClearAllAsync()
+        {
+            _db.NhatKyHeThongs.RemoveRange(_db.NhatKyHeThongs);
+            await _db.SaveChangesAsync();
+        }
     }
 }

@@ -352,7 +352,10 @@ public class QuanLyCFDbContext : DbContext
             new CaiDatHeThong { MaCaiDat = 6, NhomCaiDat = "CHUNG", KhoaCaiDat = "CHE_DO_BAO_TRI", GiaTriCaiDat = "false", MoTa = "Chế độ bảo trì hệ thống" },
             new CaiDatHeThong { MaCaiDat = 7, NhomCaiDat = "CHUNG", KhoaCaiDat = "THONG_DIEP_BAO_TRI", GiaTriCaiDat = "Hệ thống đang bảo trì để nâng cấp định kỳ. Vui lòng quay lại sau.", MoTa = "Thông điệp bảo trì" },
             new CaiDatHeThong { MaCaiDat = 8, NhomCaiDat = "CHUNG", KhoaCaiDat = "SO_DIEN_THOAI", GiaTriCaiDat = "0909 123 456", MoTa = "Số điện thoại quán" },
-            new CaiDatHeThong { MaCaiDat = 9, NhomCaiDat = "CHUNG", KhoaCaiDat = "MO_TA_QUAN", GiaTriCaiDat = "Quán cà phê đặc sản với không gian ấm cúng. Phục vụ cà phê pha máy, trà, bánh ngọt và các loại đồ uống đá xay.", MoTa = "Mô tả quán" }
+            new CaiDatHeThong { MaCaiDat = 9, NhomCaiDat = "CHUNG", KhoaCaiDat = "MO_TA_QUAN", GiaTriCaiDat = "Quán cà phê đặc sản với không gian ấm cúng. Phục vụ cà phê pha máy, trà, bánh ngọt và các loại đồ uống đá xay.", MoTa = "Mô tả quán" },
+            new CaiDatHeThong { MaCaiDat = 10, NhomCaiDat = "THANH_TOAN", KhoaCaiDat = "NGAN_HANG_ID", GiaTriCaiDat = "MB", MoTa = "Mã ngân hàng nhận chuyển khoản (MB, VCB...)" },
+            new CaiDatHeThong { MaCaiDat = 11, NhomCaiDat = "THANH_TOAN", KhoaCaiDat = "NGAN_HANG_STK", GiaTriCaiDat = "19035282928014", MoTa = "Số tài khoản ngân hàng nhận chuyển khoản" },
+            new CaiDatHeThong { MaCaiDat = 12, NhomCaiDat = "THANH_TOAN", KhoaCaiDat = "NGAN_HANG_TEN", GiaTriCaiDat = "CONG TY BREWMANAGER", MoTa = "Tên chủ tài khoản ngân hàng nhận chuyển khoản" }
         );
     }
 
@@ -392,6 +395,7 @@ public class QuanLyCFDbContext : DbContext
             e.Property(x => x.TenNguyenLieu).HasMaxLength(150).IsRequired();
             e.Property(x => x.MaVach_SKU).HasMaxLength(50);
             e.Property(x => x.DonViTinh).HasMaxLength(20).IsRequired();
+            e.Property(x => x.PhanLoai).HasMaxLength(50).HasDefaultValue("Nguyên liệu thô");
             e.Property(x => x.SoLuongTon).HasColumnType("decimal(10,3)");
             e.Property(x => x.MucTonToiThieu).HasColumnType("decimal(10,3)");
             e.Property(x => x.MucTonToiDa).HasColumnType("decimal(10,3)");
@@ -541,6 +545,7 @@ public class QuanLyCFDbContext : DbContext
             ("CAIDAT_QUANLY", "Quản lý cài đặt", "CaiDat"),
             ("BAN_XEM", "Xem bàn", "Ban"),
             ("BAN_QUANLY", "Quản lý bàn", "Ban"),
+            ("HOADON_XEM", "Xem hoá đơn", "HoaDon"),
         };
         var quyens = quyenMeta.Select((q, i) => new Quyen { MaQuyen = i + 1, MaCode = q.Code, TenQuyen = q.Ten, Nhom = q.Nhom }).ToArray();
         mb.Entity<Quyen>().HasData(quyens);
@@ -552,7 +557,7 @@ public class QuanLyCFDbContext : DbContext
         {
             [1] = quyenMeta.Select(q => q.Code).ToArray(), // Quản lý: full
             [2] = new[] { "SANPHAM_XEM", "KHO_XEM", "DONHANG_XEM", "DONHANG_XULY", "BEP_XEM" },                        // Pha chế
-            [3] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY", "THANHTOAN", "KHACHHANG_XEM", "BAN_XEM" },     // Thu ngân
+            [3] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY", "THANHTOAN", "KHACHHANG_XEM", "BAN_XEM", "HOADON_XEM" },     // Thu ngân
             [4] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY", "BAN_XEM" },                                   // Phục vụ
         };
 

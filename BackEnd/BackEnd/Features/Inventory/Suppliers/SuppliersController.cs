@@ -1,9 +1,6 @@
-using BackEnd.Domain.Entities;
-using BackEnd.Infrastructure.Persistence;
 using BackEnd.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace BackEnd.Features.Inventory.Suppliers;
 
@@ -12,60 +9,35 @@ namespace BackEnd.Features.Inventory.Suppliers;
 [Authorize]
 public class SuppliersController : ControllerBase
 {
-    private readonly QuanLyCFDbContext _db;
-    public SuppliersController(QuanLyCFDbContext db) => _db = db;
+    private readonly SupplierService _service;
+
+    public SuppliersController(SupplierService service)
+    {
+        _service = service;
+    }
 
     [HttpGet]
     [Authorize(Policy = Quyens.KhoXem)]
     public async Task<IActionResult> List([FromQuery] string? q)
     {
-        var query = _db.NhaCungCaps.AsQueryable();
-        if (!string.IsNullOrWhiteSpace(q))
-        {
-            var kw = q.Trim().ToLower();
-            query = query.Where(x => x.TenNhaCungCap.ToLower().Contains(kw)
-                                  || (x.SoDienThoai != null && x.SoDienThoai.Contains(kw)));
-        }
-        return Ok(await query.OrderBy(x => x.TenNhaCungCap)
-            .Select(x => new SupplierItem(x.MaNhaCungCap, x.TenNhaCungCap, x.NguoiLienHe, x.SoDienThoai, x.Email, x.CongNoHienTai))
-            .ToListAsync());
+        return Ok(await _service.LayDanhSachAsync(q));
     }
 
     [HttpPost]
     [Authorize(Policy = Quyens.KhoQuanLy)]
     public async Task<IActionResult> Create(SaveSupplierRequest req)
     {
-        var ncc = new NhaCungCap
-        {
-            TenNhaCungCap = req.TenNhaCungCap.Trim(),
-            MaSoThue = req.MaSoThue,
-            NguoiLienHe = req.NguoiLienHe,
-            SoDienThoai = req.SoDienThoai,
-            Email = req.Email,
-            DiaChi = req.DiaChi,
-            SoTaiKhoan = req.SoTaiKhoan,
-            TenNganHang = req.TenNganHang,
-        };
-        _db.NhaCungCaps.Add(ncc);
-        await _db.SaveChangesAsync();
-        return CreatedAtAction(nameof(List), new { id = ncc.MaNhaCungCap }, new { ncc.MaNhaCungCap });
+        var r = await _service.TaoAsync(req);
+        if (r.Error is not null) return BadRequest(new { message = r.Error });
+        return CreatedAtAction(nameof(List), new { id = r.Data }, new { MaNhaCungCap = r.Data });
     }
 
     [HttpPut("{id:int}")]
     [Authorize(Policy = Quyens.KhoQuanLy)]
     public async Task<IActionResult> Update(int id, SaveSupplierRequest req)
     {
-        var ncc = await _db.NhaCungCaps.FindAsync(id);
-        if (ncc is null) return NotFound();
-        ncc.TenNhaCungCap = req.TenNhaCungCap.Trim();
-        ncc.MaSoThue = req.MaSoThue;
-        ncc.NguoiLienHe = req.NguoiLienHe;
-        ncc.SoDienThoai = req.SoDienThoai;
-        ncc.Email = req.Email;
-        ncc.DiaChi = req.DiaChi;
-        ncc.SoTaiKhoan = req.SoTaiKhoan;
-        ncc.TenNganHang = req.TenNganHang;
-        await _db.SaveChangesAsync();
+        var r = await _service.CapNhatAsync(id, req);
+        if (r.Error is not null) return r.Error.Contains("Không tìm thấy") ? NotFound() : BadRequest(new { message = r.Error });
         return NoContent();
     }
 
@@ -74,24 +46,17 @@ public class SuppliersController : ControllerBase
     [Authorize(Policy = Quyens.KhoQuanLy)]
     public async Task<IActionResult> Pay(int id, PaySupplierRequest req)
     {
-        var ncc = await _db.NhaCungCaps.FindAsync(id);
-        if (ncc is null) return NotFound();
-        if (req.SoTien <= 0) return BadRequest(new { message = "Số tiền phải lớn hơn 0." });
-        ncc.CongNoHienTai = Math.Max(0, ncc.CongNoHienTai - req.SoTien);
-        await _db.SaveChangesAsync();
-        return Ok(new { ncc.CongNoHienTai });
+        var r = await _service.TraCongNoAsync(id, req.SoTien, req.PhuongThucThanhToan, User.MaNhanVien());
+        if (r.Error is not null) return r.Error.Contains("Không tìm thấy") ? NotFound() : BadRequest(new { message = r.Error });
+        return Ok(new { CongNoHienTai = r.Data });
     }
 
     [HttpDelete("{id:int}")]
     [Authorize(Policy = Quyens.KhoQuanLy)]
     public async Task<IActionResult> Delete(int id)
     {
-        var ncc = await _db.NhaCungCaps.FindAsync(id);
-        if (ncc is null) return NotFound();
-        if (await _db.PhieuKhos.AnyAsync(x => x.MaNhaCungCap == id))
-            return BadRequest(new { message = "Nhà cung cấp đã có phiếu nhập, không thể xoá." });
-        _db.NhaCungCaps.Remove(ncc);
-        await _db.SaveChangesAsync();
+        var r = await _service.XoaAsync(id);
+        if (r.Error is not null) return r.Error.Contains("Không tìm thấy") ? NotFound() : BadRequest(new { message = r.Error });
         return NoContent();
     }
 }

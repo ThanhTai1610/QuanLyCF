@@ -21,13 +21,14 @@ export const useCartStore = defineStore('cart', () => {
   const lines = ref<CartItem[]>([])
 
   function add(item: any, options?: CartOption) {
+    const itemId = item.maSanPham || item.id // Support both backend and mock
     if (!options) {
-      const existing = lines.value.find((l) => l.cartLineId === item.id)
+      const existing = lines.value.find((l) => l.cartLineId === String(itemId))
       if (existing) {
         existing.qty += 1
         return
       }
-      lines.value.push({ cartLineId: item.id, item, qty: 1 })
+      lines.value.push({ cartLineId: String(itemId), item, qty: 1 })
     } else {
       lines.value.push({ 
         cartLineId: Math.random().toString(36).substring(2, 9), 
@@ -59,7 +60,8 @@ export const useCartStore = defineStore('cart', () => {
 
   function total() {
     return lines.value.reduce((s, l) => {
-      const itemPrice = l.item.price + (l.options?.extraPrice || 0)
+      const price = l.item.giaBan || l.item.price || 0
+      const itemPrice = price + (l.options?.extraPrice || 0)
       return s + itemPrice * l.qty
     }, 0)
   }
@@ -68,5 +70,12 @@ export const useCartStore = defineStore('cart', () => {
     return lines.value.reduce((s, l) => s + l.qty, 0)
   }
 
-  return { lines, add, setQty, remove, clear, total, count }
+  function updateOptions(cartLineId: string, options: CartOption) {
+    const existing = lines.value.find((l) => l.cartLineId === cartLineId)
+    if (existing) {
+      existing.options = options
+    }
+  }
+
+  return { lines, add, setQty, remove, clear, total, count, updateOptions }
 })

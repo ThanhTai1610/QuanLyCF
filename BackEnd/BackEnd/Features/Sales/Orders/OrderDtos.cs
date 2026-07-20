@@ -9,11 +9,13 @@ public record MenuItemDto(
     decimal GiaBan,
     string? HinhAnh,
     string KieuMon,
+    string? MoTa,
+    bool LaMonNoiBat,
     List<MenuSizeDto> KichCos);
 
 // ── Tạo đơn ──────────────────────────────────────────────────
 public record OrderLineRequest(int MaSanPham, int? MaKichCo, int SoLuong, string? GhiChuMon);
-public record CreateOrderRequest(int? MaBan, List<OrderLineRequest> Items, string? GhiChuDonHang); // MaBan null = mang về
+public record CreateOrderRequest(int? MaBan, List<OrderLineRequest> Items, string? GhiChuDonHang, int? MaKhachHang = null); // MaBan null = mang về
 
 // ── Hiển thị đơn ─────────────────────────────────────────────
 public record OrderItemDto(
@@ -24,7 +26,8 @@ public record OrderItemDto(
     int SoLuong,
     decimal DonGia,
     decimal ThanhTien,
-    string? GhiChuMon);
+    string? GhiChuMon,
+    string TrangThaiBep);
 
 public record OrderDto(
     int MaDonHang,
@@ -47,7 +50,9 @@ public record CheckoutRequest(
     string? GhiChuDonHang,
     string PhuongThuc,          // TienMat, ChuyenKhoan, Momo
     decimal? SoTienKhachTra,
-    int? MaKhuyenMai);          // khuyến mãi áp dụng (tuỳ chọn)
+    int? MaKhuyenMai,
+    int? MaKhachHang = null);          // khuyến mãi áp dụng (tuỳ chọn)
 public record CheckoutResult(int MaDonHang, int MaHoaDon, decimal TienGiam, decimal ThanhTien, decimal TienThoiLai, string PhuongThuc);
 public record MoveOrderResult(string KetQua, string? TenBanCu, string? TenBanMoi); // KetQua: moved | merged
 public record CancelOrderRequest(string? LyDo);
+public record UpdateOrderStatusRequest(string Status);

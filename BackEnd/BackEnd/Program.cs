@@ -1,4 +1,5 @@
 using System.Text;
+using BackEnd.Domain.Entities;
 using BackEnd.Features.Auth;
 using BackEnd.Infrastructure.Persistence;
 using BackEnd.Shared;
@@ -57,8 +58,16 @@ namespace BackEnd
             builder.Services.AddScoped<Features.Sales.Orders.OrderService>();
             builder.Services.AddScoped<Features.Sales.Promotions.PromotionService>();
             builder.Services.AddScoped<Features.Sales.Dashboard.DashboardService>();
+            builder.Services.AddScoped<Features.Sales.Invoices.InvoiceService>();
             builder.Services.AddScoped<Features.Catalog.Categories.CategoryService>();
             builder.Services.AddScoped<Features.Hr.HrService>();
+            builder.Services.AddScoped<Features.Sales.Payments.PaymentService>();
+            builder.Services.AddScoped<Features.Customers.CustomerService>();
+            builder.Services.AddScoped<Shared.EmailService>();
+            builder.Services.AddScoped<Features.Catalog.Combos.ComboService>();
+            builder.Services.AddScoped<Features.Finance.CashFlows.CashFlowService>();
+            builder.Services.AddScoped<Features.Inventory.Materials.MaterialService>();
+            builder.Services.AddScoped<Features.Inventory.Suppliers.SupplierService>();
             // System
             builder.Services.AddScoped<Features.System.SettingService>();
             builder.Services.AddScoped<Features.System.AuditLogService>();

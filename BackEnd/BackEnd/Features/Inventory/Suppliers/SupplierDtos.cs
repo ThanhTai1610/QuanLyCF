@@ -19,4 +19,4 @@ public record SaveSupplierRequest(
     string? TenNganHang);
 
 /// <summary>Phiếu chi trả nợ cho NCC.</summary>
-public record PaySupplierRequest(decimal SoTien);
+public record PaySupplierRequest(decimal SoTien, string PhuongThucThanhToan = "TienMat");

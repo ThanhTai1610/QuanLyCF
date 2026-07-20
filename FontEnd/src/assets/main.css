@@ -1,4 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  src: local('Inter'), system-ui, sans-serif;
+}
 
 @tailwind base;
 @tailwind components;
@@ -96,22 +101,22 @@
   * { @apply border-border; }
 
   html {
-    /* Scale toàn bộ UI xuống ~12.5% — tất cả rem sẽ tự co theo */
-    font-size: 87.5%;
+    /* Scale toàn bộ UI — tất cả rem sẽ tự co theo */
+    font-size: 93.75%;
   }
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
   }
   h1, h2, h3, h4, .font-display {
-    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
     letter-spacing: -0.01em;
   }
   /* Phông thống nhất toàn web — dùng cho các trang còn khai báo class cũ */
   .font-premium-serif,
   .font-premium-sans {
-    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
   }
 }
 

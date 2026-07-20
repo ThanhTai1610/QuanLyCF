@@ -95,4 +95,111 @@ public class DashboardService
 
         return new DashboardDataDto(stats, revData, topItems, recentList);
     }
+
+    /// <summary>
+    /// Báo cáo doanh thu theo tháng trong năm, hoặc theo ngày trong tháng.
+    /// year: bắt buộc. month: tuỳ chọn — nếu có thì trả theo ngày trong tháng đó.
+    /// </summary>
+    public async Task<MonthlyReportDto> GetMonthlyReportAsync(int year, int? month)
+    {
+        DateTime periodStart, periodEnd, prevStart, prevEnd;
+
+        if (month.HasValue)
+        {
+            // Xem theo từng ngày trong tháng
+            periodStart = new DateTime(year, month.Value, 1, 0, 0, 0, DateTimeKind.Utc);
+            periodEnd   = periodStart.AddMonths(1);
+            prevStart   = periodStart.AddMonths(-1);
+            prevEnd     = periodStart;
+        }
+        else
+        {
+            // Xem 12 tháng trong năm
+            periodStart = new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            periodEnd   = new DateTime(year + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            prevStart   = new DateTime(year - 1, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            prevEnd     = periodStart;
+        }
+
+        // Lấy đơn hàng kỳ hiện tại
+        var orders = await _db.DonHangs
+            .Include(d => d.ChiTiets).ThenInclude(c => c.SanPham)
+            .Where(d => d.ThoiGianTao >= periodStart && d.ThoiGianTao < periodEnd
+                     && d.TrangThaiDon != "Huy")
+            .ToListAsync();
+
+        // Lấy đơn hàng kỳ trước để tính tăng trưởng
+        var prevRevenue = await _db.DonHangs
+            .Where(d => d.ThoiGianTao >= prevStart && d.ThoiGianTao < prevEnd
+                     && d.TrangThaiDon != "Huy")
+            .SumAsync(d => (decimal?)d.ThanhTien) ?? 0;
+
+        var totalRevenue = orders.Sum(d => d.ThanhTien);
+        var totalOrders  = orders.Count;
+        var avgOrder     = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+        var growth       = prevRevenue > 0 ? Math.Round((totalRevenue - prevRevenue) / prevRevenue * 100, 1)
+                           : (totalRevenue > 0 ? 100 : 0);
+
+        // --- Dữ liệu biểu đồ ---
+        List<MonthlyRevenueDto> monthlyData = [];
+        List<DailyRevenueDetailDto> dailyData = [];
+
+        if (month.HasValue)
+        {
+            // Theo ngày
+            int daysInMonth = DateTime.DaysInMonth(year, month.Value);
+            for (int d = 1; d <= daysInMonth; d++)
+            {
+                var dayOrders = orders.Where(o => o.ThoiGianTao.Day == d).ToList();
+                dailyData.Add(new DailyRevenueDetailDto(
+                    d,
+                    $"{d:D2}/{month.Value:D2}",
+                    dayOrders.Sum(o => o.ThanhTien),
+                    dayOrders.Count
+                ));
+            }
+        }
+        else
+        {
+            // Theo tháng
+            for (int m = 1; m <= 12; m++)
+            {
+                var mOrders = orders.Where(o => o.ThoiGianTao.Month == m).ToList();
+                var mRev    = mOrders.Sum(o => o.ThanhTien);
+                var mCnt    = mOrders.Count;
+                monthlyData.Add(new MonthlyRevenueDto(
+                    m,
+                    $"T{m}",
+                    mRev,
+                    mCnt,
+                    mCnt > 0 ? Math.Round(mRev / mCnt, 0) : 0
+                ));
+            }
+        }
+
+        // Top 10 sản phẩm doanh thu cao nhất
+        var topProducts = orders
+            .SelectMany(o => o.ChiTiets)
+            .Where(c => c.SanPham != null && c.SanPham.KieuMon != "Topping")
+            .GroupBy(c => c.SanPham!.TenSanPham)
+            .Select(g => new TopProductRevenueDto(
+                g.Key,
+                g.Sum(c => c.SoLuong),
+                g.Sum(c => c.ThanhTien)
+            ))
+            .OrderByDescending(x => x.Revenue)
+            .Take(10)
+            .ToList();
+
+        return new MonthlyReportDto(
+            year, month,
+            Math.Round(totalRevenue, 0),
+            totalOrders,
+            Math.Round(avgOrder, 0),
+            growth,
+            monthlyData,
+            dailyData,
+            topProducts
+        );
+    }
 }

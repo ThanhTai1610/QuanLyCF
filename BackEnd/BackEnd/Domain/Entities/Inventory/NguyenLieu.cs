@@ -7,11 +7,13 @@ public class NguyenLieu
     public string TenNguyenLieu { get; set; } = null!;
     public string? MaVach_SKU { get; set; }
     public string DonViTinh { get; set; } = null!;        // g, ml, Lon, Chiếc...
+    public string PhanLoai { get; set; } = "Nguyên liệu thô";
     public decimal SoLuongTon { get; set; }
     public decimal? MucTonToiThieu { get; set; }
     public decimal? MucTonToiDa { get; set; }
     public decimal? GiaVonTrungBinh { get; set; }         // bình quân gia quyền
     public int? HanSuDungNgay { get; set; }
+    public DateTime? NgayHetHan { get; set; }
     public string? HinhAnh { get; set; }
 
     public ICollection<ChiTietPhieuKho> ChiTietPhieuKhos { get; set; } = new List<ChiTietPhieuKho>();

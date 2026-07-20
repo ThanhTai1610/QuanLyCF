@@ -19,7 +19,8 @@ namespace BackEnd.Features.System
         {
             "TEN_QUAN", "DIA_CHI", "SO_DIEN_THOAI", "MO_TA_QUAN", "GIO_MO_CUA", "ANH_TRANG_CHU",
             "THUE_VAT_MAC_DINH", "PHI_DICH_VU", "TY_LE_TICH_DIEM",
-            "CHE_DO_BAO_TRI", "THONG_DIEP_BAO_TRI", "TEN_AI", "XUNG_HO_AI"
+            "CHE_DO_BAO_TRI", "THONG_DIEP_BAO_TRI", "TEN_AI", "XUNG_HO_AI",
+            "NGAN_HANG_ID", "NGAN_HANG_STK", "NGAN_HANG_TEN"
         };
 
         private static readonly Dictionary<string, string> NhomMap = new()
@@ -37,6 +38,9 @@ namespace BackEnd.Features.System
             ["TY_LE_TICH_DIEM"]    = "TICH_DIEM",
             ["TEN_AI"]             = "CHUNG",
             ["XUNG_HO_AI"]         = "CHUNG",
+            ["NGAN_HANG_ID"]       = "THANH_TOAN",
+            ["NGAN_HANG_STK"]      = "THANH_TOAN",
+            ["NGAN_HANG_TEN"]      = "THANH_TOAN",
         };
 
         public SettingService(QuanLyCFDbContext db, IMemoryCache cache)
@@ -71,13 +75,16 @@ namespace BackEnd.Features.System
                 ThongDiepBaoTri:  Val("THONG_DIEP_BAO_TRI",
                                     "Hệ thống đang bảo trì. Vui lòng quay lại sau."),
                 TenAI:            Val("TEN_AI", "Barista AI"),
-                XungHoAI:         Val("XUNG_HO_AI", "mình - bạn")
+                XungHoAI:         Val("XUNG_HO_AI", "mình - bạn"),
+                NganHangId:       Val("NGAN_HANG_ID", "MB"),
+                NganHangStk:      Val("NGAN_HANG_STK", ""),
+                NganHangTen:      Val("NGAN_HANG_TEN", "")
             );
         }
 
         // ── Cập nhật cài đặt ──────────────────────────────────────────────────
 
-        public async Task UpdateAsync(UpdateSettingsRequest req)
+        public async Task UpdateAsync(UpdateSettingsRequest req, int? maNhanVien = null, string? ipAddress = null, string? userAgent = null)
         {
             // Validate
             if (string.IsNullOrWhiteSpace(req.TenQuan))
@@ -104,12 +111,49 @@ namespace BackEnd.Features.System
                 ["THONG_DIEP_BAO_TRI"] = req.ThongDiepBaoTri?.Trim(),
                 ["TEN_AI"]             = req.TenAI?.Trim(),
                 ["XUNG_HO_AI"]         = req.XungHoAI?.Trim(),
+                // Cấu hình ngân hàng VietQR
+                ["NGAN_HANG_ID"]       = req.NganHangId?.Trim(),
+                ["NGAN_HANG_STK"]      = req.NganHangStk?.Trim(),
+                ["NGAN_HANG_TEN"]      = req.NganHangTen?.Trim(),
             };
 
             var existing = await _db.CaiDatHeThongs
                 .Where(x => payload.Keys.Contains(x.KhoaCaiDat))
                 .ToListAsync();
 
+            // 1. Phát hiện thay đổi thực tế trước khi cập nhật dữ liệu
+            var listChangesOld = new List<string>();
+            var listChangesNew = new List<string>();
+
+            foreach (var (key, value) in payload)
+            {
+                var row = existing.FirstOrDefault(x => x.KhoaCaiDat == key);
+                var oldValue = row?.GiaTriCaiDat ?? "";
+                var newValue = value ?? "";
+                if (oldValue.Trim() != newValue.Trim())
+                {
+                    listChangesOld.Add($"{key}: {oldValue}");
+                    listChangesNew.Add($"{key}: {newValue}");
+                }
+            }
+
+            if (listChangesNew.Any())
+            {
+                var log = new NhatKyHeThong
+                {
+                    MaNhanVien = maNhanVien,
+                    HanhDong = "Cập nhật cài đặt",
+                    Module = "Hệ thống",
+                    DuLieuCu = string.Join(", ", listChangesOld),
+                    DuLieuMoi = string.Join(", ", listChangesNew),
+                    DiaChiIP = ipAddress,
+                    ThietBi = userAgent,
+                    ThoiGianTao = DateTime.UtcNow
+                };
+                _db.NhatKyHeThongs.Add(log);
+            }
+
+            // 2. Thực hiện cập nhật dữ liệu cài đặt
             var now = DateTime.UtcNow;
             foreach (var (key, value) in payload)
             {

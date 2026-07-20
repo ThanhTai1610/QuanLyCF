@@ -275,7 +275,7 @@
                   </div>
                   <span class="font-display font-bold text-sm tracking-widest">BREWMEMBER</span>
                 </div>
-                <span class="text-[9px] bg-caramel text-cream px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Hạng Bạc</span>
+                <span class="text-[9px] bg-caramel text-cream px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Hạng {{ customerProfile.tier }}</span>
               </div>
 
               <div class="pt-2">
@@ -284,20 +284,20 @@
                 <div class="text-xs font-mono text-cream/70 mt-0.5">{{ customerProfile.phone }}</div>
               </div>
 
-              <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
+              <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/10" v-if="nextTierInfo">
                 <div>
                   <div class="text-[9px] text-cream/50 uppercase">Điểm tích lũy</div>
-                  <div class="text-xl font-bold text-caramel">185 <span class="text-xs text-cream/70 font-normal">điểm</span></div>
+                  <div class="text-xl font-bold text-caramel">{{ customerProfile.points }} <span class="text-xs text-cream/70 font-normal">điểm</span></div>
                 </div>
                 <div>
                   <div class="text-[9px] text-cream/50 uppercase">Hạng tiếp theo</div>
-                  <div class="text-xs font-semibold">Cần thêm 65 điểm để thăng hạng Vàng</div>
+                  <div class="text-xs font-semibold">{{ nextTierInfo.text }}</div>
                 </div>
               </div>
 
               <!-- Mini Bar Progress -->
-              <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                <div class="bg-caramel h-full rounded-full" style="width: 74%" />
+              <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden" v-if="nextTierInfo">
+                <div class="bg-caramel h-full rounded-full" :style="{ width: nextTierInfo.percent + '%' }" />
               </div>
             </div>
 
@@ -337,38 +337,66 @@
               </div>
             </div>
 
-            <!-- Vouchers Panel if logged in -->
-            <div v-if="customerProfile" class="w-full max-w-sm mt-6 space-y-3">
+            <!-- Vouchers Panel (Hiển thị voucher của quán, có thể sao chép trực tiếp) -->
+            <div class="w-full max-w-sm mt-6 space-y-3">
               <div class="text-left text-xs font-bold text-espresso uppercase tracking-wider">Voucher của bạn:</div>
               <div class="grid grid-cols-1 gap-2.5">
-                <!-- Voucher Card 1 -->
-                <div class="bg-card rounded-xl border border-cream-deep/60 p-3 flex justify-between items-center shadow-soft">
-                  <div class="text-left space-y-0.5">
-                    <span class="text-[8px] bg-sage/20 text-success px-2 py-0.5 rounded-full font-extrabold uppercase">Thành Viên Mới</span>
-                    <h5 class="text-xs font-bold text-espresso">Giảm 10.000đ khi gọi món</h5>
-                    <p class="text-[10px] text-muted-foreground">Hạn sử dụng: 31/12/2026</p>
+                <template v-if="activePromos.length > 0">
+                  <div v-for="p in activePromos" :key="p.maKhuyenMai" class="bg-card rounded-xl border border-cream-deep/60 p-3 flex justify-between items-center shadow-soft">
+                    <div class="text-left space-y-0.5">
+                      <span :class="p.loaiGiamGia === 'PhanTram' ? 'bg-caramel/10 text-caramel' : 'bg-sage/20 text-success'" class="text-[8px] px-2 py-0.5 rounded-full font-extrabold uppercase">
+                        {{ p.loaiGiamGia === 'PhanTram' ? 'GIẢM ' + p.giaTriGiam + '%' : 'GIẢM ' + formatVND(p.giaTriGiam) }}
+                      </span>
+                      <h5 class="text-xs font-bold text-espresso">{{ p.tenChuongTrinh }}</h5>
+                      <p class="text-[10px] text-muted-foreground">
+                        <span v-if="p.donToiThieu">Đơn tối thiểu: {{ formatVND(p.donToiThieu) }}</span>
+                        <span v-else>Không giới hạn đơn</span>
+                        <span v-if="p.ngayKetThuc"> · HSD: {{ fmtD(p.ngayKetThuc) }}</span>
+                      </p>
+                    </div>
+                    <button 
+                      v-if="p.maGiamGia"
+                      @click="copyVoucherCode(p.maGiamGia)"
+                      :class="isVoucherSaved(p.maGiamGia) ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-caramel-light hover:bg-caramel hover:text-cream text-brown'"
+                      class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors shrink-0"
+                    >
+                      {{ isVoucherSaved(p.maGiamGia) ? 'Đã lưu' : 'Lưu mã' }}
+                    </button>
+                    <span v-else class="text-[10px] text-muted-foreground font-bold shrink-0 px-2">Áp dụng tự động</span>
                   </div>
-                  <button 
-                    @click="copyVoucherCode('BREWNEW')"
-                    class="bg-caramel-light hover:bg-caramel hover:text-cream text-brown text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors shrink-0"
-                  >
-                    Sao chép mã
-                  </button>
-                </div>
-                <!-- Voucher Card 2 -->
-                <div class="bg-card rounded-xl border border-cream-deep/60 p-3 flex justify-between items-center shadow-soft">
-                  <div class="text-left space-y-0.5">
-                    <span class="text-[8px] bg-caramel/10 text-caramel px-2 py-0.5 rounded-full font-extrabold uppercase">Hạng Bạc</span>
-                    <h5 class="text-xs font-bold text-espresso">Tặng trân châu đen miễn phí</h5>
-                    <p class="text-[10px] text-muted-foreground">Áp dụng đơn từ 45k</p>
+                </template>
+                <template v-else>
+                  <!-- Fallback Mock Voucher Card 1 -->
+                  <div class="bg-card rounded-xl border border-cream-deep/60 p-3 flex justify-between items-center shadow-soft">
+                    <div class="text-left space-y-0.5">
+                      <span class="text-[8px] bg-sage/20 text-success px-2 py-0.5 rounded-full font-extrabold uppercase">Thành Viên Mới</span>
+                      <h5 class="text-xs font-bold text-espresso">Giảm 10.000đ khi gọi món</h5>
+                      <p class="text-[10px] text-muted-foreground">Hạn sử dụng: 31/12/2026</p>
+                    </div>
+                    <button 
+                      @click="copyVoucherCode('BREWNEW')"
+                      :class="isVoucherSaved('BREWNEW') ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-caramel-light hover:bg-caramel hover:text-cream text-brown'"
+                      class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors shrink-0"
+                    >
+                      {{ isVoucherSaved('BREWNEW') ? 'Đã lưu' : 'Lưu mã' }}
+                    </button>
                   </div>
-                  <button 
-                    @click="copyVoucherCode('SILVERFREE')"
-                    class="bg-caramel-light hover:bg-caramel hover:text-cream text-brown text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors shrink-0"
-                  >
-                    Sao chép mã
-                  </button>
-                </div>
+                  <!-- Fallback Mock Voucher Card 2 -->
+                  <div class="bg-card rounded-xl border border-cream-deep/60 p-3 flex justify-between items-center shadow-soft">
+                    <div class="text-left space-y-0.5">
+                      <span class="text-[8px] bg-caramel/10 text-caramel px-2 py-0.5 rounded-full font-extrabold uppercase">Hạng Bạc</span>
+                      <h5 class="text-xs font-bold text-espresso">Tặng trân châu đen miễn phí</h5>
+                      <p class="text-[10px] text-muted-foreground">Áp dụng đơn từ 45k</p>
+                    </div>
+                    <button 
+                      @click="copyVoucherCode('SILVERFREE')"
+                      :class="isVoucherSaved('SILVERFREE') ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-caramel-light hover:bg-caramel hover:text-cream text-brown'"
+                      class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-colors shrink-0"
+                    >
+                      {{ isVoucherSaved('SILVERFREE') ? 'Đã lưu' : 'Lưu mã' }}
+                    </button>
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -527,29 +555,28 @@
         
         <h3 class="text-lg font-display font-bold text-espresso mb-1 text-center">Đăng Nhập Tích Điểm</h3>
         
-        <!-- STEP 1: Nhập SĐT -->
+        <!-- STEP 1: Nhập Email -->
         <div v-if="loginStep === 1">
-          <p class="text-xs text-muted-foreground text-center mb-6">Nhập số điện thoại của bạn</p>
+          <p class="text-xs text-muted-foreground text-center mb-6">Nhập địa chỉ Email/Gmail của bạn</p>
           <div class="space-y-4 mb-6">
             <div>
-              <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178] mb-1.5 block text-left">Số điện thoại</label>
+              <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178] mb-1.5 block text-left">Địa chỉ Email</label>
               <input 
-                type="tel" 
-                v-model="phoneNumber" 
-                placeholder="Ví dụ: 0912345678"
-                maxlength="10"
-                @input="onPhoneInput"
+                type="email" 
+                v-model="emailInput" 
+                placeholder="Ví dụ: khachhang@gmail.com"
                 :class="[
-                  'w-full h-11 px-4 bg-background border rounded-lg text-sm font-bold tracking-widest focus:outline-none focus:ring-2 transition-all text-espresso',
-                  phoneError ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : 'border-cream-deep focus:border-caramel focus:ring-caramel/20'
+                  'w-full h-11 px-4 bg-background border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 transition-all text-espresso',
+                  emailError ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : 'border-cream-deep focus:border-caramel focus:ring-caramel/20'
                 ]"
-                @keyup.enter="checkPhoneNumber"
+                @keyup.enter="checkEmailInput"
+                @input="emailError = ''"
               />
-              <p v-if="phoneError" class="text-[10px] text-destructive font-bold mt-1.5 text-left animate-in fade-in">{{ phoneError }}</p>
+              <p v-if="emailError" class="text-[10px] text-destructive font-bold mt-1.5 text-left animate-in fade-in">{{ emailError }}</p>
             </div>
           </div>
           <button 
-            @click="checkPhoneNumber" 
+            @click="checkEmailInput" 
             class="w-full h-11 rounded-lg bg-caramel hover:bg-brown text-cream text-sm font-bold transition-colors uppercase tracking-wider shadow-sm"
           >
             Tiếp tục
@@ -562,7 +589,7 @@
           <div class="bg-caramel-light/30 border border-caramel/20 rounded-xl p-4 mb-6">
             <p class="text-[10px] font-bold text-caramel uppercase tracking-wider mb-1">Khách hàng quen</p>
             <p class="text-lg font-bold text-espresso">{{ foundName }}</p>
-            <p class="text-xs font-mono text-muted-foreground mt-1">{{ phoneNumber }}</p>
+            <p class="text-xs font-mono text-muted-foreground mt-1">{{ emailInput }}</p>
           </div>
           <p class="text-sm font-bold text-espresso mb-4">Đây có phải là bạn không?</p>
           <div class="flex gap-3">
@@ -571,9 +598,9 @@
           </div>
         </div>
 
-        <!-- STEP 3: Nhập tên (Khách mới hoặc chọn 'Không phải') -->
+        <!-- STEP 3: Nhập tên & SĐT (Đăng ký khách mới) -->
         <div v-else-if="loginStep === 3" class="animate-in fade-in slide-in-from-right-4">
-          <p class="text-xs text-muted-foreground text-center mb-6">Chào bạn mới! Hãy cho chúng tôi biết tên</p>
+          <p class="text-xs text-muted-foreground text-center mb-6">Chào bạn mới! Vui lòng cung cấp thông tin để tích điểm</p>
           <div class="space-y-4 mb-6">
             <div>
               <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178] mb-1.5 block text-left">Họ và tên</label>
@@ -589,6 +616,22 @@
                 @input="nameError = ''"
               />
               <p v-if="nameError" class="text-[10px] text-destructive font-bold mt-1.5 text-left animate-in fade-in">{{ nameError }}</p>
+            </div>
+            <div>
+              <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178] mb-1.5 block text-left">Số điện thoại</label>
+              <input 
+                type="tel" 
+                v-model="phoneNumber" 
+                placeholder="Ví dụ: 0912345678"
+                maxlength="10"
+                :class="[
+                  'w-full h-11 px-4 bg-background border rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 transition-all text-espresso',
+                  phoneError ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : 'border-cream-deep focus:border-caramel focus:ring-caramel/20'
+                ]"
+                @keyup.enter="submitNewName"
+                @input="phoneError = ''"
+              />
+              <p v-if="phoneError" class="text-[10px] text-destructive font-bold mt-1.5 text-left animate-in fade-in">{{ phoneError }}</p>
             </div>
           </div>
           <div class="flex gap-3">
@@ -631,6 +674,8 @@ import menuPastry from '@/assets/menu-pastry.jpg';
 import { useStoreInfoStore } from '@/stores/storeInfo';
 import { ordersApi, type MenuItem } from '@/services/orders';
 import ChatbotWidget from '@/components/ChatbotWidget.vue';
+import { loyaltyApi } from '@/services/loyalty';
+import { promotionsApi, type Promotion } from '@/services/promotions';
 
 const formatVND = (n: number) => (n || 0).toLocaleString('vi-VN') + 'đ';
 
@@ -651,9 +696,56 @@ const loginStep = ref<1 | 2 | 3>(1)
 const foundName = ref('')
 const fullName = ref('')
 const phoneNumber = ref('')
+const emailInput = ref('')
 const nameError = ref('')
 const phoneError = ref('')
-const customerProfile = ref<{ name: string; phone: string } | null>(null)
+const emailError = ref('')
+const customerProfile = ref<{ id: number; name: string; phone: string; email?: string; tier: string; points: number } | null>(null)
+
+const nextTierInfo = computed(() => {
+  if (!customerProfile.value) return null
+  const pts = customerProfile.value.points || 0
+  const tier = customerProfile.value.tier
+  
+  if (pts >= 3000) {
+    return {
+      nextTier: 'Kim cương',
+      pointsNeeded: 0,
+      percent: 100,
+      text: 'Đã đạt cấp độ tối đa!'
+    }
+  }
+  
+  let target = 500
+  let nextName = 'Bạc'
+  let base = 0
+  
+  if (pts >= 1500) {
+    target = 3000
+    nextName = 'Kim cương'
+    base = 1500
+  } else if (pts >= 500) {
+    target = 1500
+    nextName = 'Vàng'
+    base = 500
+  } else {
+    target = 500
+    nextName = 'Bạc'
+    base = 0
+  }
+  
+  const needed = target - pts
+  const range = target - base
+  const currentInRange = pts - base
+  const percent = Math.min(100, Math.max(0, Math.round((currentInRange / range) * 100)))
+  
+  return {
+    nextTier: nextName,
+    pointsNeeded: needed,
+    percent: percent,
+    text: `Cần thêm ${needed} điểm để thăng hạng ${nextName}`
+  }
+})
 
 const STORAGE_KEY = 'brewCustomerProfile'
 
@@ -675,11 +767,20 @@ const showToast = (title: string, message: string, type: 'success' | 'info' = 's
   }, 3000)
 }
 
-const checkLoginStatus = () => {
+const checkLoginStatus = async () => {
   const saved = localStorage.getItem(STORAGE_KEY)
   if (saved) {
     try {
-      customerProfile.value = JSON.parse(saved)
+      const basic = JSON.parse(saved)
+      if (basic && basic.email) {
+        try {
+          const res = await loyaltyApi.checkPublicEmail(basic.email)
+          customerProfile.value = res
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(res))
+        } catch (e) {
+          customerProfile.value = basic
+        }
+      }
     } catch (e) {
       customerProfile.value = null
     }
@@ -688,9 +789,36 @@ const checkLoginStatus = () => {
   }
 }
 
+const activePromos = ref<Promotion[]>([])
+const fmtD = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '∞'
+
+const loadActivePromotions = async () => {
+  try {
+    activePromos.value = await promotionsApi.active()
+  } catch (e) {
+    console.error('Không tải được danh sách khuyến mãi:', e)
+  }
+}
+
+const savedVouchersList = ref<string[]>([])
+const loadSavedVouchersList = () => {
+  try {
+    const key = 'savedVouchers'
+    savedVouchersList.value = JSON.parse(localStorage.getItem(key) || '[]')
+  } catch (e) {
+    savedVouchersList.value = []
+  }
+}
+
+const isVoucherSaved = (code: string) => {
+  return savedVouchersList.value.includes(code)
+}
+
 onMounted(() => {
   checkLoginStatus()
   fetchRealMenu()
+  loadActivePromotions()
+  loadSavedVouchersList()
 })
 
 const fetchRealMenu = async () => {
@@ -708,52 +836,52 @@ const handleLogout = () => {
   showToast('Đã đăng xuất', 'Bạn đã đăng xuất khỏi hệ thống tích điểm.', 'info')
 }
 
-const onPhoneInput = (e: Event) => {
-  const input = e.target as HTMLInputElement;
-  // Chỉ cho phép nhập số
-  phoneNumber.value = input.value.replace(/\D/g, '').slice(0, 10);
-  phoneError.value = '';
-}
-
-const checkPhoneNumber = () => {
-  phoneError.value = '';
-  const phoneVal = phoneNumber.value;
-  if (!phoneVal) {
-    phoneError.value = 'Vui lòng nhập số điện thoại!';
+const checkEmailInput = async () => {
+  emailError.value = '';
+  const emailVal = emailInput.value.trim().toLowerCase();
+  if (!emailVal) {
+    emailError.value = 'Vui lòng nhập địa chỉ email!';
     return;
-  } else if (!/^0\d{9}$/.test(phoneVal)) {
-    phoneError.value = 'Số điện thoại không hợp lệ (gồm 10 số, bắt đầu bằng 0)!';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+    emailError.value = 'Địa chỉ email không hợp lệ!';
     return;
   }
 
-  // Quét cơ sở dữ liệu giả lập (localStorage)
-  const dbStr = localStorage.getItem('brewCustomersDb');
-  const db = dbStr ? JSON.parse(dbStr) : {};
-  
-  if (db[phoneVal]) {
-    foundName.value = db[phoneVal].name;
+  try {
+    const customer = await loyaltyApi.checkPublicEmail(emailVal)
+    foundName.value = customer.name;
     loginStep.value = 2; // Xác nhận danh tính
-  } else {
-    loginStep.value = 3; // Mời nhập tên
+  } catch (err: any) {
+    // Không tìm thấy email trong CSDL thật → Mời nhập tên đăng ký mới
+    loginStep.value = 3;
   }
 }
 
-const confirmIdentity = (isMe: boolean) => {
+const confirmIdentity = async (isMe: boolean) => {
   if (isMe) {
-    const profile = { name: foundName.value, phone: phoneNumber.value };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-    customerProfile.value = profile;
-    showToast('Đăng nhập thành công', `Chào mừng ${profile.name} trở lại!`);
-    resetModal();
+    try {
+      const customer = await loyaltyApi.checkPublicEmail(emailInput.value.trim().toLowerCase())
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(customer))
+      customerProfile.value = customer
+      showToast('Đăng nhập thành công', `Chào mừng ${customer.name} trở lại!`);
+      resetModal();
+    } catch (e: any) {
+      emailError.value = e.message || 'Có lỗi xảy ra.';
+    }
   } else {
     loginStep.value = 3;
     fullName.value = '';
+    phoneNumber.value = '';
   }
 }
 
-const submitNewName = () => {
+const submitNewName = async () => {
   nameError.value = '';
+  phoneError.value = '';
   const nameVal = fullName.value.trim();
+  const phoneVal = phoneNumber.value.trim();
+  const emailVal = emailInput.value.trim().toLowerCase();
+
   if (!nameVal) {
     nameError.value = 'Vui lòng nhập họ và tên!';
     return;
@@ -765,24 +893,32 @@ const submitNewName = () => {
     return;
   }
 
-  // Lưu khách mới vào DB giả lập
-  const dbStr = localStorage.getItem('brewCustomersDb');
-  const db = dbStr ? JSON.parse(dbStr) : {};
-  db[phoneNumber.value] = { name: nameVal, phone: phoneNumber.value };
-  localStorage.setItem('brewCustomersDb', JSON.stringify(db));
+  if (!phoneVal) {
+    phoneError.value = 'Vui lòng nhập số điện thoại!';
+    return;
+  } else if (!/^0\d{9}$/.test(phoneVal)) {
+    phoneError.value = 'Số điện thoại không hợp lệ (gồm 10 số, bắt đầu bằng 0)!';
+    return;
+  }
 
-  const profile = { name: nameVal, phone: phoneNumber.value };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-  customerProfile.value = profile;
-  showToast('Đăng nhập thành công', `Chào mừng ${profile.name} đến với hệ thống tích điểm!`);
-  resetModal();
+  try {
+    const customer = await loyaltyApi.registerPublic({ name: nameVal, phone: phoneVal, email: emailVal })
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(customer))
+    customerProfile.value = customer
+    showToast('Đăng nhập thành công', `Chào mừng ${customer.name} đến với hệ thống tích điểm!`);
+    resetModal();
+  } catch (err: any) {
+    nameError.value = err.message || 'Không thể đăng ký tài khoản.';
+  }
 }
 
 const resetModal = () => {
   isPhoneModalOpen.value = false;
   loginStep.value = 1;
+  emailInput.value = '';
   phoneNumber.value = '';
   fullName.value = '';
+  emailError.value = '';
   phoneError.value = '';
   nameError.value = '';
   foundName.value = '';
@@ -820,7 +956,18 @@ const bestSellingItem = computed(() => {
 
 const copyVoucherCode = (code: string) => {
   navigator.clipboard.writeText(code)
-  showToast('Đã sao chép', `Mã voucher ${code} đã được sao chép vào bộ nhớ tạm.`)
+  try {
+    const key = 'savedVouchers'
+    const current = JSON.parse(localStorage.getItem(key) || '[]')
+    if (!current.includes(code)) {
+      current.push(code)
+      localStorage.setItem(key, JSON.stringify(current))
+      savedVouchersList.value = current
+    }
+  } catch (e) {
+    console.error('Không thể lưu voucher:', e)
+  }
+  showToast('Đã lưu mã', `Mã voucher ${code} đã được lưu thành công vào ví của bạn.`)
 }
 </script>
 
