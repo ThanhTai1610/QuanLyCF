@@ -45,15 +45,25 @@ public class AccountsController : ControllerBase
     [Authorize(Policy = Quyens.TaiKhoanQuanLy)]
     public async Task<IActionResult> Create(CreateAccountRequest req)
     {
-        if (await _db.NhanViens.AnyAsync(x => x.Email == req.Email))
-            return Conflict(new { message = "Email đã được dùng cho tài khoản khác." });
+        var cleanEmail = (req.Email ?? "").Trim().ToLower();
+        var cleanName = (req.HoTen ?? "").Trim().ToLower();
+
+        if (string.IsNullOrWhiteSpace(cleanEmail))
+            return BadRequest(new { message = "Email không được để trống." });
+
+        if (await _db.NhanViens.AnyAsync(x => x.Email.ToLower() == cleanEmail))
+            return Conflict(new { message = $"Email '{req.Email}' đã được dùng cho tài khoản khác. Vui lòng nhập Email khác!" });
+
+        if (await _db.NhanViens.AnyAsync(x => x.HoTen.ToLower() == cleanName))
+            return Conflict(new { message = $"Tên nhân viên '{req.HoTen}' đã tồn tại trong hệ thống. Vui lòng nhập tên phân biệt hoặc họ tên đầy đủ!" });
+
         if (!await _db.VaiTros.AnyAsync(v => v.MaVaiTro == req.MaVaiTro))
             return BadRequest(new { message = "Vai trò không tồn tại." });
 
         var nv = new NhanVien
         {
             HoTen = req.HoTen.Trim(),
-            Email = req.Email.Trim(),
+            Email = req.Email.Trim().ToLower(),
             MaVaiTro = req.MaVaiTro,
             MatKhauHash = PasswordHasher.Hash(req.MatKhau),
             MaPinHash = string.IsNullOrWhiteSpace(req.Pin) ? null : PasswordHasher.Hash(req.Pin),
@@ -70,11 +80,18 @@ public class AccountsController : ControllerBase
     {
         var nv = await _db.NhanViens.FindAsync(id);
         if (nv is null) return NotFound();
-        if (await _db.NhanViens.AnyAsync(x => x.Email == req.Email && x.MaNhanVien != id))
-            return Conflict(new { message = "Email đã được dùng cho tài khoản khác." });
+
+        var cleanEmail = (req.Email ?? "").Trim().ToLower();
+        var cleanName = (req.HoTen ?? "").Trim().ToLower();
+
+        if (await _db.NhanViens.AnyAsync(x => x.Email.ToLower() == cleanEmail && x.MaNhanVien != id))
+            return Conflict(new { message = $"Email '{req.Email}' đã được dùng cho tài khoản khác." });
+
+        if (await _db.NhanViens.AnyAsync(x => x.HoTen.ToLower() == cleanName && x.MaNhanVien != id))
+            return Conflict(new { message = $"Tên nhân viên '{req.HoTen}' đã tồn tại trong hệ thống." });
 
         nv.HoTen = req.HoTen.Trim();
-        nv.Email = req.Email.Trim();
+        nv.Email = req.Email.Trim().ToLower();
         nv.MaVaiTro = req.MaVaiTro;
         nv.TrangThaiHoatDong = req.TrangThaiHoatDong;
         nv.SoDienThoai = req.SoDienThoai;

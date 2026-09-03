@@ -31,10 +31,12 @@ public record InvoiceListItemDto(
     int MaHoaDon,
     int MaDonHang,
     string? TenBan,
+    string? LoaiDonHang,
     decimal TongThanhTien,
     string TrangThai,
     DateTime ThoiGianThanhToan,
-    string? TenNhanVienThuNgan
+    string? TenThuNgan,
+    string? PhuongThuc
 );
 
 public record InvoiceDetailDto(

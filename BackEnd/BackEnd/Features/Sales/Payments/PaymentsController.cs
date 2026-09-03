@@ -21,9 +21,9 @@ public class PaymentsController : ControllerBase
         int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var id)
             ? id : null;
 
-    /// <summary>Thanh toán bằng Tiền mặt (Chỉ cho nhân viên Thu ngân).</summary>
+    /// <summary>Thanh toán bằng Tiền mặt (Khách hàng hoặc Thu ngân).</summary>
     [HttpPost("cash")]
-    [Authorize(Policy = Quyens.ThanhToan)]
+    [AllowAnonymous]
     public async Task<IActionResult> PayCash([FromBody] CashPaymentRequest req)
     {
         var (data, err) = await _svc.ThanhToanTienMatAsync(req.MaDonHang, req.SoTienKhachTra, CurrentUserId, req.MaKhuyenMai);

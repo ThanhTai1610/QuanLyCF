@@ -61,19 +61,40 @@ public class InvoiceService
 
         var rawItems = await query
             .OrderByDescending(h => h.ThoiGianThanhToan)
+            .ThenByDescending(h => h.MaHoaDon)
             .Skip((q.Page - 1) * q.PageSize)
             .Take(q.PageSize)
             .ToListAsync();
 
-        var items = rawItems.Select(h => new InvoiceListItemDto(
-            MaHoaDon: h.MaHoaDon,
-            MaDonHang: h.MaDonHang,
-            TenBan: h.DonHang?.Ban?.TenBan,
-            TongThanhTien: h.TongThanhTien,
-            TrangThai: h.TrangThai,
-            ThoiGianThanhToan: h.ThoiGianThanhToan,
-            TenNhanVienThuNgan: h.NhanVienThuNgan?.HoTen
-        )).ToList();
+        var items = rawItems.Select(h => {
+            var rawPt = h.ChiTietThanhToans.FirstOrDefault()?.PhuongThuc ?? "TienMat";
+            var ptDisplay = rawPt switch
+            {
+                "TienMat" => "Tiền mặt",
+                "Momo" => "MoMo",
+                "NganHang" => "VietQR",
+                "ChuyenKhoan" => "VietQR",
+                _ => rawPt
+            };
+            string? loaiDon = h.DonHang?.LoaiDonHang;
+            string? tenBan = h.DonHang?.Ban?.TenBan;
+            if (loaiDon == "TakeAway" || string.IsNullOrWhiteSpace(tenBan))
+            {
+                tenBan = "Mang về";
+            }
+
+            return new InvoiceListItemDto(
+                MaHoaDon: h.MaHoaDon,
+                MaDonHang: h.MaDonHang,
+                TenBan: tenBan,
+                LoaiDonHang: loaiDon ?? (tenBan == "Mang về" ? "TakeAway" : "DineIn"),
+                TongThanhTien: h.TongThanhTien,
+                TrangThai: h.TrangThai,
+                ThoiGianThanhToan: h.ThoiGianThanhToan,
+                TenThuNgan: h.NhanVienThuNgan?.HoTen ?? "Hệ thống",
+                PhuongThuc: ptDisplay
+            );
+        }).ToList();
 
         return new
         {
@@ -282,5 +303,32 @@ public class InvoiceService
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.KhoaCaiDat == khoa);
         return item?.GiaTriCaiDat;
+    }
+
+    /// <summary>Xoá tất cả hoá đơn mẫu và đơn hàng khỏi hệ thống.</summary>
+    public async Task<int> XoaTatCaHoaDonAsync()
+    {
+        _db.ThanhToanChiTiets.RemoveRange(_db.ThanhToanChiTiets);
+
+        var diems = await _db.LichSuDiems.Where(x => x.MaDonHang != null).ToListAsync();
+        foreach (var d in diems) d.MaDonHang = null;
+
+        _db.HoaDons.RemoveRange(_db.HoaDons);
+        _db.ChiTietDonHangs.RemoveRange(_db.ChiTietDonHangs);
+        _db.DonHangs.RemoveRange(_db.DonHangs);
+
+        int count = await _db.SaveChangesAsync();
+
+        _db.NhatKyHeThongs.Add(new NhatKyHeThong
+        {
+            HanhDong = "XOÁ TẤT CẢ HÓA ĐƠN",
+            Module = "HÓA ĐƠN",
+            DuLieuMoi = "Quản trị viên đã xóa sạch toàn bộ danh sách hóa đơn và đơn hàng mẫu khỏi hệ thống.",
+            ThietBi = "Màn hình Quản lý Hóa đơn",
+            ThoiGianTao = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
+
+        return count;
     }
 }

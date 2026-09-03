@@ -126,13 +126,14 @@ public class CustomerService
 
     public async Task<ServiceResult<int>> CreateAsync(CreateCustomerRequest req)
     {
-        var phone = req.Phone.Trim();
-        if (await _db.KhachHangs.AnyAsync(x => x.SoDienThoai == phone))
+        var phone = (req.Phone ?? "").Trim();
+        if (!string.IsNullOrWhiteSpace(phone) && await _db.KhachHangs.AnyAsync(x => x.SoDienThoai == phone))
         {
             return ServiceResult<int>.Fail("Số điện thoại này đã được đăng ký.");
         }
 
-        if (!string.IsNullOrWhiteSpace(req.Email) && await _db.KhachHangs.AnyAsync(x => x.Email == req.Email.Trim()))
+        var cleanEmail = NormalizeEmail(req.Email);
+        if (!string.IsNullOrWhiteSpace(cleanEmail) && await _db.KhachHangs.AnyAsync(x => x.Email == cleanEmail))
         {
             return ServiceResult<int>.Fail("Địa chỉ email này đã được sử dụng.");
         }
@@ -141,7 +142,7 @@ public class CustomerService
         {
             HoTen = req.Name.Trim(),
             SoDienThoai = phone,
-            Email = string.IsNullOrWhiteSpace(req.Email) ? null : req.Email.Trim(),
+            Email = cleanEmail,
             GhiChuKhachHang = req.Note?.Trim(),
             HangThanhVien = "Member",
             DiemTichLuy = 0,
@@ -267,11 +268,9 @@ public class CustomerService
         if (kh.DiemTichLuy < reward.DiemCanDoi)
             return ServiceResult<int>.Fail($"Khách hàng không đủ điểm (Cần {reward.DiemCanDoi} điểm, hiện có {kh.DiemTichLuy} điểm).");
 
-        // Khấu trừ điểm
+        // Khấu trừ điểm khả dụng (Giữ nguyên Hạng thành viên)
         kh.DiemTichLuy -= reward.DiemCanDoi;
-        
-        // Cập nhật hạng sau khi đổi điểm
-        kh.HangThanhVien = GetTierByPoints(kh.DiemTichLuy);
+        EnsureTierNotDowngraded(kh);
 
         // Lưu lịch sử biến động điểm
         var ls = new LichSuDiem
@@ -298,7 +297,7 @@ public class CustomerService
             return ServiceResult<int>.Fail($"Khách hàng không đủ điểm (Cần {points} điểm, hiện có {kh.DiemTichLuy} điểm).");
 
         kh.DiemTichLuy -= points;
-        kh.HangThanhVien = GetTierByPoints(kh.DiemTichLuy);
+        EnsureTierNotDowngraded(kh);
 
         var ls = new LichSuDiem
         {
@@ -336,6 +335,24 @@ public class CustomerService
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
+    private static int GetTierRank(string tier) => tier switch
+    {
+        "Diamond" => 3,
+        "Gold" => 2,
+        "Silver" => 1,
+        _ => 0
+    };
+
+    private static void EnsureTierNotDowngraded(KhachHang kh)
+    {
+        int maxPts = Math.Max(kh.TongDiemTichLuy, kh.DiemTichLuy);
+        string calculatedTier = GetTierByPoints(maxPts);
+        if (GetTierRank(calculatedTier) > GetTierRank(kh.HangThanhVien))
+        {
+            kh.HangThanhVien = calculatedTier;
+        }
+    }
+
     private static string GetTierByPoints(int points)
     {
         if (points >= 3000) return "Diamond";
@@ -367,4 +384,79 @@ public class CustomerService
             _ => tier
         };
     }
+
+    public static string? NormalizeEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return null;
+        var trimmed = email.Trim().ToLower();
+        return global::System.Text.RegularExpressions.Regex.Replace(
+            trimmed,
+            @"@(gmai|gamil|gmaill|gmal|gmial)\.com$",
+            "@gmail.com"
+        );
+    }
+
+    // ─── Cấu hình điểm các Hạng Thành Viên ───────────────────────────────────
+
+    public async Task<List<TierConfigDto>> GetTierConfigsAsync()
+    {
+        var keys = new[] { "MUC_DIEM_DONG", "MUC_DIEM_BAC", "MUC_DIEM_VANG", "MUC_DIEM_KIM_CUONG",
+                           "UU_DAI_DONG", "UU_DAI_BAC", "UU_DAI_VANG", "UU_DAI_KIM_CUONG" };
+        var settings = await _db.CaiDatHeThongs.Where(x => keys.Contains(x.KhoaCaiDat)).ToListAsync();
+
+        int GetInt(string key, int def) => int.TryParse(settings.FirstOrDefault(x => x.KhoaCaiDat == key)?.GiaTriCaiDat, out var v) ? v : def;
+        string GetStr(string key, string def) => settings.FirstOrDefault(x => x.KhoaCaiDat == key)?.GiaTriCaiDat ?? def;
+
+        return new List<TierConfigDto>
+        {
+            new TierConfigDto("Đồng", GetInt("MUC_DIEM_DONG", 0), GetStr("UU_DAI_DONG", "Mua 10 ly tặng 1 ly")),
+            new TierConfigDto("Bạc", GetInt("MUC_DIEM_BAC", 500), GetStr("UU_DAI_BAC", "Mua 7 ly tặng 1 ly")),
+            new TierConfigDto("Vàng", GetInt("MUC_DIEM_VANG", 1500), GetStr("UU_DAI_VANG", "Mua 5 ly tặng 1 ly")),
+            new TierConfigDto("Kim cương", GetInt("MUC_DIEM_KIM_CUONG", 3000), GetStr("UU_DAI_KIM_CUONG", "Mua 3 ly tặng 1 ly"))
+        };
+    }
+
+    public async Task SaveTierConfigsAsync(List<TierConfigDto> configs)
+    {
+        foreach (var item in configs)
+        {
+            string keyMin = item.Name switch
+            {
+                "Bạc" => "MUC_DIEM_BAC",
+                "Vàng" => "MUC_DIEM_VANG",
+                "Kim cương" => "MUC_DIEM_KIM_CUONG",
+                _ => "MUC_DIEM_DONG"
+            };
+            string keyBenefit = item.Name switch
+            {
+                "Bạc" => "UU_DAI_BAC",
+                "Vàng" => "UU_DAI_VANG",
+                "Kim cương" => "UU_DAI_KIM_CUONG",
+                _ => "UU_DAI_DONG"
+            };
+
+            var rowMin = await _db.CaiDatHeThongs.FirstOrDefaultAsync(x => x.KhoaCaiDat == keyMin);
+            if (rowMin == null)
+            {
+                _db.CaiDatHeThongs.Add(new CaiDatHeThong { NhomCaiDat = "TICH_DIEM", KhoaCaiDat = keyMin, GiaTriCaiDat = item.Min.ToString(), MoTa = $"Mức điểm hạng {item.Name}" });
+            }
+            else
+            {
+                rowMin.GiaTriCaiDat = item.Min.ToString();
+            }
+
+            var rowBenefit = await _db.CaiDatHeThongs.FirstOrDefaultAsync(x => x.KhoaCaiDat == keyBenefit);
+            if (rowBenefit == null)
+            {
+                _db.CaiDatHeThongs.Add(new CaiDatHeThong { NhomCaiDat = "TICH_DIEM", KhoaCaiDat = keyBenefit, GiaTriCaiDat = item.Benefit ?? "", MoTa = $"Ưu đãi hạng {item.Name}" });
+            }
+            else
+            {
+                rowBenefit.GiaTriCaiDat = item.Benefit ?? "";
+            }
+        }
+        await _db.SaveChangesAsync();
+    }
 }
+
+public record TierConfigDto(string Name, int Min, string Benefit);

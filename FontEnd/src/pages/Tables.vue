@@ -1,37 +1,64 @@
 <template>
   <div class="space-y-5 p-6">
     <!-- Service Requests Alerts -->
-    <TransitionGroup name="fade-list" tag="div" v-if="serviceRequests.length > 0" class="space-y-3 mb-5">
+    <TransitionGroup name="fade-list" tag="div" v-if="visibleServiceRequests.length > 0" class="space-y-3 mb-5">
       <div
-        v-for="req in serviceRequests"
+        v-for="req in visibleServiceRequests"
         :key="req.id"
-        class="flex items-center justify-between p-4 rounded-xl bg-amber-50 border border-amber-200 shadow-sm transition-all duration-300"
+        :class="[
+          'flex items-center justify-between p-4 rounded-xl border shadow-md transition-all duration-300',
+          req.loaiYeuCau === 'CanBungNuoc' || req.loaiYeuCau === 'GiaoDo'
+            ? 'bg-emerald-50 border-emerald-300 text-emerald-950 shadow-emerald-500/10'
+            : 'bg-amber-50 border-amber-200'
+        ]"
       >
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 animate-pulse">
-            <Bell class="w-5 h-5" />
+          <div
+            :class="[
+              'w-11 h-11 rounded-xl flex items-center justify-center animate-pulse shrink-0',
+              req.loaiYeuCau === 'CanBungNuoc' || req.loaiYeuCau === 'GiaoDo'
+                ? 'bg-emerald-200/80 text-emerald-800'
+                : 'bg-amber-100 text-amber-700'
+            ]"
+          >
+            <Coffee v-if="req.loaiYeuCau === 'CanBungNuoc' || req.loaiYeuCau === 'GiaoDo'" class="w-6 h-6" />
+            <Bell v-else class="w-5 h-5" />
           </div>
           <div>
-            <p class="text-sm font-bold text-[#2A231E]">
-              {{ req.tenBan }} yêu cầu
-              <span class="text-amber-700 font-extrabold">
+            <p class="text-sm font-extrabold text-[#2A231E]">
+              {{ req.tenBan }} —
+              <span
+                :class="[
+                  req.loaiYeuCau === 'CanBungNuoc' || req.loaiYeuCau === 'GiaoDo'
+                    ? 'text-emerald-700 uppercase tracking-wide font-black'
+                    : 'text-amber-700 font-extrabold'
+                ]"
+              >
                 {{
-                  req.loaiYeuCau === 'GoiPhucVu'
-                    ? 'gọi phục vụ'
+                  req.loaiYeuCau === 'CanBungNuoc' || req.loaiYeuCau === 'GiaoDo'
+                    ? '🍷 CẦN BƯNG NƯỚC (Bếp đã pha xong)'
+                    : req.loaiYeuCau === 'GoiPhucVu'
+                    ? 'yêu cầu gọi phục vụ'
                     : req.loaiYeuCau === 'ThanhToanTienMat'
                     ? 'thanh toán tiền mặt'
                     : 'thanh toán chuyển khoản'
                 }}
               </span>
             </p>
-            <p class="text-xs text-[#8A8178] mt-0.5" v-if="req.ghiChu">Ghi chú: {{ req.ghiChu }}</p>
+            <p class="text-xs text-[#5C534B] mt-0.5 font-semibold" v-if="req.ghiChu">Ghi chú: {{ req.ghiChu }}</p>
           </div>
         </div>
         <button
           @click="resolveRequest(req.id)"
-          class="h-9 px-4 rounded-lg bg-[#CC8033] hover:bg-[#B8722D] text-white text-xs font-bold transition-all shadow-sm active:scale-95 shrink-0"
+          :class="[
+            'h-10 px-4 rounded-xl text-white text-xs font-bold transition-all shadow-md active:scale-95 shrink-0 flex items-center gap-1.5 cursor-pointer',
+            req.loaiYeuCau === 'CanBungNuoc' || req.loaiYeuCau === 'GiaoDo'
+              ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-700/20'
+              : 'bg-[#CC8033] hover:bg-[#B8722D]'
+          ]"
         >
-          Hoàn tất
+          <CheckCircle2 class="w-4 h-4" />
+          {{ req.loaiYeuCau === 'CanBungNuoc' || req.loaiYeuCau === 'GiaoDo' ? 'XÁC NHẬN BƯNG XONG' : 'Hoàn tất' }}
         </button>
       </div>
     </TransitionGroup>
@@ -200,6 +227,9 @@
                 <p class="text-xs text-muted-foreground mt-0.5">
                   {{ u.tenKhuVuc }}<span v-if="u.tongSucChua"> • {{ u.tongSucChua }} chỗ</span>
                 </p>
+                <div v-if="u.primary.maPinSession" class="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-[#CC8033] bg-[#FFF9F2] px-2 py-0.5 rounded-md border border-[#E8C5A5]/60">
+                  🔑 PIN: <span class="font-mono tracking-widest text-[#2A231E] font-black">{{ u.primary.maPinSession }}</span>
+                </div>
               </div>
               <div class="flex items-center gap-2 shrink-0">
                 <span :class="['px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap', statusMeta[u.trangThai].badgeClass]">
@@ -838,6 +868,12 @@ import Input from '@/components/ui/Input.vue'
 import Modal from '@/components/ui/Modal.vue'
 import { tablesApi, type TableItem, type Zone, type TableStatus } from '@/services/tables'
 import { ordersApi, type OrderDto } from '@/services/orders'
+import { useStoreInfoStore } from '@/stores/storeInfo'
+
+import { useAuthStore } from '@/stores/auth'
+
+const storeInfoStore = useStoreInfoStore()
+const authStore = useAuthStore()
 
 // ── State ─────────────────────────────────────────────────────
 const tables = ref<TableItem[]>([])
@@ -846,8 +882,10 @@ const orders = ref<OrderDto[]>([])
 const loading = ref(false)
 const errorMsg = ref('')
 
-// ── Service Requests (Gọi phục vụ / Thanh toán) ──
+// ── Service Requests (Gọi phục vụ / Thanh toán / Cần bưng nước) ──
 const serviceRequests = ref<any[]>([])
+
+const visibleServiceRequests = computed(() => serviceRequests.value)
 
 async function loadServiceRequests() {
   try {
@@ -861,6 +899,9 @@ async function resolveRequest(id: string) {
   try {
     await ordersApi.resolveServiceRequest(id)
     serviceRequests.value = serviceRequests.value.filter(r => r.id !== id)
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'SERVICE_REQUEST_CHANGED', ts: Date.now() })
+    }
   } catch (e) {
     console.error('Lỗi hoàn tất yêu cầu:', e)
   }
@@ -900,22 +941,52 @@ const statusOptions: { value: TableStatus; label: string; activeClass: string }[
   { value: 'BaoTri',  label: 'Bảo trì',  activeClass: 'bg-warning text-white border-warning' },
 ]
 
-// ── Load dữ liệu ──────────────────────────────────────────────
-async function loadAll() {
-  loading.value = true
+// ── Load dữ liệu & Đồng bộ Realtime ──────────────────────────────
+async function loadAll(isBackground = false) {
+  if (!isBackground) loading.value = true
   errorMsg.value = ''
   try {
-    const [t, z, o] = await Promise.all([tablesApi.list(), tablesApi.listZones(), ordersApi.active()])
-    tables.value = t
-    zones.value = z
-    orders.value = o
+    const [t, z, o] = await Promise.all([
+      tablesApi.list().catch(err => { console.warn('Lỗi load danh sách bàn:', err); return []; }),
+      tablesApi.listZones().catch(err => { console.warn('Lỗi load khu vực:', err); return []; }),
+      ordersApi.active().catch(err => { console.warn('Lỗi load đơn đang hoạt động:', err); return []; })
+    ])
+    tables.value = t || []
+    zones.value = z || []
+    orders.value = o || []
   } catch (e) {
-    errorMsg.value = e instanceof Error ? e.message : 'Không tải được dữ liệu bàn.'
+    if (!isBackground) {
+      errorMsg.value = e instanceof Error ? e.message : 'Không tải được dữ liệu bàn.'
+    }
   } finally {
-    loading.value = false
+    if (!isBackground) loading.value = false
   }
 }
-onMounted(loadAll)
+
+let pollTimer: ReturnType<typeof setInterval> | null = null
+const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('quanlycf_orders_sync') : null
+
+onMounted(() => {
+  loadAll()
+  pollTimer = setInterval(() => {
+    if (!document.hidden) {
+      loadAll(true)
+    }
+  }, 2500)
+
+  if (syncChannel) {
+    syncChannel.onmessage = (e) => {
+      if (e.data?.type === 'ORDERS_CHANGED' || e.data?.type === 'SERVICE_REQUEST_CHANGED') {
+        loadAll(true)
+        loadServiceRequests()
+      }
+    }
+  }
+})
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
+})
 
 // ── Filter & paginate ─────────────────────────────────────────
 const zoneFilters = computed(() => [
@@ -963,6 +1034,7 @@ const ordersByTable = computed(() => {
   const m = new Map<number, OrderDto[]>()
   for (const o of orders.value) {
     if (o.maBan == null) continue
+    if (o.trangThaiDon === 'Huy' || o.trangThaiDon === 'DaDongBan') continue
     const arr = m.get(o.maBan) ?? []
     arr.push(o)
     m.set(o.maBan, arr)
@@ -1372,11 +1444,11 @@ interface PrintSettings {
 }
 const PRINT_KEY = 'tablePrintSettings'
 const printDefault: PrintSettings = {
-  tieuDe: 'BrewManager',
+  tieuDe: storeInfoStore.tenQuan || 'BrewManager',
   loiMoi: 'Quét mã để gọi món',
   hienWifi: true,
   nhanWifi: 'WiFi',
-  tenWifi: 'BrewManager_Cafe',
+  tenWifi: `${storeInfoStore.tenQuan || 'BrewManager'}_Cafe`,
   nhanMatKhau: 'Mật khẩu',
   matKhau: '12345678',
   ghiChu: '',

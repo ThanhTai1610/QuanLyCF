@@ -51,4 +51,14 @@ public class InvoicesController : ControllerBase
         
         return Content(html!, "text/html", global::System.Text.Encoding.UTF8);
     }
+
+    /// <summary>Xoá tất cả hoá đơn mẫu khỏi hệ thống.</summary>
+    [HttpPost("clear-all")]
+    [HttpDelete("clear-all")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ClearAllInvoices()
+    {
+        int deleted = await _svc.XoaTatCaHoaDonAsync();
+        return Ok(new { message = "Đã xóa sạch tất cả hóa đơn thành công!", deletedCount = deleted });
+    }
 }

@@ -10,5 +10,9 @@ public class Combo
     public string? MoTa { get; set; }
     public bool TrangThaiHoatDong { get; set; } = true;
 
+    public bool ApDungKhungGio { get; set; } = false;
+    public TimeSpan? GioBatDau { get; set; }
+    public TimeSpan? GioKetThuc { get; set; }
+
     public ICollection<ChiTietCombo> ChiTiets { get; set; } = new List<ChiTietCombo>();
 }

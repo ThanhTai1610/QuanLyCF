@@ -19,6 +19,7 @@ public class SanPham
     public bool LaMonNoiBat { get; set; }
     public string KieuMon { get; set; } = "MonChinh"; // MonChinh, Topping, MonKem
     public bool TrangThaiBan { get; set; } = true;
+    public int? DiemTichLuy { get; set; }             // Điểm tích lũy thưởng khi mua món này
 
     public ICollection<KichCoSanPham> KichCos { get; set; } = new List<KichCoSanPham>();
 }

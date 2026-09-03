@@ -8,7 +8,10 @@ public record ComboListItem(
     decimal GiaCombo,
     string? HinhAnh,
     bool TrangThaiHoatDong,
-    int SoMon);
+    int SoMon,
+    bool ApDungKhungGio = false,
+    string? GioBatDau = null,
+    string? GioKetThuc = null);
 
 public record ComboDetail(
     int MaCombo,
@@ -17,7 +20,10 @@ public record ComboDetail(
     string? HinhAnh,
     string? MoTa,
     bool TrangThaiHoatDong,
-    IEnumerable<ComboLineDto> ChiTiets);
+    IEnumerable<ComboLineDto> ChiTiets,
+    bool ApDungKhungGio = false,
+    string? GioBatDau = null,
+    string? GioKetThuc = null);
 
 public record SaveComboRequest(
     string TenCombo,
@@ -25,4 +31,7 @@ public record SaveComboRequest(
     string? HinhAnh,
     string? MoTa,
     bool TrangThaiHoatDong,
-    List<ComboLineDto> ChiTiets);
+    List<ComboLineDto> ChiTiets,
+    bool ApDungKhungGio = false,
+    string? GioBatDau = null,
+    string? GioKetThuc = null);

@@ -7,7 +7,7 @@
         <div class="w-8 h-8 rounded-lg bg-[#CC8033] flex items-center justify-center text-white shadow-lg">
           <Zap class="w-4 h-4 fill-current" />
         </div>
-        <span class="font-display font-bold tracking-wider text-sm uppercase">BrewManager</span>
+        <span class="font-display font-bold tracking-wider text-sm uppercase">{{ storeInfoStore.tenQuan }}</span>
       </div>
       <h1 class="font-display text-xl font-bold text-white mt-1">Chấm công di động</h1>
       <p class="text-[10px] text-[#8A8178] uppercase tracking-widest mt-1">Xác thực vị trí & khuôn mặt</p>
@@ -89,7 +89,7 @@
 
     <!-- Bottom Footer -->
     <footer class="text-center py-4 border-t border-white/5 text-[9px] text-[#8A8178] uppercase tracking-widest">
-      BrewManager © 2026 · Hệ thống chấm công FaceID
+      {{ storeInfoStore.tenQuan }} © 2026 · Hệ thống chấm công FaceID
     </footer>
 
   </div>
@@ -101,6 +101,9 @@ import { useRoute } from 'vue-router'
 import { Zap, Camera, Check, AlertTriangle } from 'lucide-vue-next'
 import { api } from '@/services/api'
 import { hrApi } from '@/services/hr'
+import { useStoreInfoStore } from '@/stores/storeInfo'
+
+const storeInfoStore = useStoreInfoStore()
 
 const route = useRoute()
 

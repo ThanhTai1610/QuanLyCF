@@ -52,9 +52,11 @@ async function request<T>(method: string, endpoint: string, body?: unknown, daTh
     refreshPromise ??= lamMoiToken().finally(() => { refreshPromise = null })
     const ok = await refreshPromise
     if (ok) return request<T>(method, endpoint, body, true)
-    // Refresh that bai → het phien, ve trang dang nhap
+    // Refresh that bai → het phien. Chi chuyen ve trang dang nhap neu dang o trang Admin
     xoaPhien()
-    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+    const path = typeof window !== 'undefined' ? window.location.pathname : ''
+    const isPublicPage = path === '/' || path.startsWith('/menu') || path.startsWith('/lich-su-don') || path.startsWith('/payment') || path.startsWith('/login') || path.startsWith('/staff-login') || path.startsWith('/maintenance')
+    if (typeof window !== 'undefined' && !isPublicPage) {
       window.location.href = '/login'
     }
     throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
@@ -75,7 +77,19 @@ async function request<T>(method: string, endpoint: string, body?: unknown, daTh
   const data = text ? JSON.parse(text) : null
 
   if (!res.ok) {
-    const message = (data && (data.message || data.error)) || `Lỗi ${res.status}`
+    let message = `Lỗi ${res.status}`
+    if (data) {
+      if (typeof data.message === 'string' && data.message) {
+        message = data.message
+      } else if (typeof data.error === 'string' && data.error) {
+        message = data.error
+      } else if (data.errors && typeof data.errors === 'object') {
+        const errList = Object.values(data.errors).flat()
+        if (errList.length > 0) message = errList.join(' ')
+      } else if (typeof data.title === 'string' && data.title) {
+        message = data.title
+      }
+    }
     throw new Error(message)
   }
 
@@ -87,6 +101,7 @@ export const api = {
   post: <T>(endpoint: string, body?: unknown) => request<T>('POST', endpoint, body),
   put: <T>(endpoint: string, body?: unknown) => request<T>('PUT', endpoint, body),
   del: <T>(endpoint: string) => request<T>('DELETE', endpoint),
+  delete: <T>(endpoint: string) => request<T>('DELETE', endpoint),
 }
 
 // Giu tuong thich voi code cu (neu co noi dang dung apiFetch)

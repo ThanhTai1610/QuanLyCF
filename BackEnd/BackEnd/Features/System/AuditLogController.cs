@@ -56,5 +56,15 @@ namespace BackEnd.Features.System
             await _svc.ClearAllAsync();
             return NoContent();
         }
+
+        // POST /api/audit-logs
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<IActionResult> CreateLog([FromBody] CreateAuditLogDto req)
+        {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+            var logItem = await _svc.CreateLogAsync(req, ip);
+            return Ok(logItem);
+        }
     }
 }

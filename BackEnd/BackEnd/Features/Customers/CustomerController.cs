@@ -123,16 +123,17 @@ public class CustomerController : ControllerBase
         return Ok(customer);
     }
 
-    public record PublicRegisterBody(string Name, string Phone, string Email);
+    public record PublicRegisterBody(string Name, string? Phone, string Email);
 
     [HttpPost("public/register")]
     [AllowAnonymous]
     public async Task<IActionResult> RegisterPublic([FromBody] PublicRegisterBody body)
     {
-        if (string.IsNullOrWhiteSpace(body.Name) || string.IsNullOrWhiteSpace(body.Phone) || string.IsNullOrWhiteSpace(body.Email))
-            return BadRequest(new { message = "Họ tên, số điện thoại và email không được để trống." });
+        if (string.IsNullOrWhiteSpace(body.Name) || string.IsNullOrWhiteSpace(body.Email))
+            return BadRequest(new { message = "Họ tên và email không được để trống." });
 
-        var req = new CreateCustomerRequest(body.Name, body.Phone, body.Email, "Đăng ký từ trang đặt món");
+        var phone = string.IsNullOrWhiteSpace(body.Phone) ? ("09" + Random.Shared.Next(10000000, 99999999).ToString()) : body.Phone;
+        var req = new CreateCustomerRequest(body.Name, phone, body.Email, "Đăng ký bằng Google");
         var result = await _service.CreateAsync(req);
         if (result.Error != null)
         {
@@ -206,5 +207,21 @@ public class CustomerController : ControllerBase
             return BadRequest(new { message = result.Error });
         }
         return Ok(new { points = result.Data });
+    }
+
+    [HttpGet("tier-configs")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetTierConfigs()
+    {
+        var data = await _service.GetTierConfigsAsync();
+        return Ok(data);
+    }
+
+    [HttpPut("tier-configs")]
+    [Authorize(Policy = Quyens.KhachHangQuanLy)]
+    public async Task<IActionResult> SaveTierConfigs([FromBody] List<TierConfigDto> configs)
+    {
+        await _service.SaveTierConfigsAsync(configs);
+        return Ok(new { message = "Đã lưu cài đặt điểm các hạng thành viên thành công." });
     }
 }

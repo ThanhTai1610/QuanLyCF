@@ -47,9 +47,14 @@
           class="pl-10 bg-card border border-[#EAE3D9] shadow-inner h-11 rounded-xl text-sm focus-visible:ring-1 focus-visible:ring-[#CC8033]"
         />
       </div>
-      <Button @click="openNew" class="bg-gradient-to-r from-[#CC8033] to-[#A6611F] text-white rounded-xl shadow-md shadow-[#CC8033]/20 px-6 py-3 font-bold flex items-center gap-2 transition-all hover:-translate-y-0.5">
-        <Plus class="w-4 h-4" stroke-width="2.5" /> Thêm món mới
-      </Button>
+      <div class="flex items-center gap-2">
+        <Button @click="openBulkPointsModal" class="bg-[#CC8033]/10 text-[#CC8033] hover:bg-[#CC8033] hover:text-white border border-[#CC8033]/30 rounded-xl px-4 py-3 font-bold flex items-center gap-2 transition-all">
+          <Gift class="w-4 h-4" /> Cài điểm tích lũy hàng loạt
+        </Button>
+        <Button @click="openNew" class="bg-gradient-to-r from-[#CC8033] to-[#A6611F] text-white rounded-xl shadow-md shadow-[#CC8033]/20 px-6 py-3 font-bold flex items-center gap-2 transition-all hover:-translate-y-0.5">
+          <Plus class="w-4 h-4" stroke-width="2.5" /> Thêm món mới
+        </Button>
+      </div>
     </div>
 
     <!-- Filter categories -->
@@ -122,7 +127,7 @@
             <div class="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10 pointer-events-none"></div>
 
             <!-- Badges -->
-            <div class="absolute top-3.5 left-3.5 flex flex-col gap-1.5">
+            <div class="absolute top-3.5 left-3.5 flex flex-col gap-1.5 z-10">
               <span
                 v-if="m.laMonNoiBat"
                 class="px-2.5 py-1 rounded-lg bg-[#CC8033]/90 backdrop-blur-sm text-white text-[9px] font-bold flex items-center gap-1 shadow-md uppercase tracking-wider"
@@ -130,7 +135,13 @@
                 <Flame class="w-3 h-3 fill-white" /> Bán chạy
               </span>
               <span
-                v-if="!m.trangThaiBan"
+                v-if="isKitchenOutOfStock(m.tenSanPham)"
+                class="px-2.5 py-1 rounded-lg bg-red-600/90 backdrop-blur-sm text-white text-[9px] font-bold flex items-center gap-1 shadow-md uppercase tracking-wider border border-red-500 animate-pulse"
+              >
+                <ShieldAlert class="w-3 h-3" /> Tạm hết (Bếp báo)
+              </span>
+              <span
+                v-else-if="!m.trangThaiBan"
                 class="px-2.5 py-1 rounded-lg bg-[#8A8178]/95 backdrop-blur-sm text-white text-[9px] font-bold flex items-center gap-1 shadow-md uppercase tracking-wider"
               >
                 Tạm ngưng
@@ -179,6 +190,20 @@
                 <p class="text-[8px] uppercase tracking-widest text-[#8A8178] font-bold">Giá bán tại quầy</p>
                 <span class="text-lg font-bold text-[#CC8033] leading-none font-premium-serif">{{ formatVND(m.giaBan) }}</span>
               </div>
+              <div v-if="m.diemTichLuy && m.diemTichLuy > 0" class="text-right">
+                <p class="text-[8px] uppercase tracking-widest text-[#8A8178] font-bold">Tích điểm</p>
+                <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">+{{ m.diemTichLuy }}đ</span>
+              </div>
+            </div>
+
+            <!-- Nút Mở Bán Lại Nhanh nếu đang Tạm Hết -->
+            <div v-if="isKitchenOutOfStock(m.tenSanPham) || !m.trangThaiBan" class="mt-3 pt-2.5 border-t border-[#F5F2ED]">
+              <button
+                @click="reopenProduct(m)"
+                class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              >
+                <Sparkles class="w-3.5 h-3.5" /> Mở bán lại (Bổ sung NL)
+              </button>
             </div>
           </div>
         </article>
@@ -287,10 +312,16 @@
             </div>
           </div>
 
-          <!-- Row 3: Prices -->
-          <div class="space-y-1.5">
-            <Label class="text-espresso font-bold text-[10px] uppercase tracking-wider">Giá bán (VND) <span class="text-red-500">*</span></Label>
-            <Input type="number" v-model.number="editing.giaBan" class="bg-background border border-cream-deep rounded-xl shadow-inner h-10 text-sm font-bold text-caramel" />
+          <!-- Row 3: Prices & Loyalty Points -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <Label class="text-espresso font-bold text-[10px] uppercase tracking-wider">Giá bán (VND) <span class="text-red-500">*</span></Label>
+              <Input type="number" v-model.number="editing.giaBan" class="bg-background border border-cream-deep rounded-xl shadow-inner h-10 text-sm font-bold text-caramel" />
+            </div>
+            <div class="space-y-1.5">
+              <Label class="text-espresso font-bold text-[10px] uppercase tracking-wider">Điểm tích lũy khi mua (Ví dụ: 5 điểm)</Label>
+              <Input type="number" v-model.number="editing.diemTichLuy" class="bg-background border border-cream-deep rounded-xl shadow-inner h-10 text-sm font-bold text-[#CC8033]" placeholder="Vd: 5 (Nhập 0 để dùng mặc định)" />
+            </div>
           </div>
 
           <!-- Row 5: Switches -->
@@ -411,6 +442,182 @@
         </div>
       </template>
     </Modal>
+
+    <!-- Bulk Points Modal -->
+    <Modal v-model="isBulkPointsModalOpen">
+      <template #header>
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-xl bg-[#CC8033]/15 text-[#CC8033] flex items-center justify-center font-bold">
+            <Gift class="w-5 h-5" />
+          </div>
+          <div>
+            <h2 class="font-premium-serif text-xl font-bold text-espresso leading-tight">
+              Cài đặt điểm tích lũy hàng loạt
+            </h2>
+            <p class="text-[11px] text-[#8A8178]">Gán điểm thưởng tích lũy cho nhiều món cùng lúc hoặc điều chỉnh theo bảng.</p>
+          </div>
+        </div>
+      </template>
+
+      <!-- Tabs Navigation -->
+      <div class="flex border-b border-[#EAE3D9] mb-4 text-xs font-bold uppercase tracking-wider">
+        <button
+          type="button"
+          @click="bulkMode = 'batch'"
+          :class="bulkMode === 'batch' ? 'border-[#CC8033] text-[#CC8033] font-black' : 'border-transparent text-[#8A8178] hover:text-espresso'"
+          class="flex-1 py-3 border-b-2 text-center transition-all focus:outline-none flex items-center justify-center gap-1.5"
+        >
+          <Sparkles class="w-4 h-4" /> 1. Chọn món & Áp dụng nhanh
+        </button>
+        <button
+          type="button"
+          @click="bulkMode = 'table'"
+          :class="bulkMode === 'table' ? 'border-[#CC8033] text-[#CC8033] font-black' : 'border-transparent text-[#8A8178] hover:text-espresso'"
+          class="flex-1 py-3 border-b-2 text-center transition-all focus:outline-none flex items-center justify-center gap-1.5"
+        >
+          <Layers class="w-4 h-4" /> 2. Bảng tổng hợp điểm tất cả món
+        </button>
+      </div>
+
+      <!-- MODE 1: BATCH SELECTION -->
+      <div v-if="bulkMode === 'batch'" class="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+        <!-- Input điểm & Preset buttons -->
+        <div class="p-4 bg-[#FAF6F0] rounded-2xl border border-amber-200/80 space-y-3">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <label class="text-xs font-bold text-espresso block">Nhập số điểm tích lũy muốn cài đặt:</label>
+              <p class="text-[10px] text-[#8A8178]">Mỗi món đã chọn sẽ nhận số điểm này khi mua (0 = mặc định 10k/1đ).</p>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <Input
+                type="number"
+                v-model.number="batchPointsInput"
+                class="w-24 h-10 text-center font-bold text-lg text-[#CC8033] bg-white border border-[#CC8033] rounded-xl outline-none"
+              />
+              <span class="text-xs font-bold text-[#CC8033]">điểm</span>
+            </div>
+          </div>
+
+          <!-- Quick Presets -->
+          <div class="flex items-center gap-2 pt-2 border-t border-amber-200/60">
+            <span class="text-[10px] font-bold text-[#8A8178] uppercase tracking-wider">Chọn nhanh:</span>
+            <button
+              v-for="pts in [0, 5, 10, 15, 20, 50]"
+              :key="pts"
+              @click="batchPointsInput = pts"
+              class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer"
+              :class="batchPointsInput === pts ? 'bg-[#CC8033] text-white border-[#CC8033]' : 'bg-white text-espresso border-[#EAE3D9] hover:border-[#CC8033]'"
+            >
+              {{ pts === 0 ? '0đ (Mặc định)' : `+${pts} điểm` }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter + Select All -->
+        <div class="flex items-center justify-between gap-3">
+          <div class="relative flex-1">
+            <Search class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input v-model="bulkSearch" placeholder="Lọc tìm món..." class="pl-9 h-9 text-xs bg-white border border-[#EAE3D9] rounded-xl" />
+          </div>
+          <button
+            @click="toggleSelectAllBulk"
+            class="px-3 h-9 rounded-xl border border-[#EAE3D9] bg-white text-xs font-bold text-espresso hover:border-[#CC8033] transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+          >
+            <component :is="isAllBulkSelected ? CheckSquare : Square" class="w-4 h-4 text-[#CC8033]" />
+            {{ isAllBulkSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả món' }}
+          </button>
+        </div>
+
+        <!-- Selection Items Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+          <div
+            v-for="m in bulkFilteredItems"
+            :key="m.maSanPham"
+            @click="selectedItemIds.includes(m.maSanPham) ? selectedItemIds = selectedItemIds.filter(id => id !== m.maSanPham) : selectedItemIds.push(m.maSanPham)"
+            class="p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2"
+            :class="selectedItemIds.includes(m.maSanPham) ? 'border-[#CC8033] bg-[#FDF7EF] shadow-xs' : 'border-[#EAE3D9] bg-white hover:border-[#CC8033]/40'"
+          >
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div
+                class="w-5 h-5 rounded flex items-center justify-center shrink-0 border"
+                :class="selectedItemIds.includes(m.maSanPham) ? 'bg-[#CC8033] border-[#CC8033] text-white' : 'border-[#D0C8BF] bg-white'"
+              >
+                <Check v-if="selectedItemIds.includes(m.maSanPham)" class="w-3.5 h-3.5 stroke-[3]" />
+              </div>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-espresso truncate">{{ m.tenSanPham }}</p>
+                <p class="text-[10px] text-[#8A8178] truncate">{{ m.tenDanhMuc || 'Khác' }} · {{ formatVND(m.giaBan) }}</p>
+              </div>
+            </div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded shrink-0" :class="m.diemTichLuy ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-gray-100 text-gray-500'">
+              {{ m.diemTichLuy ? `+${m.diemTichLuy}đ` : 'Mặc định' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODE 2: TABLE OVERVIEW -->
+      <div v-if="bulkMode === 'table'" class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+        <div class="relative">
+          <Search class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input v-model="bulkSearch" placeholder="Lọc danh sách món..." class="pl-9 h-9 text-xs bg-white border border-[#EAE3D9] rounded-xl" />
+        </div>
+
+        <div class="border border-[#EAE3D9] rounded-xl overflow-hidden bg-white">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-[#FAF8F5] text-[10px] font-bold uppercase tracking-wider text-[#8A8178] border-b border-[#EAE3D9]">
+              <tr>
+                <th class="py-2.5 px-3">Tên món</th>
+                <th class="py-2.5 px-3">Danh mục</th>
+                <th class="py-2.5 px-3">Giá bán</th>
+                <th class="py-2.5 px-3 text-right">Số điểm tích lũy</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#F5F2ED]">
+              <tr v-for="item in bulkTableItems.filter(i => !bulkSearch || i.tenSanPham.toLowerCase().includes(bulkSearch.toLowerCase()))" :key="item.maSanPham" class="hover:bg-[#FDF7EF]/50">
+                <td class="py-2 px-3 font-bold text-espresso">{{ item.tenSanPham }}</td>
+                <td class="py-2 px-3 text-muted-foreground text-[11px]">{{ item.tenDanhMuc || '-' }}</td>
+                <td class="py-2 px-3 font-semibold text-[#CC8033]">{{ formatVND(item.giaBan) }}</td>
+                <td class="py-2 px-3 text-right">
+                  <div class="inline-flex items-center gap-1 justify-end">
+                    <Input
+                      type="number"
+                      v-model.number="item.diemTichLuy"
+                      class="w-20 h-8 text-center text-xs font-bold text-emerald-700 bg-white border border-[#EAE3D9] rounded-lg focus:border-[#CC8033] outline-none"
+                    />
+                    <span class="text-[10px] font-bold text-emerald-600">điểm</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-between items-center w-full mt-2">
+          <Button variant="outline" @click="isBulkPointsModalOpen = false" :disabled="isBulkSaving" class="border border-[#EAE3D9] rounded-xl text-xs font-bold uppercase tracking-wider px-5 h-10">Hủy</Button>
+          
+          <Button
+            v-if="bulkMode === 'batch'"
+            @click="applyBatchPoints"
+            :disabled="isBulkSaving || selectedItemIds.length === 0"
+            class="bg-gradient-to-r from-[#CC8033] to-[#A6611F] text-white rounded-xl shadow-md px-6 py-2.5 text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+          >
+            ⚡ Áp dụng +{{ batchPointsInput }} điểm cho {{ selectedItemIds.length }} món đã chọn
+          </Button>
+
+          <Button
+            v-if="bulkMode === 'table'"
+            @click="saveBulkTablePoints"
+            :disabled="isBulkSaving"
+            class="bg-gradient-to-r from-[#CC8033] to-[#A6611F] text-white rounded-xl shadow-md px-6 py-2.5 text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+          >
+            💾 Lưu tất cả điểm đã chỉnh sửa
+          </Button>
+        </div>
+      </template>
+    </Modal>
     <!-- Beautiful Toast Notification -->
     <Transition name="toast">
       <div v-if="toastState.show" class="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-warm border text-white transition-all duration-300"
@@ -437,7 +644,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { Plus, Search, Edit3, Trash2, Flame, Coffee, ChevronLeft, ChevronRight, Image as ImageIcon, X, ShieldAlert, CheckCircle, Upload } from 'lucide-vue-next'
+import { Plus, Search, Edit3, Trash2, Flame, Coffee, ChevronLeft, ChevronRight, Image as ImageIcon, X, ShieldAlert, CheckCircle, Upload, Gift, CheckSquare, Square, Sparkles, Layers, Check } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Label from '@/components/ui/Label.vue'
@@ -446,6 +653,34 @@ import Textarea from '@/components/ui/Textarea.vue'
 import Modal from '@/components/ui/Modal.vue'
 import { productsApi, type ProductListItem, type ProductDetail, type SizeDto, type CategoryItem } from '@/services/products'
 import { combosApi } from '@/services/combos'
+import { useOrderStore } from '@/stores/orders'
+
+const orderStore = useOrderStore()
+
+const isKitchenOutOfStock = (tenSanPham: string) => {
+  if (!tenSanPham) return false
+  const clean = tenSanPham.replace(/\s*\([^)]*\)$/, '').trim()
+  return orderStore.globalOutOfStock.has(tenSanPham) || orderStore.globalOutOfStock.has(clean)
+}
+
+const reopenProduct = async (m: ProductListItem) => {
+  try {
+    m.trangThaiBan = true
+    if (m.maSanPham > 0) {
+      try {
+        await productsApi.updateStatus(m.maSanPham, true)
+      } catch (err) {
+        console.warn('Lỗi gọi API updateStatus:', err)
+      }
+    }
+    orderStore.clearOutOfStock(m.tenSanPham)
+    const clean = m.tenSanPham.replace(/\s*\([^)]*\)$/, '').trim()
+    orderStore.clearOutOfStock(clean)
+    showToast(`Đã mở bán lại món "${m.tenSanPham}"! Món đã hoạt động bình thường trên POS & Menu.`, 'success')
+  } catch (e: any) {
+    showToast(e?.message || 'Không thể mở bán lại món.', 'error')
+  }
+}
 
 const formatVND = (n: number) => (n || 0).toLocaleString('vi-VN') + 'đ'
 
@@ -499,6 +734,84 @@ const editing = ref<ProductDetail | null>(null)
 const isModalOpen = ref(false)
 const isSaving = ref(false)
 const activeTab = ref<'basic' | 'advanced'>('basic')
+
+// ── Bulk Points Setting Modal State ──
+const isBulkPointsModalOpen = ref(false)
+const bulkMode = ref<'batch' | 'table'>('batch')
+const selectedItemIds = ref<number[]>([])
+const batchPointsInput = ref<number>(5)
+const bulkTableItems = ref<{ maSanPham: number; tenSanPham: string; giaBan: number; tenDanhMuc: string | null; diemTichLuy: number }[]>([])
+const bulkSearch = ref('')
+const isBulkSaving = ref(false)
+
+const bulkFilteredItems = computed(() => {
+  const q = bulkSearch.value.trim().toLowerCase()
+  return items.value.filter(i => i.maSanPham > 0 && (!q || i.tenSanPham.toLowerCase().includes(q) || (i.tenDanhMuc && i.tenDanhMuc.toLowerCase().includes(q))))
+})
+
+const isAllBulkSelected = computed(() => {
+  const validIds = bulkFilteredItems.value.map(i => i.maSanPham)
+  return validIds.length > 0 && validIds.every(id => selectedItemIds.value.includes(id))
+})
+
+function toggleSelectAllBulk() {
+  const validIds = bulkFilteredItems.value.map(i => i.maSanPham)
+  if (isAllBulkSelected.value) {
+    selectedItemIds.value = selectedItemIds.value.filter(id => !validIds.includes(id))
+  } else {
+    selectedItemIds.value = Array.from(new Set([...selectedItemIds.value, ...validIds]))
+  }
+}
+
+function openBulkPointsModal() {
+  bulkMode.value = 'batch'
+  selectedItemIds.value = []
+  batchPointsInput.value = 5
+  bulkSearch.value = ''
+  bulkTableItems.value = items.value.filter(i => i.maSanPham > 0).map(i => ({
+    maSanPham: i.maSanPham,
+    tenSanPham: i.tenSanPham,
+    giaBan: i.giaBan,
+    tenDanhMuc: i.tenDanhMuc,
+    diemTichLuy: i.diemTichLuy || 0
+  }))
+  isBulkPointsModalOpen.value = true
+}
+
+async function applyBatchPoints() {
+  if (selectedItemIds.value.length === 0) {
+    showToast('Vui lòng chọn ít nhất 1 món ăn để cài điểm tích lũy', 'warning')
+    return
+  }
+  const pts = Math.max(0, batchPointsInput.value || 0)
+  isBulkSaving.value = true
+  try {
+    const payload = selectedItemIds.value.map(id => ({ maSanPham: id, diemTichLuy: pts }))
+    await productsApi.bulkUpdatePoints(payload)
+    showToast(`Đã cài đặt +${pts} điểm thành công cho ${selectedItemIds.value.length} món ăn!`, 'success')
+    isBulkPointsModalOpen.value = false
+    await loadData()
+  } catch (e: any) {
+    showToast(e?.message || 'Không thể cập nhật điểm tích lũy hàng loạt', 'error')
+  } finally {
+    isBulkSaving.value = false
+  }
+}
+
+async function saveBulkTablePoints() {
+  isBulkSaving.value = true
+  try {
+    const payload = bulkTableItems.value.map(i => ({ maSanPham: i.maSanPham, diemTichLuy: Math.max(0, i.diemTichLuy || 0) }))
+    await productsApi.bulkUpdatePoints(payload)
+    showToast('Đã lưu bảng điểm tích lũy tất cả món ăn thành công!', 'success')
+    isBulkPointsModalOpen.value = false
+    await loadData()
+  } catch (e: any) {
+    showToast(e?.message || 'Không thể cập nhật điểm tích lũy', 'error')
+  } finally {
+    isBulkSaving.value = false
+  }
+}
 
 const featuredCount = computed(() => items.value.filter(i => i.laMonNoiBat).length)
 const inactiveCount = computed(() => items.value.filter(i => !i.trangThaiBan).length)
@@ -579,7 +892,8 @@ const openNew = () => {
     laMonNoiBat: false,
     kieuMon: "MonChinh",
     trangThaiBan: true,
-    kichCos: []
+    kichCos: [],
+    diemTichLuy: 0
   }
   isModalOpen.value = true
 }
@@ -600,7 +914,8 @@ const openEdit = async (m: ProductListItem) => {
       moTa: detail.moTa ?? undefined,
       luongCalo: detail.luongCalo ?? undefined,
       thoiGianChuanBiPhut: detail.thoiGianChuanBiPhut ?? undefined,
-      kichCos: detail.kichCos || []
+      kichCos: detail.kichCos || [],
+      diemTichLuy: detail.diemTichLuy ?? 0
     }
     isModalOpen.value = true
   } catch (e) {
@@ -665,11 +980,15 @@ const save = async () => {
       laMonNoiBat: editing.value.laMonNoiBat,
       kieuMon: editing.value.kieuMon,
       trangThaiBan: editing.value.trangThaiBan,
-      kichCos: editing.value.kichCos || []
+      kichCos: editing.value.kichCos || [],
+      diemTichLuy: editing.value.diemTichLuy || 0
     }
 
     if (isEditMode) {
       await productsApi.update(editing.value.maSanPham, payload)
+      if (editing.value.trangThaiBan) {
+        orderStore.clearOutOfStock(editing.value.tenSanPham)
+      }
       showToast("Cập nhật thông tin món thành công!", "success")
     } else {
       await productsApi.create(payload)

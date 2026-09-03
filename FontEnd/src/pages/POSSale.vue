@@ -3,6 +3,34 @@
 
     <!-- LEFT: Menu -->
     <div class="flex flex-col w-[58%] border-r border-[#EAE3D9] bg-[#FDFBF7]">
+
+      <!-- Banner Thông báo Yêu cầu hỗ trợ tại bàn (Realtime Support Call Alert) -->
+      <div v-if="activeServiceRequests.length > 0" class="mx-5 mt-4 p-3.5 rounded-2xl bg-amber-500/15 border-2 border-amber-500/50 text-amber-950 flex flex-col gap-2 shadow-lg animate-pulse shrink-0">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-md">
+              <BellRing class="w-5 h-5 animate-bounce" />
+            </div>
+            <div>
+              <h4 class="font-extrabold text-sm text-[#2A231E]">YÊU CẦU HỖ TRỢ TẠI BÀN ({{ activeServiceRequests.length }})</h4>
+              <p class="text-xs text-[#5C544E]">Khách hàng vừa bấm gọi nhân viên hỗ trợ từ menu QR</p>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-2 mt-1 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+          <div v-for="req in activeServiceRequests" :key="req.id" class="p-2.5 rounded-xl bg-white border border-amber-300 flex items-center justify-between gap-3 shadow-xs">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-1 rounded-lg bg-[#CC8033] text-white text-xs font-black uppercase tracking-wider">{{ req.tenBan }}</span>
+              <span class="text-xs font-bold text-[#2A231E]">{{ req.ghiChu || 'Cần hỗ trợ nhân viên phục vụ' }}</span>
+              <span class="text-[10px] text-[#8A8178] font-medium">({{ formatReqTime(req.thoiGianTao) }})</span>
+            </div>
+            <button @click="resolveRequest(req.id)" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1 shrink-0 cursor-pointer">
+              <CheckCircle class="w-3.5 h-3.5" /> Đã hỗ trợ
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="px-5 pt-5 pb-3 space-y-3 border-b border-[#EAE3D9] bg-white">
         <div class="flex items-center gap-3">
           <div class="relative flex-1">
@@ -27,13 +55,14 @@
         <p v-if="loadingMenu" class="text-sm text-[#8A8178]">Đang tải thực đơn...</p>
         <p v-else-if="menu.length===0" class="text-sm text-[#8A8178]">Chưa có món nào đang bán. Hãy thêm sản phẩm ở mục Thực đơn.</p>
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-          <button v-for="item in filteredMenu" :key="item.maSanPham" @click="!orderStore.globalOutOfStock.has(item.tenSanPham) && handleItemClick(item)"
+          <button v-for="item in filteredMenu" :key="item.maSanPham" @click="!isPosItemOutOfStock(item) && handleItemClick(item)"
             class="group bg-white rounded-2xl border border-[#EAE3D9] overflow-hidden hover:shadow-xl hover:shadow-[#CC8033]/10 hover:-translate-y-1 hover:border-[#CC8033]/40 transition-all duration-200 text-left relative"
-            :class="orderStore.globalOutOfStock.has(item.tenSanPham) ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : ''">
+            :class="isPosItemOutOfStock(item) ? 'opacity-50 grayscale cursor-not-allowed pointer-events-none' : ''">
             
             <div class="relative h-28 overflow-hidden bg-[#F5F2ED]">
-              <div v-if="orderStore.globalOutOfStock.has(item.tenSanPham)" class="absolute inset-0 bg-black/10 z-20 flex flex-col items-center justify-center">
-                <span class="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-md uppercase tracking-widest border border-red-600">Tạm hết</span>
+              <div v-if="isPosItemOutOfStock(item)" class="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-20 flex flex-col items-center justify-center p-2 text-center">
+                <span class="bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-md shadow-lg uppercase tracking-widest border border-red-400">TẠM HẾT</span>
+                <span class="text-[9px] text-white/90 font-medium mt-1">Bếp đã báo hết</span>
               </div>
               <img v-if="item.hinhAnh" :src="item.hinhAnh" :alt="item.tenSanPham" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
               <div v-else class="w-full h-full flex items-center justify-center text-[#C5BEB8]"><Coffee class="w-8 h-8" /></div>
@@ -105,24 +134,29 @@
           </div>
           <div class="grid grid-cols-5 gap-1.5 max-h-[120px] overflow-y-auto pr-1">
             <button v-for="t in tablesInZone" :key="t.maBan"
-              :disabled="t.trangThai !== 'Trong'"
+              :disabled="t.trangThai === 'BaoTri'"
               @click="selectedTableId = selectedTableId===t.maBan ? null : t.maBan"
-              :title="tableStatusMeta[t.trangThai]?.label"
+              :title="tableStatusMeta[t.trangThai]?.label + (t.maPinSession ? ` - Mã PIN: ${t.maPinSession}` : '') + (t.trangThai==='CoKhach' ? ' (Có thể chọn để gọi thêm món)' : '')"
               :class="selectedTableId===t.maBan
-                ? 'bg-[#CC8033] border-[#CC8033] text-white shadow-md'
-                : t.trangThai==='Trong'
-                  ? 'bg-white border-[#EAE3D9] text-[#5C544E] hover:border-[#CC8033] hover:text-[#CC8033]'
-                  : 'bg-[#F5F2ED] border-[#EAE3D9] text-[#C5BEB8] cursor-not-allowed'"
-              class="relative h-[42px] rounded-xl border flex flex-col items-center justify-center gap-0.5 transition-all disabled:cursor-not-allowed">
+                ? 'bg-[#CC8033] border-[#CC8033] text-white shadow-md scale-[1.02]'
+                : t.trangThai==='CoKhach'
+                  ? 'bg-[#FFF8EE] border-[#F5E0C3] text-[#CC8033] hover:border-[#CC8033] shadow-xs cursor-pointer'
+                  : t.trangThai==='Trong'
+                    ? 'bg-white border-[#EAE3D9] text-[#5C544E] hover:border-[#CC8033] hover:text-[#CC8033] cursor-pointer'
+                    : 'bg-[#F5F2ED] border-[#EAE3D9] text-[#C5BEB8] cursor-not-allowed opacity-60'"
+              class="relative h-[46px] rounded-xl border flex flex-col items-center justify-center gap-0.5 transition-all disabled:cursor-not-allowed p-1">
               <span class="text-xs font-bold leading-none">{{ t.tenBan }}</span>
               <span class="flex items-center gap-1 text-[8px] font-semibold leading-none">
                 <span class="w-1 h-1 rounded-full" :class="selectedTableId===t.maBan ? 'bg-white' : tableStatusMeta[t.trangThai]?.dot"></span>
                 {{ tableStatusMeta[t.trangThai]?.label }}
               </span>
+              <span v-if="t.trangThai === 'CoKhach' && t.maPinSession" class="text-[8px] font-black text-[#CC8033] bg-white px-1 rounded border border-amber-300 leading-none shadow-2xs">
+                PIN: {{ t.maPinSession }}
+              </span>
             </button>
             <span v-if="tablesInZone.length===0" class="col-span-5 text-xs text-[#8A8178] py-2 text-center">Không có bàn trong khu vực này.</span>
           </div>
-          <p class="text-[9px] text-[#C5BEB8] mt-1">Bàn đang có khách / bảo trì sẽ không chọn được.</p>
+          <p class="text-[9px] text-[#8A8178] mt-1 font-medium">💡 Bàn "Có khách" vẫn chọn được để gọi thêm món tại quầy. Bàn bảo trì sẽ không chọn được.</p>
         </div>
       </div>
 
@@ -141,8 +175,15 @@
             <div v-else class="w-full h-full flex items-center justify-center text-[#C5BEB8]"><Coffee class="w-5 h-5" /></div>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-bold text-[#2A231E] truncate">{{ item.name }}</p>
-            <p v-if="item.optionText" class="text-[10px] text-[#8A8178] font-medium mt-0.5">{{ item.optionText }}</p>
+            <div class="flex items-center gap-1.5">
+              <p class="text-sm font-bold text-[#2A231E] truncate">{{ item.name }}</p>
+              <button v-if="item.optionText !== '[Combo]'" @click="openEditModal(item)" title="Chỉnh sửa ly (Size, Topping, Đường/Đá)"
+                class="text-[#CC8033] hover:bg-[#CC8033]/15 p-1 rounded-md transition-colors shrink-0 flex items-center gap-1 text-[10px] font-bold">
+                <Pencil class="w-3 h-3" />
+                <span>Sửa</span>
+              </button>
+            </div>
+            <p v-if="item.optionText" class="text-[10px] text-[#8A8178] font-medium mt-0.5 leading-tight">{{ item.optionText }}</p>
             <div v-if="item.toppings.length" class="flex items-center gap-1 mt-1">
               <img v-for="t in item.toppings" :key="t.maSanPham" :src="t.hinhAnh || ''" :alt="t.ten" :title="t.ten + ' ×' + t.qty"
                 class="w-5 h-5 rounded-full object-cover border border-[#EAE3D9]" />
@@ -301,13 +342,277 @@
           <div class="p-5 border-b border-[#EAE3D9] flex items-center justify-between shrink-0">
             <div>
               <h2 class="font-premium-serif text-xl font-bold text-[#2A231E]">Thanh toán</h2>
-              <p class="text-xs text-[#8A8178] font-medium">{{ orderType==='takeaway' ? 'Mang về' : (selectedTable?.tenBan || '') }} · {{ cartTotalQty }} phần</p>
+              <p class="text-xs text-[#8A8178] font-medium flex items-center gap-2">
+                <span>{{ orderType==='takeaway' ? 'Mang về' : (selectedTable?.tenBan || '') }} · {{ cartTotalQty }} phần</span>
+                <span v-if="orderType==='dine-in' && selectedTable?.maPinSession" class="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[#CC8033] font-bold text-[10px] flex items-center gap-1">
+                  <KeyRound class="w-3 h-3" /> PIN Bàn: {{ selectedTable.maPinSession }}
+                </span>
+              </p>
             </div>
             <button @click="closePayModal" class="w-9 h-9 rounded-full bg-[#F5F2ED] flex items-center justify-center text-[#8A8178] hover:bg-[#EAE3D9]"><X class="w-4 h-4"/></button>
           </div>
 
           <!-- BƯỚC 1: Chọn phương thức (chưa tạo đơn) -->
           <div v-if="payStep === 'select'" class="flex-1 overflow-y-auto p-5 space-y-4">
+            <!-- Tích điểm & Khách hàng hội viên -->
+            <div class="rounded-xl border border-[#EAE3D9] p-3 space-y-2.5 bg-[#FAF8F5]">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] uppercase tracking-wider font-bold text-[#2A231E] flex items-center gap-1.5">
+                  <UserCheck class="w-4 h-4 text-[#CC8033]" />
+                  <span>Tích điểm hội viên (Gmail)</span>
+                </span>
+                <span v-if="customerProfile" class="text-[10px] bg-[#CC8033]/15 text-[#CC8033] px-2 py-0.5 rounded-md font-bold">
+                  {{ customerProfile.tier }} · {{ customerProfile.points }} điểm
+                </span>
+              </div>
+
+              <!-- Chưa chọn khách: Nhập Gmail tìm kiếm -->
+              <div v-if="!customerProfile" class="space-y-2">
+                <div class="flex gap-2">
+                  <div class="relative flex-1">
+                    <input
+                      v-model="customerEmailInput"
+                      @focus="showSuggestions = true"
+                      @blur="setTimeout(() => showSuggestions = false, 200)"
+                      @keyup.enter="searchCustomerByEmail"
+                      placeholder="Nhập tên Gmail (ví dụ: phamthanhtai16102006)..."
+                      class="w-full px-3 py-2 border border-[#EAE3D9] rounded-lg text-xs bg-white focus:border-[#CC8033] outline-none"
+                    />
+
+                    <!-- Gợi ý danh sách tài khoản phù hợp -->
+                    <div
+                      v-if="showSuggestions && suggestedCustomers.length > 0"
+                      class="absolute left-0 right-0 top-full mt-1 bg-white border border-[#EAE3D9] rounded-xl shadow-xl z-50 overflow-hidden max-h-56 overflow-y-auto divide-y divide-[#F0EDE9]"
+                    >
+                      <div class="px-3 py-1.5 bg-[#FAF8F5] text-[10px] uppercase font-bold text-[#8A8178] flex items-center justify-between">
+                        <span>Gợi ý tài khoản hội viên</span>
+                        <span class="text-[#CC8033]">{{ suggestedCustomers.length }} kết quả</span>
+                      </div>
+                      <button
+                        v-for="cust in suggestedCustomers"
+                        :key="cust.id"
+                        @mousedown.prevent="selectSuggestedCustomer(cust)"
+                        class="w-full px-3 py-2 text-left hover:bg-[#FDF7EF] transition-colors flex items-center justify-between gap-2 group cursor-pointer"
+                      >
+                        <div class="flex items-center gap-2 min-w-0">
+                          <div class="w-7 h-7 rounded-full bg-[#CC8033]/20 text-[#CC8033] font-bold text-xs flex items-center justify-center shrink-0">
+                            {{ cust.name.charAt(0).toUpperCase() }}
+                          </div>
+                          <div class="min-w-0">
+                            <p class="text-xs font-bold text-[#2A231E] truncate group-hover:text-[#CC8033] transition-colors">{{ cust.name }}</p>
+                            <p class="text-[10px] text-[#8A8178] truncate">{{ cust.email }}</p>
+                          </div>
+                        </div>
+                        <span class="text-[10px] bg-[#FAF4EB] text-[#CC8033] px-2 py-0.5 rounded font-bold shrink-0">
+                          {{ cust.tier }} · {{ cust.points }}đ
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <button @click="searchCustomerByEmail" :disabled="!customerEmailInput.trim() || customerSearchLoading"
+                    class="px-3 py-2 rounded-lg bg-[#CC8033] hover:bg-[#B3702C] text-white text-xs font-bold transition-all disabled:opacity-40 flex items-center gap-1 shrink-0">
+                    <Search class="w-3.5 h-3.5" /> {{ customerSearchLoading ? '...' : 'Tìm' }}
+                  </button>
+                </div>
+
+                <div v-if="customerSearchError" class="flex items-center justify-between bg-red-50 p-2 rounded-lg border border-red-100">
+                  <span class="text-[11px] text-red-600 font-medium">{{ customerSearchError }}</span>
+                  <button @click="registerNewCustomerFast" class="text-[10px] bg-red-600 text-white px-2 py-1 rounded font-bold hover:bg-red-700">
+                    + Đăng ký ngay
+                  </button>
+                </div>
+              </div>
+
+              <!-- Đã tìm thấy khách hàng -->
+              <div v-else class="p-2.5 bg-white rounded-lg border border-[#EAE3D9] space-y-2">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-bold text-[#2A231E] flex items-center gap-1">
+                      <span>{{ customerProfile.name }}</span>
+                      <span class="text-[10px] text-[#8A8178] font-normal">({{ customerProfile.email }})</span>
+                    </p>
+                    <p class="text-[10px] text-emerald-600 font-semibold mt-0.5">
+                      ✓ Đơn hàng sẽ tự động tích điểm cho khách sau khi thanh toán
+                    </p>
+                  </div>
+                  <button @click="clearCustomerProfile" class="text-[11px] text-red-500 font-bold hover:bg-red-50 px-2 py-1 rounded-lg border border-red-200 transition-colors flex items-center gap-1 shrink-0">
+                    Đổi / Hủy chọn
+                  </button>
+                </div>
+
+                <!-- Thẻ điểm tích lũy dự kiến -->
+                <div class="p-2 bg-[#F0FDF4] border border-emerald-200 rounded-lg flex items-center justify-between">
+                  <span class="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
+                    <Sparkles class="w-4 h-4 text-emerald-600 shrink-0" />
+                    Tích điểm dự kiến cho đơn này:
+                  </span>
+                  <span class="text-xs font-black text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-200 shadow-xs">
+                    +{{ estimatedEarnedPoints }} điểm
+                  </span>
+                </div>
+
+                <!-- Banner Ưu đãi Hạng Thành viên (Mua N tặng 1) -->
+                <div v-if="posTierRequiredDrinkCount > 0" class="pt-2 border-t border-dashed border-[#EAE3D9]">
+                  <div v-if="posFreeDrinksEarned > 0" class="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-left flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <Crown class="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div class="text-xs font-bold text-emerald-900">
+                        🎁 Đã tặng {{ posFreeDrinksEarned }} ly Hạng {{ customerProfile?.tier || customerProfile?.hangThanhVien }} (Miễn phí giá gốc -{{ formatVND(posTierFreeDrinkDiscount) }})
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else-if="posDrinksProgressInCycle >= posTierRequiredDrinkCount" class="p-3 bg-gradient-to-r from-[#FFF3E6] to-[#FDF7EF] border-2 border-[#F2C99C] rounded-xl text-left space-y-2 shadow-xs">
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs font-extrabold text-[#D97724] flex items-center gap-1.5">
+                        <Crown class="w-4 h-4 text-[#CC8033]" />
+                        🎁 ƯU ĐÃI HẠNG {{ (customerProfile?.tier || customerProfile?.hangThanhVien || 'ĐỒNG').toUpperCase() }}: MUA {{ posTierRequiredDrinkCount }} TẶNG 1 LY!
+                      </span>
+                      <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#CC8033] text-white">
+                        Đã đạt {{ posTotalDrinkQty }}/{{ posTierRequiredDrinkCount + 1 }} ly
+                      </span>
+                    </div>
+                    <p class="text-xs font-bold text-[#2A231E]">
+                      Khách hàng đã chọn đủ {{ posTierRequiredDrinkCount }} ly! Hãy chọn thêm 1 ly bất kỳ vào giỏ hàng để nhận <span class="text-emerald-700 font-extrabold">TẶNG MIỄN PHÍ GIÁ GỐC (0đ)</span>!
+                    </p>
+                    <div class="pt-1 flex justify-end">
+                      <button @click="closePayModal" class="px-3.5 py-1.5 bg-[#CC8033] hover:bg-[#B3702C] text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer">
+                        <Plus class="w-3.5 h-3.5" /> Chọn 1 ly quà tặng ngay
+                      </button>
+                    </div>
+                  </div>
+                  <div v-else class="p-2 bg-[#FAF6F0] border border-[#EAE3D9] rounded-xl text-left text-xs text-[#8A8178] flex items-center justify-between">
+                    <span class="flex items-center gap-1 font-semibold text-[#5C544E]">
+                      <Crown class="w-3.5 h-3.5 text-[#CC8033]" /> Ưu đãi Hạng {{ customerProfile?.tier || customerProfile?.hangThanhVien }}: Mua {{ posTierRequiredDrinkCount }} tặng 1
+                    </span>
+                    <span class="text-[11px] font-bold text-[#CC8033]">
+                      Còn thiếu {{ posTierRequiredDrinkCount + 1 - posDrinksProgressInCycle }} ly nữa
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Đổi điểm thưởng (Nút gửi OTP + Nhập OTP) -->
+                <div class="pt-2 border-t border-dashed border-[#EAE3D9] space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-[#CC8033] flex items-center gap-1">
+                      <Gift class="w-3.5 h-3.5" /> Đổi điểm thưởng tích lũy
+                    </span>
+                    <button v-if="!showRedeemSection && redeemedDiscount === 0" @click="openRedeemSection"
+                      class="text-[10px] bg-[#CC8033] text-white px-2.5 py-1 rounded-md font-bold hover:bg-[#B3702C] cursor-pointer">
+                      Đổi điểm ngay
+                    </button>
+                  </div>
+
+                  <!-- Hiển thị gói quà đã đổi thành công với nút Bỏ chọn -->
+                  <div v-if="redeemedDiscount > 0" class="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between shadow-xs">
+                    <div class="flex items-center gap-2">
+                      <div class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                        <Gift class="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p class="text-xs font-bold text-emerald-900 flex items-center gap-1">
+                          <span>🎁 Đã áp dụng: {{ redeemedRewardName || 'Free 1 topping' }}</span>
+                        </p>
+                        <p class="text-[10px] text-emerald-700 font-medium">
+                          Đã giảm trừ <strong class="font-bold text-emerald-800">-{{ formatVND(redeemedDiscount) }}</strong> vào đơn hàng
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      @click="cancelRedeemedReward"
+                      class="px-2.5 py-1 text-[11px] font-bold text-red-600 hover:text-red-700 bg-white border border-red-200 rounded-md hover:bg-red-50 transition-colors shadow-xs cursor-pointer shrink-0"
+                      title="Bỏ chọn gói quà này để dành"
+                    >
+                      ✕ Bỏ chọn
+                    </button>
+                  </div>
+
+                  <!-- Màn hình Đổi điểm & OTP -->
+                  <div v-else-if="showRedeemSection" class="p-2.5 bg-[#FAF6F0] rounded-lg border border-amber-200/80 space-y-2.5">
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <label class="text-[10px] font-bold text-[#8A8178]">Chọn gói đổi điểm:</label>
+                        <span v-if="bestReward" class="text-[10px] font-bold text-[#CC8033] flex items-center gap-1">
+                          <Sparkles class="w-3 h-3" /> Ưu đãi tốt nhất
+                        </span>
+                      </div>
+                      <select v-model="selectedRewardId" class="w-full px-2.5 py-1.5 border border-[#EAE3D9] rounded-md text-xs font-semibold bg-white outline-none">
+                        <option :value="null">-- Chọn gói đổi quà --</option>
+                        <option v-for="r in rewardList" :key="r.id" :value="r.id" :disabled="customerProfile.points < r.points">
+                          {{ bestReward?.id === r.id ? '⭐ [TỐT NHẤT] ' : '' }}{{ r.name }} (Cần {{ r.points }} điểm) {{ customerProfile.points < r.points ? '- Chưa đủ điểm' : '' }}
+                        </option>
+                      </select>
+
+                      <!-- Thông báo gói tốt nhất -->
+                      <div v-if="bestReward" class="mt-1.5 p-2 bg-[#FFF8EE] border border-[#F5E0C3] rounded-md text-[11px] text-[#2A231E] flex items-center justify-between">
+                        <span class="flex items-center gap-1 font-bold text-[#CC8033]">
+                          <Sparkles class="w-3.5 h-3.5 shrink-0" />
+                          Đã tự động chọn gói ưu đãi tốt nhất cho khách!
+                        </span>
+                      </div>
+                      <div v-else-if="customerProfile && customerProfile.points < (rewardList[0]?.points || 50)" class="mt-1.5 p-2 bg-gray-100 rounded-md text-[10px] text-gray-500 font-medium">
+                        💡 Khách hàng cần tích thêm {{ (rewardList[0]?.points || 50) - customerProfile.points }} điểm để quy đổi quà đầu tiên.
+                      </div>
+                    </div>
+
+                    <!-- Gửi OTP & Nhập OTP -->
+                    <div v-if="selectedRewardId" class="space-y-2 pt-1 border-t border-dashed border-amber-200">
+                      <div class="flex items-center justify-between">
+                        <span class="text-[10px] text-[#8A8178] font-medium flex items-center gap-1">
+                          <KeyRound class="w-3 h-3 text-[#CC8033]" /> Mã OTP gửi tới Gmail khách:
+                        </span>
+                        <button @click="sendCustomerOtp" :disabled="otpSending || otpSentCountDown > 0"
+                          class="px-2 py-1 bg-[#2A231E] text-white text-[10px] font-bold rounded hover:bg-black disabled:opacity-50">
+                          {{ otpSentCountDown > 0 ? `Gửi lại (${otpSentCountDown}s)` : (otpSending ? 'Đang gửi...' : '📲 Gửi mã OTP') }}
+                        </button>
+                      </div>
+
+                      <div v-if="otpSent" class="flex gap-1.5">
+                        <input v-model="otpInput" placeholder="Nhập 6 số OTP..." maxlength="6"
+                          class="flex-1 px-3 py-1.5 border border-[#CC8033] rounded-md text-xs font-bold text-center tracking-widest bg-white outline-none" />
+                        <button @click="confirmRedeemOtp" :disabled="!otpInput.trim() || redeemBusy"
+                          class="px-3 py-1.5 bg-[#CC8033] text-white text-xs font-bold rounded-md hover:bg-[#B3702C] disabled:opacity-40">
+                          {{ redeemBusy ? '...' : 'Xác nhận đổi' }}
+                        </button>
+                      </div>
+                      <p v-if="otpMessage" class="text-[10px] font-semibold" :class="otpError ? 'text-red-500' : 'text-emerald-600'">
+                        {{ otpMessage }}
+                      </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Danh sách món trong đơn hàng -->
+            <div class="rounded-xl border border-[#EAE3D9] p-3 space-y-2 bg-white shadow-xs">
+              <div class="flex items-center justify-between text-xs font-bold text-[#2A231E]">
+                <span class="flex items-center gap-1.5">
+                  <Coffee class="w-4 h-4 text-[#CC8033]" />
+                  Danh sách món trong đơn ({{ cartTotalQty }} phần)
+                </span>
+                <span class="text-[11px] text-[#8A8178] font-semibold">Tạm tính: {{ formatVND(cartTotal) }}</span>
+              </div>
+
+              <div class="space-y-1.5 max-h-36 overflow-y-auto pr-1 text-xs divide-y divide-[#F5F2ED]">
+                <div v-for="line in cart" :key="line.id" class="pt-1.5 first:pt-0 flex items-center justify-between">
+                  <div class="min-w-0 pr-2">
+                    <p class="font-bold text-[#2A231E] truncate">
+                      {{ line.tenSanPham || line.name }}
+                      <span v-if="line.selectedSize" class="text-[10px] text-[#8A8178] font-normal">({{ line.selectedSize.tenKichCo }})</span>
+                    </p>
+                    <p v-if="(line.diemTichLuy || menu.find(m => m.maSanPham === line.maSanPham)?.diemTichLuy)" class="text-[9.5px] text-emerald-600 font-semibold">
+                      Tích +{{ (line.diemTichLuy || menu.find(m => m.maSanPham === line.maSanPham)?.diemTichLuy || 0) * line.qty }} điểm
+                    </p>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <span class="font-bold text-[#2A231E]">x{{ line.qty }}</span>
+                    <span class="text-[#8A8178] ml-2 font-medium">{{ formatVND(line.unitPrice * line.qty) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Khuyến mãi -->
             <div class="rounded-xl border border-[#EAE3D9] p-3 space-y-2">
               <div class="flex items-center gap-2">
@@ -331,10 +636,12 @@
             <!-- Tổng tiền -->
             <div class="rounded-xl bg-gradient-to-r from-[#FDF7EF] to-[#F9F1E6] border border-[#F0E4D2] px-4 py-3 space-y-1">
               <div class="flex justify-between text-sm text-[#5C544E]"><span>Tạm tính</span><span class="font-semibold">{{ formatVND(cartTotal) }}</span></div>
-              <div v-if="appliedPromo" class="flex justify-between text-sm text-emerald-700 font-semibold"><span>Giảm giá</span><span>− {{ formatVND(appliedPromo.tienGiam) }}</span></div>
+              <div v-if="appliedPromo" class="flex justify-between text-sm text-emerald-700 font-semibold"><span>Mã giảm giá</span><span>− {{ formatVND(appliedPromo.tienGiam) }}</span></div>
+              <div v-if="redeemedDiscount > 0" class="flex justify-between text-sm text-amber-700 font-semibold"><span>Đổi điểm thưởng</span><span>− {{ formatVND(redeemedDiscount) }}</span></div>
+              <div v-if="posTierFreeDrinkDiscount > 0" class="flex justify-between text-sm text-emerald-700 font-bold"><span>Tặng ly Hạng {{ customerProfile?.tier || customerProfile?.hangThanhVien }} (Giá gốc)</span><span>− {{ formatVND(posTierFreeDrinkDiscount) }}</span></div>
               <div class="flex justify-between items-center pt-1.5 border-t border-[#F0E4D2]">
                 <span class="text-sm font-bold text-[#5C544E]">Tổng cộng</span>
-                <span class="text-2xl font-premium-serif font-bold text-[#CC8033]">{{ formatVND(finalTotal) }}</span>
+                <span class="text-2xl font-premium-serif font-bold text-[#CC8033]">{{ formatVND(posFinalTotal) }}</span>
               </div>
             </div>
 
@@ -356,7 +663,7 @@
               <div class="flex gap-1.5 flex-wrap">
                 <button v-for="a in quickAmounts" :key="a" @click="cashReceived=a"
                   class="px-3 py-1.5 rounded-lg border border-[#EAE3D9] text-[11px] font-bold text-[#5C544E] hover:border-[#CC8033] hover:text-[#CC8033]">{{ (a/1000)+'k' }}</button>
-                <button @click="cashReceived=finalTotal" class="px-3 py-1.5 rounded-lg border border-[#CC8033] text-[11px] font-bold text-[#CC8033]">Vừa đủ</button>
+                <button @click="cashReceived=posFinalTotal" class="px-3 py-1.5 rounded-lg border border-[#CC8033] text-[11px] font-bold text-[#CC8033]">Vừa đủ</button>
               </div>
               <div class="flex items-center justify-between px-3 py-2 rounded-xl" :class="change>0 ? 'bg-emerald-50 text-emerald-700' : 'bg-[#F5F2ED] text-[#8A8178]'">
                 <span class="text-sm font-semibold">Tiền thối</span>
@@ -424,7 +731,7 @@
             <div v-if="payMethod === 'NganHang'" class="rounded-xl border border-[#EAE3D9] p-3 text-xs space-y-1 text-[#5C544E]">
               <p class="font-bold text-[10px] uppercase tracking-widest text-[#8A8178] mb-1">Thông tin chuyển khoản</p>
               <div class="flex justify-between"><span>Ngân hàng</span><span class="font-bold">MB Bank</span></div>
-              <div class="flex justify-between"><span>Nội dung CK</span><span class="font-bold text-[#CC8033]">BrewManager DH{{ createdOrderId }}</span></div>
+              <div class="flex justify-between"><span>Nội dung CK</span><span class="font-bold text-[#CC8033]">{{ storeInfoStore.tenQuan }} DH{{ createdOrderId }}</span></div>
             </div>
 
             <div class="grid grid-cols-2 gap-2 pt-1">
@@ -447,7 +754,48 @@
               <h3 class="text-xl font-premium-serif font-bold text-[#2A231E]">Thanh toán thành công!</h3>
               <p class="text-sm text-[#8A8178] mt-1">{{ payMethod === 'TienMat' ? 'Tiền thối: ' + formatVND(toastChange) : 'Hệ thống đã ghi nhận giao dịch' }}</p>
             </div>
-            <button @click="closePayModal" class="w-full py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-[#CC8033] to-[#8A4F1A] text-white shadow-lg">
+
+            <!-- Mã PIN bàn để người sau quét QR nhập -->
+            <div v-if="paySuccessPinCode" class="w-full p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-xl text-[#2A231E] flex flex-col items-center gap-1.5 shadow-sm">
+              <span class="text-[11px] font-bold text-[#8A8178] uppercase tracking-wider flex items-center gap-1">
+                <KeyRound class="w-3.5 h-3.5 text-[#CC8033]" /> Mã PIN bàn (Người sau quét QR order):
+              </span>
+              <span class="text-3xl font-black tracking-[0.2em] text-[#CC8033] bg-white px-4 py-1 rounded-xl border border-amber-300 shadow-sm">
+                {{ paySuccessPinCode }}
+              </span>
+              <span class="text-[11px] text-[#8A8178] text-center font-medium mt-0.5">
+                Khách ngồi cùng bàn có thể quét QR dán trên bàn &amp; nhập mã 4 số này để tiếp tục đặt món.
+              </span>
+
+              <!-- Form nhập Gmail gửi Mã PIN -->
+              <div class="w-full space-y-1.5 pt-2 border-t border-amber-200/60 mt-1">
+                <label class="text-[10px] font-bold text-[#8A8178] uppercase tracking-wider block text-left">
+                  📧 Gửi mã PIN 4 số này qua Gmail:
+                </label>
+                <div class="flex gap-2">
+                  <input 
+                    v-model="customerReceiptEmail" 
+                    type="email" 
+                    placeholder="Nhập địa chỉ Gmail nhận mã..." 
+                    class="flex-1 px-3 py-2 bg-white border border-[#EAE3D9] rounded-xl text-xs font-semibold text-[#2A231E] focus:outline-none focus:border-[#CC8033]"
+                    @keyup.enter="sendPinToEmail"
+                  />
+                  <button 
+                    @click="sendPinToEmail" 
+                    :disabled="sendingPinEmail || !customerReceiptEmail.trim()"
+                    class="px-3.5 py-2 rounded-xl bg-[#CC8033] hover:bg-[#B36B25] text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1 shrink-0 cursor-pointer shadow-xs"
+                  >
+                    <Send class="w-3.5 h-3.5" />
+                    {{ sendingPinEmail ? 'Đang gửi...' : 'Gửi Gmail' }}
+                  </button>
+                </div>
+                <p v-if="pinEmailStatus" class="text-[11px] font-bold text-emerald-600 text-left pt-0.5">
+                  {{ pinEmailStatus }}
+                </p>
+              </div>
+            </div>
+
+            <button @click="closePayModal" class="w-full py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-[#CC8033] to-[#8A4F1A] text-white shadow-lg cursor-pointer">
               Đóng
             </button>
           </div>
@@ -460,7 +808,10 @@
       <div v-if="showToast" class="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-[#2A231E] text-white px-5 py-3.5 rounded-2xl shadow-2xl">
         <CheckCircle class="w-5 h-5 text-emerald-400" stroke-width="2.5" />
         <div>
-          <p class="text-sm font-bold">Thanh toán thành công!</p>
+          <p class="text-sm font-bold flex items-center gap-2">
+            <span>Thanh toán thành công!</span>
+            <span v-if="paySuccessPinCode" class="text-amber-400 font-extrabold text-xs">🔑 PIN: {{ paySuccessPinCode }}</span>
+          </p>
           <p class="text-[10px] text-white/60 font-medium">
             <span v-if="isTakeawayResponse" class="text-[#CC8033] font-bold mr-1">Mang về - #{{ String(orderIdResponse).padStart(3, '0') }}</span>
             <span v-else-if="orderIdResponse" class="mr-1">Mã đơn: #{{ orderIdResponse }}</span>
@@ -489,17 +840,52 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
-import { Search, ShoppingCart, Trash2, X, MessageSquare, CheckCircle, Plus, Coffee, Store, ShoppingBag, Banknote, Smartphone, Wallet, Landmark, Zap, Bell, Layers } from 'lucide-vue-next'
+import { Search, ShoppingCart, Trash2, X, MessageSquare, CheckCircle, Plus, Coffee, Store, ShoppingBag, Banknote, Smartphone, Wallet, Landmark, Zap, Bell, BellRing, Layers, UserCheck, Gift, KeyRound, Send, Sparkles, Crown, Pencil } from 'lucide-vue-next'
 import QrcodeVue from 'qrcode.vue'
 import { ordersApi, type MenuItem } from '@/services/orders'
 import { tablesApi, type TableItem } from '@/services/tables'
 import { promotionsApi, type Promotion, type ApplyResult } from '@/services/promotions'
 import { paymentsApi } from '@/services/payments'
+import { loyaltyApi } from '@/services/loyalty'
 import { useOrderStore } from '@/stores/orders'
+import { useAuthStore } from '@/stores/auth'
+import { useStoreInfoStore } from '@/stores/storeInfo'
+import { auditLogsApi } from '@/services/auditLogs'
 
 const orderStore = useOrderStore()
+const authStore = useAuthStore()
+const storeInfoStore = useStoreInfoStore()
 
 const formatVND = (n: number) => (n || 0).toLocaleString('vi-VN') + 'đ'
+
+// ── Service Requests (Gọi phục vụ tại bàn) ────────────────────
+const activeServiceRequests = ref<any[]>([])
+
+const fetchActiveServiceRequests = async () => {
+  try {
+    const data = await ordersApi.getActiveServiceRequests()
+    activeServiceRequests.value = (data || []).filter((r: any) => r.loaiYeuCau !== 'CanBungNuoc' && r.loaiYeuCau !== 'GiaoDo')
+  } catch (e) {}
+}
+
+const resolveRequest = async (id: string) => {
+  try {
+    await ordersApi.resolveServiceRequest(id)
+    activeServiceRequests.value = activeServiceRequests.value.filter(r => r.id !== id)
+    toast.success('Đã xác nhận hỗ trợ bàn!', 'Hoàn tất')
+  } catch (e) {
+    toast.error('Lỗi xử lý yêu cầu')
+  }
+}
+
+const formatReqTime = (raw: string) => {
+  if (!raw) return ''
+  const d = new Date(raw)
+  return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+}
+
+let serviceReqInterval: number | null = null
+const posChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('quanlycf_orders_sync') : null
 
 // ── Dữ liệu thật ──────────────────────────────────────────────
 const menu = ref<MenuItem[]>([])
@@ -507,28 +893,88 @@ const tables = ref<TableItem[]>([])
 const loadingMenu = ref(false)
 const posError = ref('')
 
-onMounted(async () => {
-  loadingMenu.value = true
+const nowTime = ref(new Date())
+let timeIntervalId: number | null = null
+let menuSyncIntervalId: number | null = null
+
+const isTimeSlotActive = (item: MenuItem) => {
+  if (!item.apDungKhungGio || !item.gioBatDau || !item.gioKetThuc) return true
+
+  const now = nowTime.value
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
+  const [startH, startM] = item.gioBatDau.split(':').map(Number)
+  const [endH, endM] = item.gioKetThuc.split(':').map(Number)
+
+  const startMinutes = startH * 60 + startM
+  const endMinutes = endH * 60 + endM
+
+  if (startMinutes <= endMinutes) {
+    return currentMinutes >= startMinutes && currentMinutes <= endMinutes
+  } else {
+    // Khung giờ qua đêm (VD: 22:00 -> 06:00)
+    return currentMinutes >= startMinutes || currentMinutes <= endMinutes
+  }
+}
+
+const fetchMenuData = async () => {
   try {
-    const [m, t] = await Promise.all([ordersApi.menu(), tablesApi.list()])
+    const [m, t] = await Promise.all([ordersApi.menu(true), tablesApi.list()])
     menu.value = m
     tables.value = t
   } catch (e) {
-    posError.value = e instanceof Error ? e.message : 'Không tải được dữ liệu.'
-  } finally {
-    loadingMenu.value = false
+    if (!menu.value.length) posError.value = e instanceof Error ? e.message : 'Không tải được dữ liệu.'
   }
+}
+
+onMounted(async () => {
+  loadingMenu.value = true
+  await fetchMenuData()
+  loadingMenu.value = false
+
+  fetchActiveServiceRequests()
+  serviceReqInterval = window.setInterval(() => {
+    if (!document.hidden) {
+      fetchActiveServiceRequests()
+    }
+  }, 2500)
+
+  if (posChannel) {
+    posChannel.onmessage = (e) => {
+      if (e.data?.type === 'CALL_STAFF') {
+        fetchActiveServiceRequests()
+        toast.warning(`🔔 ${e.data.tenBan} ĐANG CẦN HỖ TRỢ!`, 'GỌI PHỤC VỤ')
+      }
+    }
+  }
+
+  // Tự động kiểm tra thời gian thực mỗi 5 giây
+  timeIntervalId = window.setInterval(() => {
+    nowTime.value = new Date()
+  }, 5000)
+
+  // Đồng bộ thực đơn ngầm từ Server mỗi 15 giây
+  menuSyncIntervalId = window.setInterval(() => {
+    fetchMenuData()
+  }, 15000)
 })
 
 const search = ref('')
 const activeCat = ref('all')
-// Tách món nước và topping
+// Tách món nước và topping (Hiển thị đầy đủ tất cả món đang kinh doanh cho Thu ngân)
 const drinks = computed(() => menu.value.filter(m => m.kieuMon !== 'Topping'))
 const toppingList = computed(() => menu.value.filter(m => m.kieuMon === 'Topping'))
 const catFilters = computed(() => {
   const cats = Array.from(new Set(drinks.value.map(m => m.tenDanhMuc).filter(Boolean) as string[]))
   return ['all', ...cats]
 })
+const isPosItemOutOfStock = (item: MenuItem) => {
+  if (!item) return false
+  const name = item.tenSanPham || ''
+  const clean = name.replace(/\s*\([^)]*\)$/, '').trim()
+  return orderStore.globalOutOfStock.has(name) || orderStore.globalOutOfStock.has(clean)
+}
+
 const filteredMenu = computed(() => drinks.value.filter(m =>
   (activeCat.value === 'all' || m.tenDanhMuc === activeCat.value) &&
   m.tenSanPham.toLowerCase().includes(search.value.toLowerCase())
@@ -539,6 +985,7 @@ interface CartTopping { maSanPham: number; ten: string; gia: number; qty: number
 interface CartItem {
   cartId: number
   maSanPham: number
+  tenSanPham?: string
   name: string
   image: string | null
   maKichCo: number | null
@@ -547,12 +994,104 @@ interface CartItem {
   optionText: string
   ghiChuMon: string | null
   toppings: CartTopping[]
+  diemTichLuy?: number
 }
 const cart = ref<CartItem[]>([])
 let cartIdSeq = 0
 const cartTotal = computed(() => cart.value.reduce((s, i) => s + i.unitPrice * i.qty, 0))
 const cartTotalQty = computed(() => cart.value.reduce((s, i) => s + i.qty, 0))
 const cartQty = (maSanPham: number) => cart.value.filter(i => i.maSanPham === maSanPham).reduce((s, i) => s + i.qty, 0)
+
+// ── Quy tắc ưu đãi Hạng Thành Viên: Mua N ly tặng 1 ly ────────────────
+const posTierRequiredCountMap: Record<string, number> = {
+  'Đồng': 10,
+  'Bronze': 10,
+  'Member': 10,
+  'Bạc': 7,
+  'Silver': 7,
+  'Vàng': 5,
+  'Gold': 5,
+  'Kim Cương': 3,
+  'Diamond': 3
+}
+
+const posTierRequiredDrinkCount = computed(() => {
+  const rawTier = customerProfile.value?.tier || customerProfile.value?.hangThanhVien || ''
+  const tier = rawTier.trim()
+  return posTierRequiredCountMap[tier] || (customerProfile.value ? 10 : 0)
+})
+
+const currentActiveTableOrder = computed(() => {
+  if (selectedTable.value) {
+    const active = orderStore.orders.find(o => o.table === selectedTable.value?.tenBan && o.status !== 'done' && o.status !== 'cancelled')
+    return active || null
+  }
+  return null
+})
+
+const posTotalDrinkQty = computed(() => {
+  if (currentActiveTableOrder.value) {
+    return currentActiveTableOrder.value.items.reduce((sum, i) => sum + i.qty, 0)
+  }
+  return cart.value.reduce((sum, i) => sum + i.qty, 0)
+})
+
+const posFreeDrinksEarned = computed(() => {
+  const req = posTierRequiredDrinkCount.value
+  if (req <= 0) return 0
+  return Math.floor(posTotalDrinkQty.value / (req + 1))
+})
+
+const posDrinksProgressInCycle = computed(() => {
+  const req = posTierRequiredDrinkCount.value
+  if (req <= 0) return 0
+  return posTotalDrinkQty.value % (req + 1)
+})
+
+const posTierFreeDrinkDiscount = computed(() => {
+  const freeCount = posFreeDrinksEarned.value
+  if (freeCount <= 0) return 0
+
+  const itemBasePrices: number[] = []
+
+  if (currentActiveTableOrder.value) {
+    currentActiveTableOrder.value.items.forEach(i => {
+      for (let k = 0; k < i.qty; k++) {
+        itemBasePrices.push(i.price)
+      }
+    })
+  } else {
+    cart.value.forEach(i => {
+      const toppingTotal = (i.toppings || []).reduce((ts, t) => ts + t.gia * t.qty, 0)
+      const drinkDef = menu.value.find(d => d.maSanPham === i.maSanPham)
+      const baseP = drinkDef ? drinkDef.giaBan : Math.max(0, i.unitPrice - toppingTotal)
+      for (let k = 0; k < i.qty; k++) {
+        itemBasePrices.push(baseP)
+      }
+    })
+  }
+
+  itemBasePrices.sort((a, b) => b - a)
+  let discount = 0
+  for (let k = 0; k < Math.min(freeCount, itemBasePrices.length); k++) {
+    discount += itemBasePrices[k]
+  }
+  return discount
+})
+
+const posTableSubTotal = computed(() => {
+  if (currentActiveTableOrder.value) {
+    return currentActiveTableOrder.value.items.reduce((sum, i) => sum + (i.price * i.qty), 0)
+  }
+  return cartTotal.value
+})
+
+const posFinalTotal = computed(() => {
+  const sub = posTableSubTotal.value
+  const redeemed = redeemedDiscount.value || 0
+  const tierDis = posTierFreeDrinkDiscount.value
+  return Math.max(0, sub - redeemed - tierDis)
+})
 
 const orderType = ref<'dine-in' | 'takeaway'>('dine-in')
 const selectedTableId = ref<number | null>(null)
@@ -624,7 +1163,10 @@ function handleItemClick(item: MenuItem) {
   openOptions(item)
 }
 
+const editingCartId = ref<number | null>(null)
+
 function openOptions(item: MenuItem) {
+  editingCartId.value = null
   selectedItem.value = item
   selSizeId.value = null
   selSugar.value = '100%'
@@ -632,6 +1174,40 @@ function openOptions(item: MenuItem) {
   itemNote.value = ''
   selQty.value = 1
   selToppings.value = {}
+  optionsOpen.value = true
+}
+
+function openEditModal(cartItem: CartItem) {
+  const menuItem = menu.value.find(m => m.maSanPham === cartItem.maSanPham)
+  if (!menuItem) return
+
+  editingCartId.value = cartItem.cartId
+  selectedItem.value = menuItem
+  selSizeId.value = cartItem.maKichCo
+
+  const opts = (cartItem.optionText || '').split(' · ')
+  const sugarOpt = opts.find(o => o.startsWith('Đường '))
+  const iceOpt = opts.find(o => o.startsWith('Đá '))
+
+  selSugar.value = sugarOpt ? sugarOpt.replace('Đường ', '') : '100%'
+  selIce.value = iceOpt ? iceOpt.replace('Đá ', '') : '100%'
+
+  const noteOpts = opts.filter(o => 
+    !menuItem.kichCos.some(s => s.tenKichCo === o) &&
+    !o.startsWith('Đường ') &&
+    !o.startsWith('Đá ') &&
+    !cartItem.toppings.some(t => o.startsWith(t.ten))
+  )
+  itemNote.value = noteOpts.join(' · ')
+
+  selQty.value = cartItem.qty
+
+  const topsMap: Record<number, number> = {}
+  cartItem.toppings.forEach(t => {
+    topsMap[t.maSanPham] = t.qty
+  })
+  selToppings.value = topsMap
+
   optionsOpen.value = true
 }
 
@@ -647,18 +1223,34 @@ function confirmAdd() {
   if (selIce.value !== '100%') opts.push('Đá ' + selIce.value)
   if (itemNote.value.trim()) opts.push(itemNote.value.trim())
   const optionText = opts.join(' · ')
-  cart.value.push({
-    cartId: cartIdSeq++,
-    maSanPham: selectedItem.value.maSanPham,
-    name: selectedItem.value.tenSanPham,
-    image: selectedItem.value.hinhAnh,
-    maKichCo: selSizeId.value,
-    unitPrice: unitPricePreview.value,
-    qty: selQty.value,
-    optionText,
-    ghiChuMon: optionText || null,
-    toppings: tops,
-  })
+
+  if (editingCartId.value !== null) {
+    const existing = cart.value.find(c => c.cartId === editingCartId.value)
+    if (existing) {
+      existing.maKichCo = selSizeId.value
+      existing.unitPrice = unitPricePreview.value
+      existing.qty = selQty.value
+      existing.optionText = optionText
+      existing.ghiChuMon = optionText || null
+      existing.toppings = tops
+    }
+    editingCartId.value = null
+  } else {
+    cart.value.push({
+      cartId: cartIdSeq++,
+      maSanPham: selectedItem.value.maSanPham,
+      tenSanPham: selectedItem.value.tenSanPham,
+      name: selectedItem.value.tenSanPham,
+      image: selectedItem.value.hinhAnh,
+      maKichCo: selSizeId.value,
+      unitPrice: unitPricePreview.value,
+      qty: selQty.value,
+      optionText,
+      ghiChuMon: optionText || null,
+      toppings: tops,
+      diemTichLuy: selectedItem.value.diemTichLuy || 0
+    })
+  }
   optionsOpen.value = false
 }
 
@@ -669,7 +1261,11 @@ function updateQty(cartId: number, delta: number) {
   if (item.qty <= 0) cart.value = cart.value.filter(i => i.cartId !== cartId)
 }
 function removeItem(cartId: number) { cart.value = cart.value.filter(i => i.cartId !== cartId) }
-function clearCart() { cart.value = []; note.value = '' }
+function clearCart() {
+  cart.value = []
+  note.value = ''
+  clearCustomerProfile()
+}
 
 // ── Thanh toán ────────────────────────────────────────────────
 const payOpen = ref(false)
@@ -705,6 +1301,7 @@ watch(() => orderStore.posNotification, (newVal) => {
 // Luồng thanh toán multi-step
 const payStep = ref<'select' | 'qr' | 'success'>('select')
 const createdOrderId = ref<number | null>(null)
+const paySuccessPinCode = ref<string | null>(null)
 const qrCodeUrl = ref<string | null>(null)
 const qrRawString = ref<string | null>(null)  // EMVCo raw string cho MoMo
 const payUrl = ref<string | null>(null)
@@ -723,13 +1320,259 @@ const ckOptions: { id: 'Momo' | 'NganHang'; label: string; icon: unknown }[] = [
   { id: 'NganHang', label: 'Ngân hàng', icon: Landmark },
 ]
 
+// ── Khách hàng Tích điểm & Đổi điểm ──
+const customerEmailInput = ref('')
+const customerProfile = ref<{ id: number; name: string; phone: string; email: string; tier: string; points: number } | null>(null)
+const customerSearchLoading = ref(false)
+const customerSearchError = ref('')
+const allCustomers = ref<{ id: number; name: string; phone: string; email: string; tier: string; points: number }[]>([])
+const showSuggestions = ref(false)
+
+const suggestedCustomers = computed(() => {
+  const q = customerEmailInput.value.trim().toLowerCase()
+  if (!q) return []
+  return allCustomers.value.filter(c => {
+    const emailName = c.email ? c.email.toLowerCase().split('@')[0] : ''
+    const fullEmail = (c.email || '').toLowerCase()
+    const name = c.name.toLowerCase()
+    const phone = c.phone || ''
+    return name.includes(q) || fullEmail.includes(q) || emailName.includes(q) || phone.includes(q)
+  }).slice(0, 5)
+})
+
+function selectSuggestedCustomer(cust: { id: number; name: string; phone: string; email: string; tier: string; points: number }) {
+  customerProfile.value = cust
+  customerEmailInput.value = cust.email || cust.name
+  customerSearchError.value = ''
+  showSuggestions.value = false
+}
+
+const showRedeemSection = ref(false)
+const rewardList = ref<{ id: number; name: string; points: number; description?: string }[]>([])
+const selectedRewardId = ref<number | null>(null)
+const otpInput = ref('')
+const otpSending = ref(false)
+const otpSent = ref(false)
+const otpSentCountDown = ref(0)
+const otpMessage = ref('')
+const otpError = ref(false)
+const redeemBusy = ref(false)
+const redeemedDiscount = ref(0)
+const redeemedRewardName = ref('')
+const redeemedRewardPoints = ref(0)
+let otpCountTimer: number | null = null
+
+function cancelRedeemedReward() {
+  if (customerProfile.value && redeemedRewardPoints.value > 0) {
+    customerProfile.value.points += redeemedRewardPoints.value
+  }
+  redeemedDiscount.value = 0
+  redeemedRewardName.value = ''
+  redeemedRewardPoints.value = 0
+  showRedeemSection.value = false
+  selectedRewardId.value = null
+  otpSent.value = false
+  otpInput.value = ''
+  otpMessage.value = 'Đã hủy áp dụng gói đổi điểm cho đơn hàng này.'
+  otpError.value = false
+}
+
+function formatEmailInput(val: string): string {
+  let clean = val.trim().toLowerCase()
+  if (!clean) return ''
+  if (!clean.includes('@')) {
+    clean += '@gmail.com'
+  }
+  return clean
+}
+
+async function searchCustomerByEmail() {
+  const email = formatEmailInput(customerEmailInput.value)
+  if (!email) return
+  customerEmailInput.value = email
+  customerSearchLoading.value = true
+  customerSearchError.value = ''
+  try {
+    const res = await loyaltyApi.checkPublicEmail(email)
+    customerProfile.value = res
+  } catch (e: any) {
+    customerProfile.value = null
+    customerSearchError.value = e?.message || 'Chưa có thông tin khách hàng này.'
+  } finally {
+    customerSearchLoading.value = false
+  }
+}
+
+async function registerNewCustomerFast() {
+  const email = formatEmailInput(customerEmailInput.value)
+  if (!email) return
+  customerEmailInput.value = email
+  customerSearchLoading.value = true
+  customerSearchError.value = ''
+  try {
+    const rawName = email.split('@')[0]
+    const name = rawName.charAt(0).toUpperCase() + rawName.slice(1)
+    const res = await loyaltyApi.registerPublic({
+      name,
+      phone: '',
+      email
+    })
+    customerProfile.value = res
+    customerSearchError.value = ''
+  } catch (e: any) {
+    customerSearchError.value = e?.message || 'Không tạo được khách hàng mới.'
+  } finally {
+    customerSearchLoading.value = false
+  }
+}
+
+function clearCustomerProfile() {
+  customerProfile.value = null
+  customerEmailInput.value = ''
+  customerSearchError.value = ''
+  showRedeemSection.value = false
+  selectedRewardId.value = null
+  otpSent.value = false
+  otpInput.value = ''
+  otpMessage.value = ''
+  redeemedDiscount.value = 0
+  redeemedRewardName.value = ''
+  redeemedRewardPoints.value = 0
+}
+
+const estimatedEarnedPoints = computed(() => {
+  let points = 0
+  for (const item of cart.value) {
+    const menuItem = menu.value.find(m => m.maSanPham === item.maSanPham)
+    const customPts = item.diemTichLuy || menuItem?.diemTichLuy || 0
+    if (customPts > 0) {
+      points += customPts * item.qty
+    } else {
+      const itemPrice = item.unitPrice || 0
+      points += Math.floor((itemPrice * item.qty) / 10000)
+    }
+  }
+  if (points <= 0 && finalTotal.value > 0) {
+    points = Math.floor(finalTotal.value / 10000)
+  }
+  return points
+})
+
+const bestReward = computed(() => {
+  if (!customerProfile.value || rewardList.value.length === 0) return null
+  const pts = customerProfile.value.points || 0
+  const eligible = rewardList.value.filter(r => r.points <= pts)
+  if (eligible.length === 0) return null
+  eligible.sort((a, b) => b.points - a.points)
+  return eligible[0]
+})
+
+function autoSelectBestReward() {
+  if (bestReward.value) {
+    selectedRewardId.value = bestReward.value.id
+  } else if (rewardList.value.length > 0) {
+    selectedRewardId.value = null
+  }
+}
+
+async function openRedeemSection() {
+  showRedeemSection.value = true
+  try {
+    const rewards = await loyaltyApi.getRewards()
+    rewardList.value = rewards.map(r => ({ id: r.id, name: r.name, points: r.cost, description: r.description }))
+  } catch {
+    rewardList.value = [
+      { id: 1, name: 'Free 1 topping', points: 100 },
+      { id: 2, name: 'Giảm 20.000đ vào đơn hàng', points: 50 },
+      { id: 3, name: 'Giảm 10% hóa đơn', points: 200 },
+      { id: 4, name: 'Voucher 50.000đ', points: 500 }
+    ]
+  }
+  autoSelectBestReward()
+}
+
+async function sendCustomerOtp() {
+  if (!customerProfile.value) return
+  otpSending.value = true
+  otpMessage.value = ''
+  otpError.value = false
+  try {
+    await loyaltyApi.sendOtp(customerProfile.value.id)
+    otpSent.value = true
+    otpMessage.value = 'Mã OTP 6 số đã được gửi tới Gmail của khách hàng!'
+    otpSentCountDown.value = 60
+    if (otpCountTimer) clearInterval(otpCountTimer)
+    otpCountTimer = window.setInterval(() => {
+      otpSentCountDown.value--
+      if (otpSentCountDown.value <= 0 && otpCountTimer) clearInterval(otpCountTimer)
+    }, 1000)
+  } catch (e: any) {
+    otpError.value = true
+    otpMessage.value = e?.message || 'Lỗi gửi mã OTP.'
+  } finally {
+    otpSending.value = false
+  }
+}
+
+async function confirmRedeemOtp() {
+  if (!customerProfile.value || !selectedRewardId.value || !otpInput.value.trim()) return
+  redeemBusy.value = true
+  otpMessage.value = ''
+  otpError.value = false
+  try {
+    const res = await loyaltyApi.redeem(customerProfile.value.id, selectedRewardId.value, otpInput.value.trim())
+    customerProfile.value.points = res.points
+
+    const reward = rewardList.value.find(r => r.id === selectedRewardId.value)
+    if (reward) {
+      redeemedRewardName.value = reward.name
+      redeemedRewardPoints.value = reward.points
+      const isToppingReward = reward.name.toLowerCase().includes('topping') || reward.points === 100
+      if (isToppingReward) {
+        let toppingPrice = 10000
+        for (const item of cart.value) {
+          if (item.toppings && item.toppings.length > 0) {
+            toppingPrice = item.toppings[0].gia || 10000
+            break
+          }
+          const menuItem = menu.value.find(m => m.maSanPham === item.maSanPham)
+          if (menuItem?.kieuMon === 'Topping' && item.unitPrice > 0) {
+            toppingPrice = item.unitPrice
+            break
+          }
+        }
+        redeemedDiscount.value = toppingPrice
+      } else if (reward.points === 50) {
+        redeemedDiscount.value = 20000
+      } else if (reward.points === 200) {
+        redeemedDiscount.value = Math.round(cartTotal.value * 0.1)
+      } else if (reward.points === 350) {
+        redeemedDiscount.value = 35000
+      } else if (reward.points === 500) {
+        redeemedDiscount.value = 50000
+      } else {
+        redeemedDiscount.value = 10000
+      }
+    }
+
+    otpMessage.value = `✓ Đổi quà thành công! Đã trừ điểm (Số dư mới: ${res.points} điểm).`
+    showRedeemSection.value = false
+    otpInput.value = ''
+  } catch (e: any) {
+    otpError.value = true
+    otpMessage.value = e?.message || 'Mã OTP không chính xác hoặc đã hết hạn.'
+  } finally {
+    redeemBusy.value = false
+  }
+}
+
 // ── Khuyến mãi ──
 const activePromos = ref<Promotion[]>([])
 const voucherCode = ref('')
 const appliedPromo = ref<ApplyResult | null>(null)
 const voucherError = ref('')
 const promoBusy = ref(false)
-const finalTotal = computed(() => Math.max(0, cartTotal.value - (appliedPromo.value?.tienGiam || 0)))
+const finalTotal = computed(() => Math.max(0, cartTotal.value - (appliedPromo.value?.tienGiam || 0) - redeemedDiscount.value))
 
 async function applyVoucher(opts: { maKhuyenMai?: number; code?: string }) {
   voucherError.value = ''
@@ -753,6 +1596,34 @@ function stopPolling() {
   if (pollInterval) { clearInterval(pollInterval); pollInterval = null }
 }
 
+async function refreshCustomerProfile() {
+  if (!customerProfile.value) return
+  try {
+    let updated: any = null
+    if (customerProfile.value.email) {
+      updated = await loyaltyApi.checkPublicEmail(customerProfile.value.email)
+    } else if (customerProfile.value.id) {
+      const detail = await loyaltyApi.get(customerProfile.value.id)
+      if (detail) {
+        updated = {
+          id: detail.id,
+          name: detail.name,
+          phone: detail.phone,
+          email: detail.email || '',
+          tier: detail.tier,
+          points: detail.points
+        }
+      }
+    }
+    if (updated) {
+      customerProfile.value = updated
+      localStorage.setItem('brewCustomerProfile', JSON.stringify(updated))
+    }
+  } catch (e) {
+    console.error('Không thể tự động cập nhật điểm khách hàng sau khi thanh toán:', e)
+  }
+}
+
 function startPolling(maDonHang: number) {
   stopPolling()
   pollCount.value = 0
@@ -766,13 +1637,51 @@ function startPolling(maDonHang: number) {
         clearCart()
         selectedTableId.value = null
         tables.value = await tablesApi.list()
+        await refreshCustomerProfile()
       }
     } catch { /* bỏ qua lỗi poll */ }
   }, 3000)
 }
 
+const customerReceiptEmail = ref('')
+const sendingPinEmail = ref(false)
+const pinEmailStatus = ref('')
+
+watch(customerProfile, (newVal) => {
+  if (newVal?.email) {
+    customerReceiptEmail.value = newVal.email
+  }
+}, { immediate: true })
+
+async function sendPinToEmail() {
+  const email = customerReceiptEmail.value.trim()
+  if (!email) {
+    toast.warning('Vui lòng nhập địa chỉ Gmail nhận mã PIN.', 'Thiếu thông tin')
+    return
+  }
+
+  sendingPinEmail.value = true
+  pinEmailStatus.value = ''
+  try {
+    const tbName = orderType.value === 'dine-in' ? tables.value.find(t => t.maBan === selectedTableId.value)?.tenBan || 'Bàn' : 'Mang về'
+    const res = await ordersApi.sendEmailReceipt({
+      email,
+      maDonHang: orderIdResponse.value || undefined,
+      tenBan: tbName,
+      maPinSession: paySuccessPinCode.value
+    })
+    pinEmailStatus.value = res.message || 'Đã gửi mã PIN bàn qua Gmail thành công!'
+    toast.success('Đã gửi mã PIN bàn qua Gmail!', 'Thành công')
+  } catch (err: any) {
+    toast.error(err.message || 'Không thể gửi Gmail. Vui lòng kiểm tra lại địa chỉ Gmail.')
+  } finally {
+    sendingPinEmail.value = false
+  }
+}
+
 async function openPay() {
   if (!canCheckout.value) return
+  await fetchMenuData()
   payMethod.value = 'TienMat'
   ckType.value = null
   cashReceived.value = null
@@ -783,9 +1692,11 @@ async function openPay() {
   payUrl.value = null
   qrError.value = ''
   createdOrderId.value = null
+  paySuccessPinCode.value = orderType.value === 'dine-in' ? selectedTable.value?.maPinSession || null : null
   clearPromo()
   payOpen.value = true
   try { if (activePromos.value.length === 0) activePromos.value = await promotionsApi.active() } catch { /* bỏ qua */ }
+  try { allCustomers.value = await loyaltyApi.list() } catch { allCustomers.value = [] }
 }
 
 function closePayModal() {
@@ -826,17 +1737,27 @@ async function confirmPay() {
         phuongThuc: 'TienMat',
         soTienKhachTra: cashReceived.value || finalTotal.value,
         maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null,
+        maKhachHang: customerProfile.value?.id ?? null,
       })
       toastChange.value = res.tienThoiLai
       orderIdResponse.value = res.maDonHang
       isTakeawayResponse.value = orderType.value === 'takeaway'
+      paySuccessPinCode.value = res.maPinSession || selectedTable.value?.maPinSession || null
       
+      auditLogsApi.createLog({
+        maNhanVien: authStore.user?.maNhanVien,
+        hanhDong: 'TẠO ĐƠN HÀNG',
+        module: 'ĐƠN HÀNG',
+        duLieuMoi: `Mới: Thu ngân vừa thanh toán đơn #${res.maDonHang} tại [${tbName}] - Tổng tiền: ${formatVND(posFinalTotal.value)}. Phương thức: Tiền mặt.`
+      }).catch(() => {})
+
       clearCart()
       isPriority.value = false
       selectedTableId.value = null
       tables.value = await tablesApi.list()
       payStep.value = 'success'
       showToast.value = true
+      await refreshCustomerProfile()
       setTimeout(() => (showToast.value = false), 5000)
     } else {
       // MoMo / VietQR: Bước 1 - Tạo đơn hàng trước
@@ -844,6 +1765,7 @@ async function confirmPay() {
         maBan: orderType.value === 'dine-in' ? selectedTableId.value : null,
         items,
         ghiChuDonHang: note.value.trim() || null,
+        maKhachHang: customerProfile.value?.id ?? null,
       })
       createdOrderId.value = order.maDonHang
       orderIdResponse.value = order.maDonHang
@@ -923,6 +1845,7 @@ async function manualConfirm() {
       clearCart()
       selectedTableId.value = null
       tables.value = await tablesApi.list()
+      await refreshCustomerProfile()
     } else {
       posError.value = res.message
     }
@@ -933,7 +1856,13 @@ async function manualConfirm() {
   }
 }
 
-onUnmounted(() => stopPolling())
+onUnmounted(() => {
+  stopPolling()
+  if (serviceReqInterval) clearInterval(serviceReqInterval)
+  if (timeIntervalId) clearInterval(timeIntervalId)
+  if (menuSyncIntervalId) clearInterval(menuSyncIntervalId)
+  if (posChannel) posChannel.close()
+})
 </script>
 
 <style scoped>

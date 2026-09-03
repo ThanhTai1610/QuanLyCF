@@ -11,7 +11,11 @@ public record MenuItemDto(
     string KieuMon,
     string? MoTa,
     bool LaMonNoiBat,
-    List<MenuSizeDto> KichCos);
+    List<MenuSizeDto> KichCos,
+    bool ApDungKhungGio = false,
+    string? GioBatDau = null,
+    string? GioKetThuc = null,
+    int? DiemTichLuy = 0);
 
 // ── Tạo đơn ──────────────────────────────────────────────────
 public record OrderLineRequest(int MaSanPham, int? MaKichCo, int SoLuong, string? GhiChuMon);
@@ -52,7 +56,15 @@ public record CheckoutRequest(
     decimal? SoTienKhachTra,
     int? MaKhuyenMai,
     int? MaKhachHang = null);          // khuyến mãi áp dụng (tuỳ chọn)
-public record CheckoutResult(int MaDonHang, int MaHoaDon, decimal TienGiam, decimal ThanhTien, decimal TienThoiLai, string PhuongThuc);
+public record CheckoutResult(
+    int MaDonHang,
+    int MaHoaDon,
+    decimal TienGiam,
+    decimal ThanhTien,
+    decimal TienThoiLai,
+    string PhuongThuc,
+    int DiemTichLuy = 0,
+    string? MaPinSession = null);
 public record MoveOrderResult(string KetQua, string? TenBanCu, string? TenBanMoi); // KetQua: moved | merged
 public record CancelOrderRequest(string? LyDo);
 public record UpdateOrderStatusRequest(string Status);

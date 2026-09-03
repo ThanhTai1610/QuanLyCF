@@ -98,10 +98,26 @@ namespace BackEnd.Features.Hr
             try
             {
                 var managerId = GetCurrentUserId();
-                await _hr.ReviewRequestAsync(id, managerId, req.Status);
-                return Ok(new { message = "Đã cập nhật trạng thái đơn từ thành công!" });
+                await _hr.ReviewRequestAsync(id, managerId, req.Status, req.Note);
+                return Ok(new { message = req.Status == "DaDuyet" ? "Đã duyệt đơn từ thành công!" : "Đã từ chối đơn từ thành công!" });
             }
             catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("review-checkin/{id:int}")]
+        [Authorize(Policy = Shared.Quyens.NhanSuQuanLy)]
+        public async Task<IActionResult> ReviewCheckIn(int id, [FromBody] ReviewCheckInPayload req)
+        {
+            try
+            {
+                var managerId = GetCurrentUserId();
+                await _hr.ReviewCheckInAsync(id, managerId, req.Status, req.Note);
+                return Ok(new { message = req.Status == "DaDuyet" || req.Status == "HopLe" ? "Đã duyệt công thành công!" : "Đã từ chối công thành công!" });
+            }
+            catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
@@ -114,11 +130,135 @@ namespace BackEnd.Features.Hr
             return Ok(data);
         }
 
+        [HttpPost("shifts")]
+        [Authorize(Policy = Shared.Quyens.NhanSuQuanLy)]
+        public async Task<IActionResult> CreateShift([FromBody] SaveShiftDefinitionRequest req)
+        {
+            try
+            {
+                var data = await _hr.CreateShiftDefinitionAsync(req);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("shifts/{id:int}")]
+        [Authorize(Policy = Shared.Quyens.NhanSuQuanLy)]
+        public async Task<IActionResult> UpdateShift(int id, [FromBody] SaveShiftDefinitionRequest req)
+        {
+            try
+            {
+                await _hr.UpdateShiftDefinitionAsync(id, req);
+                return Ok(new { message = "Đã cập nhật định nghĩa ca làm việc thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("shift-limits")]
+        [Authorize]
+        public async Task<IActionResult> GetShiftLimits()
+        {
+            var data = await _hr.GetShiftLimitsAsync();
+            return Ok(data);
+        }
+
+        [HttpPost("shift-limits")]
+        [Authorize(Policy = Shared.Quyens.NhanSuQuanLy)]
+        public async Task<IActionResult> SaveShiftLimits([FromBody] SaveShiftLimitsRequest req)
+        {
+            await _hr.SaveShiftLimitsAsync(req);
+            return Ok(new { message = "Đã lưu cấu hình giới hạn ca thành công!" });
+        }
+
+        [HttpDelete("shifts/{id:int}")]
+        [Authorize(Policy = Shared.Quyens.NhanSuQuanLy)]
+        public async Task<IActionResult> DeleteShiftDefinition(int id)
+        {
+            await _hr.DeleteShiftDefinitionAsync(id);
+            return Ok(new { message = "Đã xóa ca làm việc thành công!" });
+        }
+
         [HttpGet("employees")]
         public async Task<IActionResult> GetActiveEmployees()
         {
             var data = await _hr.GetActiveEmployeesAsync();
             return Ok(data);
+        }
+
+        [HttpGet("schedules")]
+        [Authorize]
+        public async Task<IActionResult> GetSchedules()
+        {
+            var data = await _hr.GetSchedulesAsync();
+            return Ok(data);
+        }
+
+        [HttpPost("schedules")]
+        [Authorize]
+        public async Task<IActionResult> CreateSchedule([FromBody] CreatePhanCaRequest req)
+        {
+            try
+            {
+                var data = await _hr.CreateScheduleAsync(req);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("schedules/{id:int}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteSchedule(int id)
+        {
+            await _hr.DeleteScheduleAsync(id);
+            return Ok(new { message = "Đã xóa ca phân công!" });
+        }
+
+        [HttpGet("payroll")]
+        [Authorize(Policy = Shared.Quyens.NhanSuQuanLy)]
+        public async Task<IActionResult> GetPayrollSummary([FromQuery] string? ky)
+        {
+            var data = await _hr.GetPayrollSummaryAsync(ky);
+            return Ok(data);
+        }
+
+        [HttpPut("employee-rate/{employeeId:int}")]
+        [Authorize(Policy = Shared.Quyens.NhanSuQuanLy)]
+        public async Task<IActionResult> UpdateEmployeeRate(int employeeId, [FromBody] UpdateEmployeeRateRequest req)
+        {
+            try
+            {
+                await _hr.UpdateEmployeeRateAsync(employeeId, req.LuongCoBan);
+                return Ok(new { message = "Đã cập nhật mức lương cơ bản thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("pay-salary/{employeeId:int}")]
+        [Authorize(Policy = Shared.Quyens.NhanSuQuanLy)]
+        public async Task<IActionResult> PaySalary(int employeeId, [FromBody] PaySalaryRequest req)
+        {
+            try
+            {
+                var managerId = GetCurrentUserId();
+                await _hr.PaySalaryAsync(employeeId, managerId, req);
+                return Ok(new { message = "Đã xác nhận thanh toán lương cho nhân viên thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         private int GetCurrentUserId()

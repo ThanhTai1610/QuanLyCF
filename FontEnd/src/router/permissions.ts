@@ -4,7 +4,7 @@ export const routePermission: Record<string, string | null> = {
   '/staff': 'TAIKHOAN_XEM',
   '/roles': 'TAIKHOAN_QUANLY',
   '/check-in': null,
-  '/shifts': 'NHANSU_XEM',
+  '/shifts': null,
   '/menu-admin': 'SANPHAM_XEM',
   '/combos': 'SANPHAM_XEM',
   '/categories': 'SANPHAM_XEM',

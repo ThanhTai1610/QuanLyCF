@@ -79,5 +79,50 @@ namespace BackEnd.Features.System
             _db.NhatKyHeThongs.RemoveRange(_db.NhatKyHeThongs);
             await _db.SaveChangesAsync();
         }
+
+        /// <summary>Thêm nhật ký lưu vết hệ thống.</summary>
+        public async Task<AuditLogItem> CreateLogAsync(CreateAuditLogDto req, string ipAddress)
+        {
+            var log = new Domain.Entities.NhatKyHeThong
+            {
+                MaNhanVien = req.MaNhanVien,
+                HanhDong = string.IsNullOrWhiteSpace(req.HanhDong) ? "HÀNH ĐỘNG" : req.HanhDong,
+                Module = string.IsNullOrWhiteSpace(req.Module) ? "HỆ THỐNG" : req.Module,
+                DuLieuCu = req.DuLieuCu,
+                DuLieuMoi = req.DuLieuMoi,
+                DiaChiIP = ipAddress,
+                ThietBi = string.IsNullOrWhiteSpace(req.ThietBi) ? "Web Application" : req.ThietBi,
+                ThoiGianTao = DateTime.UtcNow
+            };
+
+            _db.NhatKyHeThongs.Add(log);
+            await _db.SaveChangesAsync();
+
+            var nv = log.MaNhanVien.HasValue
+                ? await _db.NhanViens.FirstOrDefaultAsync(x => x.MaNhanVien == log.MaNhanVien.Value)
+                : null;
+
+            return new AuditLogItem(
+                log.MaNhatKy,
+                log.MaNhanVien,
+                nv?.HoTen,
+                log.HanhDong,
+                log.Module,
+                log.DuLieuCu,
+                log.DuLieuMoi,
+                log.DiaChiIP,
+                log.ThietBi,
+                log.ThoiGianTao
+            );
+        }
     }
+
+    public record CreateAuditLogDto(
+        int? MaNhanVien,
+        string HanhDong,
+        string Module,
+        string? DuLieuCu,
+        string? DuLieuMoi,
+        string? ThietBi
+    );
 }

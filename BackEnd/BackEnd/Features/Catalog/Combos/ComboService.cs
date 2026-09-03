@@ -13,7 +13,12 @@ public class ComboService
     public async Task<List<ComboListItem>> LayDanhSachAsync()
     {
         return await _db.Combos.OrderBy(x => x.TenCombo)
-            .Select(x => new ComboListItem(x.MaCombo, x.TenCombo, x.GiaCombo, x.HinhAnh, x.TrangThaiHoatDong, x.ChiTiets.Count))
+            .Select(x => new ComboListItem(
+                x.MaCombo, x.TenCombo, x.GiaCombo, x.HinhAnh, x.TrangThaiHoatDong, x.ChiTiets.Count,
+                x.ApDungKhungGio,
+                x.GioBatDau.HasValue ? x.GioBatDau.Value.ToString(@"hh\:mm") : null,
+                x.GioKetThuc.HasValue ? x.GioKetThuc.Value.ToString(@"hh\:mm") : null
+            ))
             .ToListAsync();
     }
 
@@ -22,8 +27,13 @@ public class ComboService
         var c = await _db.Combos.Include(x => x.ChiTiets).ThenInclude(ct => ct.SanPham)
             .FirstOrDefaultAsync(x => x.MaCombo == id);
         if (c is null) return null;
-        return new ComboDetail(c.MaCombo, c.TenCombo, c.GiaCombo, c.HinhAnh, c.MoTa, c.TrangThaiHoatDong,
-            c.ChiTiets.Select(ct => new ComboLineDto(ct.MaSanPham, ct.SoLuong, ct.SanPham.TenSanPham)));
+        return new ComboDetail(
+            c.MaCombo, c.TenCombo, c.GiaCombo, c.HinhAnh, c.MoTa, c.TrangThaiHoatDong,
+            c.ChiTiets.Select(ct => new ComboLineDto(ct.MaSanPham, ct.SoLuong, ct.SanPham.TenSanPham)),
+            c.ApDungKhungGio,
+            c.GioBatDau.HasValue ? c.GioBatDau.Value.ToString(@"hh\:mm") : null,
+            c.GioKetThuc.HasValue ? c.GioKetThuc.Value.ToString(@"hh\:mm") : null
+        );
     }
 
     public async Task<ServiceResult<int>> TaoAsync(SaveComboRequest req)
@@ -38,6 +48,9 @@ public class ComboService
             HinhAnh = req.HinhAnh,
             MoTa = req.MoTa,
             TrangThaiHoatDong = req.TrangThaiHoatDong,
+            ApDungKhungGio = req.ApDungKhungGio,
+            GioBatDau = ParseTime(req.GioBatDau),
+            GioKetThuc = ParseTime(req.GioKetThuc),
             ChiTiets = req.ChiTiets.Select(l => new ChiTietCombo { MaSanPham = l.MaSanPham, SoLuong = l.SoLuong }).ToList(),
         };
         _db.Combos.Add(c);
@@ -57,6 +70,9 @@ public class ComboService
         c.HinhAnh = req.HinhAnh;
         c.MoTa = req.MoTa;
         c.TrangThaiHoatDong = req.TrangThaiHoatDong;
+        c.ApDungKhungGio = req.ApDungKhungGio;
+        c.GioBatDau = ParseTime(req.GioBatDau);
+        c.GioKetThuc = ParseTime(req.GioKetThuc);
 
         _db.ChiTietCombos.RemoveRange(c.ChiTiets);
         c.ChiTiets = req.ChiTiets.Select(l => new ChiTietCombo { MaSanPham = l.MaSanPham, SoLuong = l.SoLuong }).ToList();
@@ -64,6 +80,9 @@ public class ComboService
         await _db.SaveChangesAsync();
         return ServiceResult<bool>.Ok(true);
     }
+
+    private static TimeSpan? ParseTime(string? input) =>
+        TimeSpan.TryParse(input, out var ts) ? ts : null;
 
     public async Task<ServiceResult<bool>> XoaAsync(int id)
     {

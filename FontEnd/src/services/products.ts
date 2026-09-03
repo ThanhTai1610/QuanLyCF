@@ -18,6 +18,7 @@ export interface ProductListItem {
   kieuMon: string
   laMonNoiBat: boolean
   trangThaiBan: boolean
+  diemTichLuy?: number
 }
 
 export interface ProductDetail {
@@ -35,6 +36,7 @@ export interface ProductDetail {
   kieuMon: string
   trangThaiBan: boolean
   kichCos: SizeDto[]
+  diemTichLuy?: number
 }
 
 export interface CreateProductRequest {
@@ -51,6 +53,7 @@ export interface CreateProductRequest {
   kieuMon: string
   trangThaiBan: boolean
   kichCos: SizeDto[]
+  diemTichLuy?: number
 }
 
 export interface UpdateProductRequest extends CreateProductRequest {}
@@ -66,6 +69,11 @@ export interface CategoryItem {
   soLuongSanPham: number
 }
 
+export interface BulkUpdatePointsItem {
+  maSanPham: number
+  diemTichLuy: number
+}
+
 export const productsApi = {
   list: (params?: { q?: string; maDanhMuc?: number; dangBan?: boolean }) => {
     const query = new URLSearchParams()
@@ -77,6 +85,8 @@ export const productsApi = {
   get: (id: number) => api.get<ProductDetail>(`/api/products/${id}`),
   create: (body: CreateProductRequest) => api.post<ProductDetail>('/api/products', body),
   update: (id: number, body: UpdateProductRequest) => api.put<void>(`/api/products/${id}`, body),
+  updateStatus: (id: number, trangThaiBan: boolean) => api.patch<{ message: string; trangThaiBan: boolean }>(`/api/products/${id}/status`, { trangThaiBan }),
+  bulkUpdatePoints: (items: BulkUpdatePointsItem[]) => api.put<{ message: string }>('/api/products/bulk-points', { items }),
   delete: (id: number) => api.del<void>(`/api/products/${id}`),
 
   listCategories: (params?: { hienThi?: boolean }) => {

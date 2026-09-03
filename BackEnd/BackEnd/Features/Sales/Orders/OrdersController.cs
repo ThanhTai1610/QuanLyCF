@@ -85,11 +85,19 @@ public class OrdersController : ControllerBase
 
     [HttpGet("menu")]
     [AllowAnonymous]
-    public async Task<IActionResult> Menu() => Ok(await _svc.LayMenuAsync());
+    public async Task<IActionResult> Menu([FromQuery] bool isPos = false) => Ok(await _svc.LayMenuAsync(isPos));
 
     [HttpGet("active")]
     [Authorize(Policy = Quyens.DonHangXem)]
     public async Task<IActionResult> Active() => Ok(await _svc.LayDonActiveAsync());
+
+    [HttpGet("kitchen-active")]
+    [AllowAnonymous]
+    public async Task<IActionResult> KitchenActive() => Ok(await _svc.LayDonBepActiveAsync());
+
+    [HttpGet]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAll() => Ok(await _svc.LayTatCaDonHangAsync());
 
     [HttpGet("{id:int}")]
     [AllowAnonymous]
@@ -153,7 +161,7 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPut("{id:int}/status")]
-    [Authorize(Policy = Quyens.DonHangXuLy)]
+    [AllowAnonymous]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateOrderStatusRequest req)
     {
         var (ok, err) = await _svc.CapNhatTrangThaiAsync(id, req.Status);
@@ -188,6 +196,52 @@ public class OrdersController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GuestHistory(int maBan) => Ok(await _svc.LichSuBanAsync(maBan));
 
+    /// <summary>Lịch sử đơn hàng của 1 khách hàng (theo email đăng nhập Google/Tích điểm).</summary>
+    [HttpGet("customer-history")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CustomerHistory([FromQuery] string email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return BadRequest(new { message = "Email không được để trống." });
+        var cleanEmail = email.Trim().ToLower();
+        var customer = await _db.KhachHangs.FirstOrDefaultAsync(k => k.Email != null && k.Email.ToLower() == cleanEmail);
+        if (customer == null) return Ok(new List<OrderDto>());
+
+        var orders = await _db.DonHangs
+            .Include(d => d.Ban)
+            .Include(d => d.ChiTiets)
+                .ThenInclude(c => c.SanPham)
+            .Include(d => d.ChiTiets)
+                .ThenInclude(c => c.KichCo)
+            .Where(d => d.MaKhachHang == customer.MaKhachHang || (d.GhiChuDonHang != null && customer.SoDienThoai != null && d.GhiChuDonHang.Contains(customer.SoDienThoai)))
+            .OrderByDescending(d => d.ThoiGianTao)
+            .Take(30)
+            .ToListAsync();
+
+        var dtos = orders.Select(o => new OrderDto(
+            o.MaDonHang,
+            o.MaBan,
+            o.Ban?.TenBan,
+            o.LoaiDonHang,
+            o.TrangThaiDon,
+            o.ThanhTien,
+            o.ChiTiets.Sum(c => c.SoLuong),
+            o.ThoiGianTao,
+            o.ChiTiets.Select(c => new OrderItemDto(
+                c.MaChiTiet,
+                c.MaSanPham,
+                c.SanPham?.TenSanPham ?? "Món",
+                c.KichCo?.TenKichCo,
+                c.SoLuong,
+                c.DonGia,
+                c.ThanhTien,
+                c.GhiChuMon,
+                c.TrangThaiBep
+            )).ToList()
+        )).ToList();
+
+        return Ok(dtos);
+    }
+
     /// <summary>Khôi phục 1 đơn (đã hoàn tất/huỷ) về hoạt động.</summary>
     [HttpPost("{id:int}/restore")]
     [Authorize(Policy = Quyens.DonHangXuLy)]
@@ -196,4 +250,82 @@ public class OrdersController : ControllerBase
         var (ok, err) = await _svc.KhoiPhucDonAsync(id);
         return ok ? NoContent() : BadRequest(new { message = err });
     }
+
+    /// <summary>Gửi mã PIN Bàn & Hóa đơn tự động qua Gmail cho khách hàng.</summary>
+    [HttpPost("send-email-receipt")]
+    [AllowAnonymous]
+    public async Task<IActionResult> SendEmailReceipt([FromBody] SendOrderReceiptEmailRequest req, [FromServices] Shared.EmailService emailSvc)
+    {
+        if (string.IsNullOrWhiteSpace(req.Email))
+        {
+            return BadRequest(new { message = "Vui lòng nhập Email để nhận Mã PIN & Hóa đơn." });
+        }
+
+        var cleanEmail = req.Email.Trim().ToLower();
+        var pinCode = req.MaPinSession ?? "---";
+        var tableName = string.IsNullOrWhiteSpace(req.TenBan) ? "Đơn hàng" : req.TenBan;
+
+        string bodyHtml = $@"
+        <div style='font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; border: 1px solid #EAE3D9; border-radius: 16px; overflow: hidden; background: #FFFFFF;'>
+          <div style='background: #1A1512; color: #FFFFFF; padding: 24px; text-align: center;'>
+            <h1 style='color: #E89E53; margin: 0; font-size: 24px;'>F6 COFFEE</h1>
+            <p style='margin: 6px 0 0 0; font-size: 13px; color: #A09890;'>Thông tin Đặt Món & Mã PIN Bàn</p>
+          </div>
+
+          <div style='padding: 24px;'>
+            <p style='font-size: 14px; color: #2A231E;'>Xin chào quý khách,</p>
+            <p style='font-size: 14px; color: #5C544E; line-height: 1.6;'>
+              Cảm ơn quý khách đã đặt món thành công tại <strong>{tableName}</strong>! Dưới đây là thông tin mã PIN để người ngồi cùng bàn có thể tiếp tục quét QR và đặt món:
+            </p>
+
+            <div style='background: #FAF6F0; border: 2px dashed #CC8033; border-radius: 12px; padding: 18px; text-align: center; margin: 20px 0;'>
+              <span style='font-size: 11px; font-weight: bold; color: #8A8178; text-transform: uppercase; letter-spacing: 1px;'>🔑 MÃ PIN BÀN CỦA BẠN:</span>
+              <div style='font-size: 36px; font-weight: 900; color: #CC8033; letter-spacing: 8px; margin-top: 8px;'>{pinCode}</div>
+              <p style='font-size: 11px; color: #8A8178; margin-top: 8px;'>Người đi cùng quét QR trên bàn và nhập mã 4 số này để gọi thêm món.</p>
+            </div>
+
+            <div style='border-top: 1px solid #EAE3D9; padding-top: 16px; margin-top: 20px; font-size: 12px; color: #8A8178; text-align: center;'>
+              <p style='margin: 0;'>F6 Coffee chúc quý khách một buổi thưởng thức cà phê thật tuyệt vời! ☕</p>
+            </div>
+          </div>
+        </div>";
+
+        try
+        {
+            bool sent = await emailSvc.SendEmailAsync(cleanEmail, $"[F6 Coffee] Mã PIN Bàn {tableName}: {pinCode}", bodyHtml);
+            if (sent)
+            {
+                return Ok(new { message = $"Đã gửi mã PIN bàn ({pinCode}) và thông tin hóa đơn tới email {cleanEmail} thành công!" });
+            }
+            return BadRequest(new { message = "Không thể gửi Email. Vui lòng kiểm tra lại địa chỉ Gmail." });
+        }
+        catch (Exception ex)
+        {
+            return Ok(new { message = $"[MÔ PHỎNG] Đã ghi nhận mã PIN {pinCode} gửi tới Email {cleanEmail}! (Cần điền SmtpPass trong appsettings.json để gửi thật)", isMock = true });
+        }
+    }
+
+    /// <summary>Cập nhật trạng thái bếp của từng món (ChoLam -> HoanThanh / ChoLam).</summary>
+    [HttpPut("items/{maChiTiet:int}/kitchen-status")]
+    [AllowAnonymous]
+    public async Task<IActionResult> UpdateItemKitchenStatus(int maChiTiet, [FromBody] UpdateKitchenStatusRequest req)
+    {
+        var ct = await _db.ChiTietDonHangs.FindAsync(maChiTiet);
+        if (ct == null) return NotFound(new { message = "Không tìm thấy chi tiết món." });
+
+        ct.TrangThaiBep = req.TrangThaiBep;
+        if (req.TrangThaiBep == "HoanThanh") ct.ThoiGianLamXong = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        return Ok(new { success = true, trangThaiBep = ct.TrangThaiBep });
+    }
 }
+
+public record SendOrderReceiptEmailRequest(
+    string Email,
+    int? MaDonHang,
+    string? TenBan,
+    string? MaPinSession
+);
+
+public record UpdateKitchenStatusRequest(string TrangThaiBep);

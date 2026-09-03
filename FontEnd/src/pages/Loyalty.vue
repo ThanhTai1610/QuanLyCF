@@ -20,16 +20,22 @@
 
     <!-- TIER BENEFITS -->
     <div class="bg-white rounded-xl border border-cream-deep shadow-sm overflow-hidden">
-      <button
-        @click="showBenefits = !showBenefits"
-        class="w-full flex items-center justify-between px-5 py-3.5 hover:bg-background/50 transition-colors"
-      >
-        <span class="flex items-center gap-2 text-sm font-bold text-espresso">
+      <div class="w-full flex items-center justify-between px-5 py-3.5 border-b border-cream-deep/60">
+        <button
+          @click="showBenefits = !showBenefits"
+          class="flex items-center gap-2 text-sm font-bold text-espresso hover:text-[#CC8033] transition-colors"
+        >
           <Gift class="w-4 h-4 text-[#CC8033]" /> Quyền lợi theo hạng thành viên
-        </span>
-        <ChevronDown class="w-4 h-4 text-muted-foreground transition-transform" :class="{ 'rotate-180': showBenefits }" />
-      </button>
-      <div v-if="showBenefits" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 pt-0">
+          <ChevronDown class="w-4 h-4 text-muted-foreground transition-transform" :class="{ 'rotate-180': showBenefits }" />
+        </button>
+        <button
+          @click="openTierConfigModal"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#CC8033]/10 text-[#CC8033] hover:bg-[#CC8033]/20 text-xs font-bold transition-colors"
+        >
+          <Settings class="w-3.5 h-3.5" /> Chỉnh sửa mức điểm
+        </button>
+      </div>
+      <div v-if="showBenefits" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4">
         <div
           v-for="tier in tiers"
           :key="tier.name"
@@ -61,7 +67,7 @@
         <Search class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
           v-model="searchQuery"
-          placeholder="Tìm theo tên hoặc số điện thoại..."
+          placeholder="Tìm theo tên hoặc email..."
           class="w-full pl-9 pr-4 h-9 bg-background border border-cream-deep rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-caramel/20 focus:border-caramel transition-all"
         />
       </div>
@@ -111,7 +117,7 @@
               </div>
               <div>
                 <div class="font-bold text-espresso leading-tight">{{ customer.name }}</div>
-                <div class="text-xs text-muted-foreground">{{ customer.phone }}</div>
+                <div v-if="customer.email" class="text-xs text-muted-foreground truncate max-w-[140px]">{{ customer.email }}</div>
               </div>
             </div>
             <span
@@ -128,7 +134,7 @@
             <div class="flex justify-between text-[11px] mb-1.5">
               <span class="font-bold text-espresso">{{ customer.points.toLocaleString() }} điểm</span>
               <span class="text-muted-foreground">
-                {{ customer.tier === 'Kim cương' ? 'Hạng cao nhất' : `/ ${nextTierPoints(customer.tier).toLocaleString()}` }}
+                {{ normalizeTier(customer.tier) === 'Kim cương' ? 'Hạng cao nhất' : `/ ${nextTierPoints(customer.tier).toLocaleString()}` }}
               </span>
             </div>
             <div class="h-2 rounded-full bg-cream-deep overflow-hidden">
@@ -216,7 +222,7 @@
             </div>
             <div>
               <h3 class="text-lg font-bold">{{ selectedCustomer.name }}</h3>
-              <p class="text-sm text-white/80">{{ selectedCustomer.phone }}</p>
+              <p v-if="selectedCustomer.email" class="text-sm text-white/80">{{ selectedCustomer.email }}</p>
               <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/25">
                 <component :is="tierIcon(selectedCustomer.tier)" class="w-3 h-3" />
                 {{ selectedCustomer.tier }}
@@ -330,7 +336,7 @@
 
         <div class="space-y-3">
           <div>
-            <label class="text-xs font-semibold text-espresso mb-1.5 block">Họ và tên</label>
+            <label class="text-xs font-semibold text-espresso mb-1.5 block">Họ và tên <span class="text-red-500">*</span></label>
             <input
               v-model="form.name"
               placeholder="Nguyễn Văn A"
@@ -338,10 +344,10 @@
             />
           </div>
           <div>
-            <label class="text-xs font-semibold text-espresso mb-1.5 block">Số điện thoại</label>
+            <label class="text-xs font-semibold text-espresso mb-1.5 block">Số điện thoại (Tùy chọn)</label>
             <input
               v-model="form.phone"
-              placeholder="0912345678"
+              placeholder="VD: 0901234567"
               class="w-full h-10 px-3 bg-background border border-cream-deep rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-caramel/20 focus:border-caramel transition-all"
             />
           </div>
@@ -354,7 +360,7 @@
             />
           </div>
           <div>
-            <label class="text-xs font-semibold text-espresso mb-1.5 block">Ghi chú</label>
+            <label class="text-xs font-semibold text-espresso mb-1.5 block">Ghi chú (Tùy chọn)</label>
             <input
               v-model="form.note"
               placeholder="VD: Khách quen, thích đồ ngọt nhẹ..."
@@ -430,17 +436,90 @@
         </div>
       </div>
     </div>
+
+    <!-- MODAL CHỈNH SỬA MỨC ĐIỂM HẠNG -->
+    <div
+      v-if="showTierConfigModal"
+      class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-cream-deep">
+        <!-- Header -->
+        <div class="bg-[#CC8033] p-5 text-white flex items-center justify-between">
+          <div class="flex items-center gap-2 font-bold text-lg">
+            <Settings class="w-5 h-5" /> Cài đặt mức điểm các hạng thành viên
+          </div>
+          <button @click="showTierConfigModal = false" class="p-1 rounded-lg hover:bg-white/20 transition-colors">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <!-- Form Body -->
+        <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+          <p class="text-xs text-muted-foreground">
+            Chỉnh sửa hạn mức điểm yêu cầu để đạt từng hạng thành viên và câu chữ quyền lợi hiển thị.
+          </p>
+
+          <div v-for="item in tierConfigForm" :key="item.name" class="p-4 rounded-xl border border-cream-deep bg-background/50 space-y-3">
+            <div class="flex items-center justify-between font-bold text-sm text-espresso">
+              <span class="flex items-center gap-2">
+                <component :is="tierIcon(item.name)" class="w-4 h-4" :style="{ color: tierColor(item.name) }" />
+                Hạng {{ item.name }}
+              </span>
+              <span v-if="item.name === 'Đồng'" class="text-xs text-muted-foreground font-normal">Cố định từ 0 điểm</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div v-if="item.name !== 'Đồng'">
+                <label class="block text-[11px] font-semibold text-espresso mb-1">Mức điểm yêu cầu (từ)</label>
+                <input
+                  type="number"
+                  min="0"
+                  v-model.number="item.min"
+                  class="w-full px-3 py-2 text-xs rounded-lg border border-cream-deep focus:outline-none focus:border-[#CC8033]"
+                />
+              </div>
+
+              <div :class="item.name === 'Đồng' ? 'col-span-2' : ''">
+                <label class="block text-[11px] font-semibold text-espresso mb-1">Quyền lợi hiển thị</label>
+                <input
+                  type="text"
+                  v-model="item.benefit"
+                  placeholder="Ví dụ: Mua 10 ly tặng 1 ly"
+                  class="w-full px-3 py-2 text-xs rounded-lg border border-cream-deep focus:outline-none focus:border-[#CC8033]"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 bg-background border-t border-cream-deep flex items-center justify-end gap-3">
+          <button
+            @click="showTierConfigModal = false"
+            class="px-4 py-2 rounded-xl border border-cream-deep text-xs font-semibold text-espresso hover:bg-cream-deep/50 transition-colors"
+          >
+            Hủy
+          </button>
+          <button
+            @click="saveTierConfigs"
+            class="px-5 py-2 rounded-xl bg-[#CC8033] hover:bg-[#b5702b] text-white text-xs font-bold shadow-md transition-colors"
+          >
+            Lưu cài đặt
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Search, Users, UserPlus, Eye, X, Clock,
   Star, Award, Gem, Crown, Pencil, Trash2,
-  Gift, Ticket, Percent, Coffee, Cookie, ChevronDown, Check, Lock
+  Gift, Ticket, Percent, Coffee, Cookie, ChevronDown, Check, Lock, Settings
 } from 'lucide-vue-next'
-import { loyaltyApi, type Customer, type Reward } from '@/services/loyalty'
+import { loyaltyApi, type Customer, type Reward, type TierConfig } from '@/services/loyalty'
 import { useToast } from '@/stores/toast'
 import { useAlert } from '@/stores/alert'
 // ─── Composable Notifications ────────────────────────────────────────────────
@@ -467,24 +546,75 @@ const currentRedeemCustomer = ref<Customer | null>(null)
 const currentRedeemReward = ref<any>(null)
 
 // ─── Tier benefits ─────────────────────────────────────────────────────────────
-const tiers = [
+const tiers = ref([
   {
     name: 'Đồng', icon: Award, color: '#fb923c', min: 0,
-    benefits: ['Tích 1 điểm / 1.000đ', 'Ưu đãi ngày sinh nhật'],
+    benefits: ['Mua 10 ly tặng 1 ly'],
   },
   {
     name: 'Bạc', icon: Star, color: '#94a3b8', min: 500,
-    benefits: ['Tích 1.2 điểm / 1.000đ', 'Giảm 5% đồ uống', 'Ưu đãi sinh nhật'],
+    benefits: ['Mua 7 ly tặng 1 ly'],
   },
   {
     name: 'Vàng', icon: Crown, color: '#fbbf24', min: 1500,
-    benefits: ['Tích 1.5 điểm / 1.000đ', 'Giảm 10% hóa đơn', 'Tặng 1 topping', 'Ưu tiên đặt bàn'],
+    benefits: ['Mua 5 ly tặng 1 ly'],
   },
   {
     name: 'Kim cương', icon: Gem, color: '#60a5fa', min: 3000,
-    benefits: ['Tích 2 điểm / 1.000đ', 'Giảm 15% hóa đơn', 'Đồ uống tặng hàng tháng', 'Quà tặng đặc biệt'],
+    benefits: ['Mua 3 ly tặng 1 ly'],
   },
-]
+])
+
+const showTierConfigModal = ref(false)
+const tierConfigForm = ref<TierConfig[]>([
+  { name: 'Đồng', min: 0, benefit: 'Mua 10 ly tặng 1 ly' },
+  { name: 'Bạc', min: 500, benefit: 'Mua 7 ly tặng 1 ly' },
+  { name: 'Vàng', min: 1500, benefit: 'Mua 5 ly tặng 1 ly' },
+  { name: 'Kim cương', min: 3000, benefit: 'Mua 3 ly tặng 1 ly' },
+])
+
+const fetchTierConfigs = async () => {
+  try {
+    const list = await loyaltyApi.getTierConfigs()
+    if (list && list.length) {
+      list.forEach(item => {
+        const found = tiers.value.find(t => t.name === item.name)
+        if (found) {
+          found.min = item.min
+          if (item.benefit) found.benefits = [item.benefit]
+        }
+      })
+    }
+  } catch (e) {
+    console.error('Không thể tải cấu hình hạng thành viên', e)
+  }
+}
+
+const openTierConfigModal = () => {
+  tierConfigForm.value = tiers.value.map(t => ({
+    name: t.name,
+    min: t.min,
+    benefit: t.benefits[0] || ''
+  }))
+  showTierConfigModal.value = true
+}
+
+const saveTierConfigs = async () => {
+  try {
+    await loyaltyApi.saveTierConfigs(tierConfigForm.value)
+    tierConfigForm.value.forEach(item => {
+      const found = tiers.value.find(t => t.name === item.name)
+      if (found) {
+        found.min = item.min
+        found.benefits = [item.benefit]
+      }
+    })
+    toast.success('Đã lưu cài đặt mức điểm các hạng thành công!')
+    showTierConfigModal.value = false
+  } catch (err: any) {
+    toast.error(err.message || 'Không thể lưu cài đặt.')
+  }
+}
 
 // ─── Rewards catalog ───────────────────────────────────────────────────────────
 const getRewardIcon = (name: string) => {
@@ -524,17 +654,40 @@ const loadRewards = async () => {
   }
 }
 
+const loadCustomersSilent = async () => {
+  try {
+    const list = await loyaltyApi.list()
+    customers.value = list
+  } catch (e) {}
+}
+
+let autoPollTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted(() => {
   loadCustomers()
   loadRewards()
+  fetchTierConfigs()
+
+  // Tự động kiểm tra và cập nhật danh sách khách hàng ngầm (không giật lag) mỗi 3 giây
+  autoPollTimer = setInterval(() => {
+    loadCustomersSilent()
+  }, 3000)
+
+  window.addEventListener('storage', loadCustomersSilent)
+})
+
+onUnmounted(() => {
+  if (autoPollTimer) clearInterval(autoPollTimer)
+  window.removeEventListener('storage', loadCustomersSilent)
 })
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
 const filteredCustomers = computed(() => {
   return customers.value.filter(c => {
+    const q = searchQuery.value.toLowerCase()
     const matchSearch =
-      c.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      c.phone.includes(searchQuery.value)
+      c.name.toLowerCase().includes(q) ||
+      (c.email && c.email.toLowerCase().includes(q))
     const matchTier = selectedTier.value === 'Tất cả' || c.tier === selectedTier.value
     return matchSearch && matchTier
   })
@@ -555,33 +708,53 @@ const avatarColor = (name: string) => avatarColors[name.charCodeAt(0) % avatarCo
 const formatVnd = (n: number) =>
   n >= 1000000 ? (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + 'tr' : n.toLocaleString() + 'đ'
 
-const tierClass = (tier: string) => ({
-  'Kim cương': 'bg-blue-50 text-blue-600',
-  'Vàng': 'bg-yellow-50 text-yellow-600',
-  'Bạc': 'bg-slate-100 text-slate-500',
-  'Đồng': 'bg-orange-50 text-orange-600',
-}[tier] ?? 'bg-gray-100 text-gray-500')
+const normalizeTier = (tier: string = '') => {
+  const t = (tier || '').toLowerCase().trim()
+  if (t.includes('kim cương') || t.includes('diamond')) return 'Kim cương'
+  if (t.includes('vàng') || t.includes('gold')) return 'Vàng'
+  if (t.includes('bạc') || t.includes('silver')) return 'Bạc'
+  return 'Đồng'
+}
 
-const tierColor = (tier: string) => ({
-  'Kim cương': '#60a5fa',
-  'Vàng': '#fbbf24',
-  'Bạc': '#94a3b8',
-  'Đồng': '#fb923c',
-}[tier] ?? '#CC8033')
+const tierClass = (tier: string) => {
+  const norm = normalizeTier(tier)
+  return {
+    'Kim cương': 'bg-blue-50 text-blue-600',
+    'Vàng': 'bg-amber-50 text-amber-600',
+    'Bạc': 'bg-slate-100 text-slate-600',
+    'Đồng': 'bg-orange-50 text-orange-600',
+  }[norm] ?? 'bg-orange-50 text-orange-600'
+}
 
-const tierIcon = (tier: string) => ({
-  'Kim cương': Gem,
-  'Vàng': Crown,
-  'Bạc': Star,
-  'Đồng': Award,
-}[tier] ?? Award)
+const tierColor = (tier: string) => {
+  const norm = normalizeTier(tier)
+  return {
+    'Kim cương': '#60a5fa',
+    'Vàng': '#fbbf24',
+    'Bạc': '#94a3b8',
+    'Đồng': '#fb923c',
+  }[norm] ?? '#fb923c'
+}
 
-const nextTierPoints = (tier: string) => ({
-  'Đồng': 500,
-  'Bạc': 1500,
-  'Vàng': 3000,
-  'Kim cương': 9999,
-}[tier] ?? 9999)
+const tierIcon = (tier: string) => {
+  const norm = normalizeTier(tier)
+  return {
+    'Kim cương': Gem,
+    'Vàng': Crown,
+    'Bạc': Star,
+    'Đồng': Award,
+  }[norm] ?? Award
+}
+
+const nextTierPoints = (tier: string) => {
+  const norm = normalizeTier(tier)
+  return {
+    'Đồng': 500,
+    'Bạc': 2000,
+    'Vàng': 3000,
+    'Kim cương': 3000,
+  }[norm] ?? 500
+}
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 const openDetail = async (customer: Customer) => {
@@ -650,12 +823,12 @@ const openEdit = (customer: Customer) => {
 
 const handleSaveCustomer = async () => {
   const name = form.value.name.trim()
-  const phone = form.value.phone.trim()
+  const phone = form.value.phone.trim() || ''
   const email = form.value.email.trim()
   const note = form.value.note.trim()
   
-  if (!name || !phone) {
-    toast.warning('Vui lòng điền họ tên và số điện thoại.')
+  if (!name) {
+    toast.warning('Vui lòng điền họ và tên khách hàng.')
     return
   }
 

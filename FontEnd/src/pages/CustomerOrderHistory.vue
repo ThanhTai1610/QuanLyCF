@@ -430,7 +430,7 @@ const loginBenefits = [
   { emoji: '⭐', label: 'Tích điểm' },
   { emoji: '🎁', label: 'Voucher 10%' },
   { emoji: '📋', label: 'Lịch sử đơn' },
-  { emoji: '🎂', label: 'Ưu đãi sinh nhật' },
+  { emoji: '☕', label: 'Mua tặng ưu đãi' },
 ]
 </script>
 

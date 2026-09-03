@@ -342,7 +342,7 @@
                   </td>
                 </tr>
                 <tr 
-                  v-for="salary in filteredSalaries" 
+                  v-for="salary in paginatedSalaries" 
                   :key="salary.maBangLuong" 
                   class="border-b border-[#EAE3D9]/60 hover:bg-[#F5F2ED] transition-colors group"
                 >
@@ -378,6 +378,32 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <!-- Pagination Footer cho Bảng Lương -->
+          <div class="p-4 border-t border-[#EAE3D9] bg-[#F9F8F6] flex flex-col sm:flex-row items-center justify-between gap-4">
+            <span class="text-xs font-semibold text-[#8A8178]">
+              Hiển thị {{ filteredSalaries.length ? Math.min((salaryPage - 1) * salaryPerPage + 1, filteredSalaries.length) : 0 }}-{{ Math.min(salaryPage * salaryPerPage, filteredSalaries.length) }} trên tổng số {{ filteredSalaries.length }} nhân sự
+            </span>
+            <div class="flex items-center gap-2">
+              <button 
+                @click="salaryPage--" 
+                :disabled="salaryPage === 1"
+                class="px-3 py-1.5 border border-[#EAE3D9] rounded-md text-xs font-bold bg-white text-[#5C544E] hover:bg-[#F5F2ED] disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                Trước
+              </button>
+              <span class="text-xs font-bold text-[#2A231E]">
+                Trang {{ salaryPage }} / {{ totalSalaryPages }}
+              </span>
+              <button 
+                @click="salaryPage++" 
+                :disabled="salaryPage === totalSalaryPages"
+                class="px-3 py-1.5 border border-[#EAE3D9] rounded-md text-xs font-bold bg-white text-[#5C544E] hover:bg-[#F5F2ED] disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                Sau
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -668,8 +694,27 @@ const totalPages = computed(() => {
 
 const filteredSalaries = computed(() => {
   return salariesList.value.filter(item => {
-    return !salarySearch.value || item.hoTen.toLowerCase().includes(salarySearch.value.toLowerCase())
+    const isNotAdmin = item.hoTen !== 'Quản trị viên' && item.tenVaiTro !== 'Quản trị viên'
+    const matchSearch = !salarySearch.value || item.hoTen.toLowerCase().includes(salarySearch.value.toLowerCase())
+    return isNotAdmin && matchSearch
   })
+})
+
+const salaryPage = ref(1)
+const salaryPerPage = ref(10)
+
+watch([salarySearch, salaryPerPage], () => {
+  salaryPage.value = 1
+})
+
+const paginatedSalaries = computed(() => {
+  const start = (salaryPage.value - 1) * salaryPerPage.value
+  const end = start + salaryPerPage.value
+  return filteredSalaries.value.slice(start, end)
+})
+
+const totalSalaryPages = computed(() => {
+  return Math.ceil(filteredSalaries.value.length / salaryPerPage.value) || 1
 })
 
 const totalSalarySum = computed(() => {

@@ -206,6 +206,7 @@
             <span class="font-mono text-xs font-bold text-[#2A231E]">#{{ req.maPhieu }}</span>
             <span class="text-xs text-[#5C544E]">{{ new Date(req.thoiGianTao).toLocaleString('vi-VN') }}</span>
             <span class="px-2.5 py-1 rounded-full bg-[#EAE3D9]/60 text-[#5C544E] text-[10px] font-bold uppercase tracking-wider">{{ req.chiTiets.length }} mặt hàng</span>
+            <span v-if="req.ghiChu" class="text-xs text-[#8A8178] italic hidden sm:inline-block">📝 {{ req.ghiChu }}</span>
           </div>
           <div class="flex items-center gap-2">
             <span v-if="statusBadge[req.trangThai as keyof typeof statusBadge]" :class="['inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wider', statusBadge[req.trangThai as keyof typeof statusBadge].cls]">
@@ -217,10 +218,16 @@
             </template>
           </div>
         </div>
-        <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          <div v-for="(it, i) in req.chiTiets" :key="i" class="flex items-center justify-between bg-[#FDFBF7] border border-[#EAE3D9] rounded-lg px-3 py-2">
-            <span class="text-xs font-bold text-[#2A231E]">{{ it.tenNguyenLieu }}</span>
-            <span class="text-xs font-bold" :class="it.chenhLech > 0 ? 'text-[#4A7C59]' : 'text-red-500'">{{ it.chenhLech > 0 ? '+' : '' }}{{ formatNumber(it.chenhLech) }}</span>
+        <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          <div v-for="(it, i) in req.chiTiets" :key="i" class="flex flex-col justify-between bg-[#FDFBF7] border border-[#EAE3D9] rounded-xl p-3 gap-1.5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-[#2A231E] truncate" :title="it.tenNguyenLieu">{{ it.tenNguyenLieu }}</span>
+              <span class="text-xs font-mono font-bold shrink-0 ml-2" :class="it.chenhLech > 0 ? 'text-[#4A7C59]' : 'text-red-500'">{{ it.chenhLech > 0 ? '+' : '' }}{{ formatNumber(it.chenhLech) }}</span>
+            </div>
+            <div v-if="it.lyDoLech" class="text-[11px] text-[#CC8033] font-medium flex items-center gap-1.5 bg-[#FFF9F2] px-2.5 py-1 rounded-lg border border-[#CC8033]/25 mt-0.5">
+              <span class="font-bold shrink-0">📌 Lý do:</span>
+              <span class="italic truncate" :title="it.lyDoLech">{{ it.lyDoLech }}</span>
+            </div>
           </div>
         </div>
       </div>

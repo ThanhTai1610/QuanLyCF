@@ -6,8 +6,8 @@ namespace BackEnd.Features.Sales.Orders;
 
 public class OrderService
 {
-    // Đơn còn hoạt động (chưa hoàn thành/huỷ)
-    private static readonly string[] TrangThaiActive = { "ChoXacNhan", "DangPha" };
+    // Đơn còn hoạt động (chưa đóng bàn/huỷ)
+    private static readonly string[] TrangThaiActive = { "ChoThanhToan", "ChoXacNhan", "DangPha", "DaPhaXong", "HoanThanh" };
 
     private readonly QuanLyCFDbContext _db;
     private readonly Promotions.PromotionService _promo;
@@ -16,7 +16,7 @@ public class OrderService
         _db = db; _promo = promo;
     }
 
-    public async Task<List<MenuItemDto>> LayMenuAsync() 
+    public async Task<List<MenuItemDto>> LayMenuAsync(bool isPos = false) 
     {
         var rawMenu = await _db.SanPhams.Where(x => x.TrangThaiBan)
             .Include(x => x.DanhMuc).Include(x => x.KichCos)
@@ -30,22 +30,6 @@ public class OrderService
         {
             if (x.DanhMuc == null) return true;
             if (!x.DanhMuc.TrangThaiHoatDong) return false;
-            
-            if (x.DanhMuc.ApDungKhungGio && x.DanhMuc.GioBatDau.HasValue && x.DanhMuc.GioKetThuc.HasValue)
-            {
-                var start = x.DanhMuc.GioBatDau.Value;
-                var end = x.DanhMuc.GioKetThuc.Value;
-                
-                if (start <= end)
-                {
-                    if (currentTime < start || currentTime > end) return false;
-                }
-                else 
-                {
-                    // Khung giờ qua đêm (VD: 22:00 -> 06:00)
-                    if (currentTime < start && currentTime > end) return false;
-                }
-            }
             return true;
         });
 
@@ -53,7 +37,11 @@ public class OrderService
                 x.MaSanPham, x.TenSanPham, x.DanhMuc?.TenDanhMuc,
                 x.GiaBan, x.HinhAnh, x.KieuMon, x.MoTa, x.LaMonNoiBat,
                 x.KichCos.Where(s => s.TrangThaiHoatDong)
-                    .Select(s => new MenuSizeDto(s.MaKichCo, s.TenKichCo, s.GiaCongThem)).ToList()))
+                    .Select(s => new MenuSizeDto(s.MaKichCo, s.TenKichCo, s.GiaCongThem)).ToList(),
+                x.DanhMuc?.ApDungKhungGio ?? false,
+                x.DanhMuc?.GioBatDau?.ToString(@"hh\:mm"),
+                x.DanhMuc?.GioKetThuc?.ToString(@"hh\:mm"),
+                x.DiemTichLuy ?? 0))
             .ToList();
 
         // ── Thêm combo đang hoạt động vào menu (kieuMon = "Combo", maSanPham = -maCombo) ──
@@ -64,6 +52,20 @@ public class OrderService
 
         foreach (var cb in combos)
         {
+            if (cb.ApDungKhungGio && cb.GioBatDau.HasValue && cb.GioKetThuc.HasValue)
+            {
+                var start = cb.GioBatDau.Value;
+                var end = cb.GioKetThuc.Value;
+                if (start <= end)
+                {
+                    if (currentTime < start || currentTime > end) continue; // Tự động ẩn ngoài khung giờ
+                }
+                else
+                {
+                    if (currentTime < start && currentTime > end) continue; // Khung giờ qua đêm
+                }
+            }
+
             var moTaItems = string.Join(", ", cb.ChiTiets.Select(ct =>
                 ct.SoLuong > 1 ? $"{ct.SanPham.TenSanPham} x{ct.SoLuong}" : ct.SanPham.TenSanPham));
             menuItems.Add(new MenuItemDto(
@@ -75,21 +77,58 @@ public class OrderService
                 "Combo",              // kieuMon đặc biệt
                 cb.MoTa ?? moTaItems, // Mô tả gồm danh sách món
                 false,
-                new List<MenuSizeDto>()));
+                new List<MenuSizeDto>(),
+                cb.ApDungKhungGio,
+                cb.GioBatDau?.ToString(@"hh\:mm"),
+                cb.GioKetThuc?.ToString(@"hh\:mm")));
         }
 
         return menuItems;
     }
 
-    /// <summary>Tất cả đơn đang hoạt động (để hiển thị trên bàn).</summary>
+    /// <summary>Tất cả đơn đang phục vụ của lượt khách hiện tại trên bàn (chưa bị đóng bàn DaDongBan).</summary>
     public async Task<List<OrderDto>> LayDonActiveAsync()
     {
         var dons = await _db.DonHangs
-            .Where(d => TrangThaiActive.Contains(d.TrangThaiDon))
+            .Where(d => d.Ban != null && d.Ban.TrangThai == "CoKhach" && d.TrangThaiDon != "Huy" && d.TrangThaiDon != "DaDongBan" &&
+                (
+                    d.TrangThaiDon == "ChoThanhToan" || 
+                    d.TrangThaiDon == "ChoXacNhan" || 
+                    d.TrangThaiDon == "DangPha" || 
+                    d.TrangThaiDon == "DaPhaXong" ||
+                    d.TrangThaiDon == "HoanThanh"
+                ))
             .Include(d => d.Ban)
             .Include(d => d.ChiTiets).ThenInclude(c => c.SanPham)
             .Include(d => d.ChiTiets).ThenInclude(c => c.KichCo)
             .OrderBy(d => d.ThoiGianTao)
+            .ToListAsync();
+        return dons.Select(Map).ToList();
+    }
+
+    /// <summary>Đơn hàng chờ pha chế cho màn hình Bếp KDS (LOẠI BỎ tuyệt đối đơn ChoThanhToan).</summary>
+    public async Task<List<OrderDto>> LayDonBepActiveAsync()
+    {
+        var kitchenStatuses = new[] { "ChoXacNhan", "DangPha", "DaPhaXong" };
+        var dons = await _db.DonHangs
+            .Where(d => kitchenStatuses.Contains(d.TrangThaiDon))
+            .Include(d => d.Ban)
+            .Include(d => d.ChiTiets).ThenInclude(c => c.SanPham)
+            .Include(d => d.ChiTiets).ThenInclude(c => c.KichCo)
+            .OrderBy(d => d.ThoiGianTao)
+            .ToListAsync();
+        return dons.Select(Map).ToList();
+    }
+
+    /// <summary>Lấy tất cả đơn hàng cho màn hình Quản lý đơn hàng (POS / Admin).</summary>
+    public async Task<List<OrderDto>> LayTatCaDonHangAsync()
+    {
+        var dons = await _db.DonHangs
+            .Include(d => d.Ban)
+            .Include(d => d.ChiTiets).ThenInclude(c => c.SanPham)
+            .Include(d => d.ChiTiets).ThenInclude(c => c.KichCo)
+            .OrderByDescending(d => d.ThoiGianTao)
+            .Take(100)
             .ToListAsync();
         return dons.Select(Map).ToList();
     }
@@ -115,13 +154,14 @@ public class OrderService
             .Where(s => spIds.Contains(s.MaSanPham))
             .ToDictionaryAsync(s => s.MaSanPham);
 
+        var isGuestQR = (maNhanVien == null);
         var don = new DonHang
         {
             MaBan = maBan,
             MaNhanVien = maNhanVien,
             MaKhachHang = maKhachHang,
             LoaiDonHang = maBan is null ? "TakeAway" : "DineIn",
-            TrangThaiDon = "ChoXacNhan",
+            TrangThaiDon = isGuestQR ? "ChoThanhToan" : "ChoXacNhan",
             GhiChuDonHang = ghiChu,
             ThoiGianTao = DateTime.UtcNow,
             ThoiGianCapNhat = DateTime.UtcNow,
@@ -151,7 +191,7 @@ public class OrderService
                 DonGia = donGia,
                 ThanhTien = thanhTien,
                 GhiChuMon = it.GhiChuMon,
-                TrangThaiBep = "ChoLam",
+                TrangThaiBep = isGuestQR ? "ChoThanhToan" : "ChoLam",
             });
         }
 
@@ -184,7 +224,7 @@ public class OrderService
                     DonGia = donGia,
                     ThanhTien = thanhTien,
                     GhiChuMon = $"[Combo] {combo.TenCombo}",
-                    TrangThaiBep = "ChoLam",
+                    TrangThaiBep = isGuestQR ? "ChoThanhToan" : "ChoLam",
                 });
             }
         }
@@ -272,50 +312,118 @@ public class OrderService
             ThoiGianThanhToan = DateTime.UtcNow,
         });
         _db.HoaDons.Add(hd);
+
+        // ── Tích điểm cho Khách hàng (Tích theo thiết lập của món hoặc 10.000đ = 1 điểm) ──
+        int diemTich = 0;
+        if (don.MaKhachHang is { } khId && khId > 0)
+        {
+            var kh = await _db.KhachHangs.FindAsync(khId);
+            if (kh != null)
+            {
+                foreach (var ct in don.ChiTiets)
+                {
+                    if (ct.MaSanPham.HasValue && ct.MaSanPham.Value > 0)
+                    {
+                        var sp = await _db.SanPhams.FindAsync(ct.MaSanPham.Value);
+                        if (sp != null && sp.DiemTichLuy.HasValue && sp.DiemTichLuy.Value > 0)
+                        {
+                            diemTich += sp.DiemTichLuy.Value * ct.SoLuong;
+                        }
+                        else
+                        {
+                            diemTich += (int)(ct.ThanhTien / 10000m);
+                        }
+                    }
+                }
+                if (diemTich <= 0) diemTich = (int)(don.ThanhTien / 10000m);
+
+                kh.DiemTichLuy += diemTich;
+                kh.TongDiemTichLuy += diemTich;
+                kh.TongTienDaTieu += don.ThanhTien;
+                kh.LanGheThamCuoi = DateTime.UtcNow;
+
+                int maxPts = Math.Max(kh.TongDiemTichLuy, kh.DiemTichLuy);
+                if (maxPts >= 3000) kh.HangThanhVien = "Diamond";
+                else if (maxPts >= 1500) kh.HangThanhVien = "Gold";
+                else if (maxPts >= 500) kh.HangThanhVien = "Silver";
+
+                if (diemTich > 0)
+                {
+                    _db.Set<LichSuDiem>().Add(new LichSuDiem
+                    {
+                        MaKhachHang = khId,
+                        LoaiBienDong = "Tich",
+                        SoDiem = diemTich,
+                        GhiChu = $"Tích điểm thanh toán đơn hàng #{don.MaDonHang}",
+                        ThoiGianTao = DateTime.UtcNow
+                    });
+                }
+            }
+        }
+
         await _db.SaveChangesAsync();
 
-        return (new CheckoutResult(don.MaDonHang, hd.MaHoaDon, tienGiam, don.ThanhTien, thoiLai, req.PhuongThuc), null);
+        string? pinSession = don.Ban?.MaPinSession;
+        return (new CheckoutResult(don.MaDonHang, hd.MaHoaDon, tienGiam, don.ThanhTien, thoiLai, req.PhuongThuc, diemTich, pinSession), null);
     }
 
-    /// <summary>Đổi bàn: bàn trống thì chuyển đơn; bàn đã có đơn thì ghép bàn (giữ đơn riêng).</summary>
+    /// <summary>Đổi bàn: chuyển đơn sang bàn mới, bàn mới trở thành Có khách, bàn cũ được giải phóng nếu hết đơn.</summary>
     public async Task<(MoveOrderResult? Data, string? Error)> DoiBanAsync(int maDon, int maBanMoi)
     {
         var don = await _db.DonHangs.Include(d => d.Ban).FirstOrDefaultAsync(d => d.MaDonHang == maDon);
         if (don is null) return (null, "Đơn không tồn tại.");
-        if (!TrangThaiActive.Contains(don.TrangThaiDon)) return (null, "Đơn không còn hoạt động.");
+        if (don.TrangThaiDon == "Huy" || don.TrangThaiDon == "DaDongBan") return (null, "Đơn không còn hoạt động.");
         if (don.MaBan == maBanMoi) return (null, "Đơn đã ở bàn này.");
 
         var banCu = don.Ban;
         var banMoi = await _db.Bans.FindAsync(maBanMoi);
         if (banMoi is null) return (null, "Bàn mới không tồn tại.");
 
-        var coDonOBanMoi = await _db.DonHangs
-            .AnyAsync(d => d.MaBan == maBanMoi && TrangThaiActive.Contains(d.TrangThaiDon));
+        var now = DateTime.UtcNow;
 
-        if (coDonOBanMoi)
+        // Nếu bàn mới đang Trống => Dọn dẹp toàn bộ đơn lịch sử cũ của bàn mới để nhận đơn chuyển sang
+        if (banMoi.TrangThai == "Trong")
         {
-            // Ghép 2 bàn thành nhóm, giữ đơn riêng. Bàn mới (đã có khách trước) làm bàn chính.
-            banMoi.MaBanChinh = null;
-            if (banCu is not null)
+            var oldUnclosed = await _db.DonHangs
+                .Where(d => d.MaBan == maBanMoi && d.TrangThaiDon != "Huy" && d.TrangThaiDon != "DaDongBan")
+                .ToListAsync();
+            foreach (var o in oldUnclosed)
             {
-                banCu.MaBanChinh = maBanMoi;
-                var con = await _db.Bans.Where(b => b.MaBanChinh == banCu.MaBan).ToListAsync();
-                foreach (var c in con) c.MaBanChinh = maBanMoi;
+                o.TrangThaiDon = "DaDongBan";
+                o.ThoiGianCapNhat = now;
             }
-            await _db.SaveChangesAsync();
-            return (new MoveOrderResult("merged", banCu?.TenBan, banMoi.TenBan), null);
         }
 
-        // Bàn mới trống → chuyển đơn sang
+        // Tách bất kỳ liên kết ghép bàn cũ (nếu có)
+        banMoi.MaBanChinh = null;
+        if (banCu is not null) banCu.MaBanChinh = null;
+
+        // Chuyển đơn sang bàn mới
         don.MaBan = maBanMoi;
-        don.ThoiGianCapNhat = DateTime.UtcNow;
+        don.ThoiGianCapNhat = now;
         banMoi.TrangThai = "CoKhach";
+
         if (banCu is not null)
         {
+            if (!string.IsNullOrEmpty(banCu.MaPinSession) && string.IsNullOrEmpty(banMoi.MaPinSession))
+            {
+                banMoi.MaPinSession = banCu.MaPinSession;
+                banMoi.ThoiGianKhoaHetHan = banCu.ThoiGianKhoaHetHan;
+            }
+
+            // Kiểm tra xem bàn cũ còn đơn nào khác đang hoạt động không
             var conDon = await _db.DonHangs.AnyAsync(d =>
-                d.MaBan == banCu.MaBan && d.MaDonHang != maDon && TrangThaiActive.Contains(d.TrangThaiDon));
-            if (!conDon) banCu.TrangThai = "Trong";
+                d.MaBan == banCu.MaBan && d.MaDonHang != maDon && d.TrangThaiDon != "Huy" && d.TrangThaiDon != "DaDongBan");
+
+            if (!conDon)
+            {
+                banCu.TrangThai = "Trong";
+                banCu.MaPinSession = null;
+                banCu.ThoiGianKhoaHetHan = null;
+                banCu.SoDienThoaiDatBan = null;
+            }
         }
+
         await _db.SaveChangesAsync();
         return (new MoveOrderResult("moved", banCu?.TenBan, banMoi.TenBan), null);
     }
@@ -345,8 +453,18 @@ public class OrderService
 
         don.TrangThaiDon = trangThai;
         don.ThoiGianCapNhat = DateTime.UtcNow;
-        
-        if (trangThai == "HoanThanh" || trangThai == "Huy")
+
+        if (trangThai == "DaPhaXong" || trangThai == "HoanThanh")
+        {
+            var chiTiets = await _db.ChiTietDonHangs.Where(c => c.MaDonHang == maDon).ToListAsync();
+            foreach (var ct in chiTiets)
+            {
+                ct.TrangThaiBep = "HoanThanh";
+                ct.ThoiGianLamXong = DateTime.UtcNow;
+            }
+        }
+
+        if (trangThai == "Huy")
         {
             if (don.MaBan is { } mb)
             {
@@ -370,8 +488,8 @@ public class OrderService
         if (ban is null) return (false, "Bàn không tồn tại.");
         var now = DateTime.UtcNow;
         var active = await _db.DonHangs
-            .Where(d => d.MaBan == maBan && TrangThaiActive.Contains(d.TrangThaiDon)).ToListAsync();
-        foreach (var d in active) { d.TrangThaiDon = "HoanThanh"; d.ThoiGianCapNhat = now; }
+            .Where(d => d.MaBan == maBan && d.TrangThaiDon != "Huy" && d.TrangThaiDon != "DaDongBan").ToListAsync();
+        foreach (var d in active) { d.TrangThaiDon = "DaDongBan"; d.ThoiGianCapNhat = now; }
         ban.TrangThai = "Trong";
         ban.MaPinSession = null;
         ban.ThoiGianKhoaHetHan = null;

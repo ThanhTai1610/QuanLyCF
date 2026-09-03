@@ -12,7 +12,8 @@ public record ProductListItem(
     string? HinhAnh,
     string KieuMon,
     bool LaMonNoiBat,
-    bool TrangThaiBan);
+    bool TrangThaiBan,
+    int? DiemTichLuy = 0);
 
 public record ProductDetail(
     int MaSanPham,
@@ -28,7 +29,8 @@ public record ProductDetail(
     bool LaMonNoiBat,
     string KieuMon,
     bool TrangThaiBan,
-    IEnumerable<SizeDto> KichCos);
+    IEnumerable<SizeDto> KichCos,
+    int? DiemTichLuy = 0);
 
 public record CreateProductRequest(
     string TenSanPham,
@@ -43,7 +45,8 @@ public record CreateProductRequest(
     bool LaMonNoiBat,
     string KieuMon,
     bool TrangThaiBan,
-    List<SizeDto>? KichCos);
+    List<SizeDto>? KichCos,
+    int? DiemTichLuy = 0);
 
 public record UpdateProductRequest(
     string TenSanPham,
@@ -58,4 +61,5 @@ public record UpdateProductRequest(
     bool LaMonNoiBat,
     string KieuMon,
     bool TrangThaiBan,
-    List<SizeDto>? KichCos);
+    List<SizeDto>? KichCos,
+    int? DiemTichLuy = 0);

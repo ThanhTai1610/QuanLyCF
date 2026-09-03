@@ -39,10 +39,8 @@ public record CreateCustomerRequest(
     [MaxLength(100, ErrorMessage = "Họ tên tối đa 100 ký tự.")]
     string Name,
 
-    [Required(ErrorMessage = "Số điện thoại là bắt buộc.")]
-    [Phone(ErrorMessage = "Số điện thoại không hợp lệ.")]
     [MaxLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
-    string Phone,
+    string? Phone,
 
     [EmailAddress(ErrorMessage = "Email không hợp lệ.")]
     [MaxLength(100, ErrorMessage = "Email tối đa 100 ký tự.")]

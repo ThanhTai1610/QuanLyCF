@@ -196,8 +196,11 @@
         </div>
       </template>
 
-      <div v-else class="flex-1 flex items-center justify-center text-muted-foreground p-8 text-center">
-        Chọn một đơn hàng để xem chi tiết
+      <div v-else class="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
+        <Coffee class="w-12 h-12 text-muted-foreground/30 mb-3" />
+        <p class="font-semibold text-espresso">Chọn một đơn hàng để xem chi tiết</p>
+        <p class="text-xs text-muted-foreground mt-1">Danh sách đơn hàng sẽ tự động cập nhật khi có đơn mới.</p>
+      </div>
     </div>
 
     <!-- Cancel Reason Modal -->
@@ -229,7 +232,6 @@
         </div>
       </div>
     </div>
-    </div>
   </div>
 </template>
 
@@ -250,16 +252,24 @@ const toast = useToast()
 const currentTime = ref(Date.now())
 let timeInterval: any = null
 
+const refreshOrders = () => {
+  if (!document.hidden) {
+    orderStore.fetchAllOrders()
+  }
+}
+
 onMounted(() => {
-  orderStore.fetchOrders() // Fetch real data from BE
+  orderStore.fetchAllOrders() // Fetch real data from BE for all statuses
   timeInterval = setInterval(() => {
     currentTime.value = Date.now()
-    orderStore.fetchOrders() // Polling to get real-time updates
-  }, 10000) // update every 10s
+    refreshOrders()
+  }, 2500)
+  window.addEventListener('focus', refreshOrders)
 })
 
 onUnmounted(() => {
   if (timeInterval) clearInterval(timeInterval)
+  window.removeEventListener('focus', refreshOrders)
 })
 
 function getElapsedTime(o: Order): number {
@@ -316,7 +326,16 @@ const filters: { id: OrderStatus | "all"; label: string }[] = [
 const orders = computed(() => orderStore.orders)
 const filter = ref<OrderStatus | "all">("all")
 const search = ref("")
-const selected = ref<Order | null>(orders.value[0] || null)
+const selected = ref<Order | null>(null)
+
+watch(orders, (newOrders) => {
+  if (selected.value) {
+    const found = newOrders.find(o => o.id === selected.value?.id)
+    selected.value = found || newOrders[0] || null
+  } else {
+    selected.value = newOrders[0] || null
+  }
+}, { immediate: true })
 
 const currentPage = ref(1)
 const itemsPerPage = ref(8)

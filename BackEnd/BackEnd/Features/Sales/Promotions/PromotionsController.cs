@@ -17,9 +17,9 @@ public class PromotionsController : ControllerBase
     [Authorize(Policy = Quyens.SanPhamQuanLy)]
     public async Task<IActionResult> List() => Ok(await _svc.ListAsync());
 
-    /// <summary>Khuyến mãi còn hiệu lực — cho POS chọn áp dụng.</summary>
+    /// <summary>Khuyến mãi còn hiệu lực — cho POS và Khách hàng chọn áp dụng.</summary>
     [HttpGet("active")]
-    [Authorize(Policy = Quyens.DonHangXem)]
+    [AllowAnonymous]
     public async Task<IActionResult> Active() => Ok(await _svc.ActiveAsync());
 
     [HttpPost]
@@ -46,9 +46,9 @@ public class PromotionsController : ControllerBase
         return ok ? NoContent() : BadRequest(new { message = err });
     }
 
-    /// <summary>Xem trước số tiền giảm (nhập mã hoặc chọn chương trình) — cho POS.</summary>
+    /// <summary>Xem trước số tiền giảm (nhập mã hoặc chọn chương trình) — cho POS và Khách hàng.</summary>
     [HttpPost("preview")]
-    [Authorize(Policy = Quyens.DonHangXem)]
+    [AllowAnonymous]
     public async Task<IActionResult> Preview(ApplyPromotionRequest req)
     {
         var (data, err) = await _svc.ApplyAsync(req);

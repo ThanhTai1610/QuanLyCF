@@ -37,6 +37,12 @@ export interface Reward {
   description?: string
 }
 
+export interface TierConfig {
+  name: string
+  min: number
+  benefit: string
+}
+
 export const loyaltyApi = {
   list: (q?: string, tier?: string) => {
     const query = new URLSearchParams()
@@ -49,6 +55,8 @@ export const loyaltyApi = {
   update: (id: number, body: SaveCustomerBody) => api.put<void>(`/api/customers/${id}`, body),
   remove: (id: number) => api.del<void>(`/api/customers/${id}`),
   getRewards: () => api.get<Reward[]>('/api/customers/rewards'),
+  getTierConfigs: () => api.get<TierConfig[]>('/api/customers/tier-configs'),
+  saveTierConfigs: (configs: TierConfig[]) => api.put<{ message: string }>('/api/customers/tier-configs', configs),
   sendOtp: (customerId: number) => api.post<{ otp: string | null }>(`/api/customers/${customerId}/send-otp`),
   redeem: (customerId: number, rewardId: number, otp: string) => 
     api.post<{ points: number }>(`/api/customers/${customerId}/redeem`, { rewardId, otp }),

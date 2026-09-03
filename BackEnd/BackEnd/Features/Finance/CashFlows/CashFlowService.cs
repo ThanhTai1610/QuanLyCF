@@ -57,7 +57,7 @@ public class CashFlowService
 
         var ky = $"{year}-{month:D2}";
         var query = _db.BangLuongs.Include(x => x.NhanVien).ThenInclude(x => x.VaiTro)
-            .Where(x => x.Ky == ky);
+            .Where(x => x.Ky == ky && x.NhanVien.HoTen != "Quản trị viên" && (x.NhanVien.VaiTro == null || x.NhanVien.VaiTro.TenVaiTro != "Quản trị viên"));
 
         return await query.Select(x => new SalaryListItem(
             x.MaBangLuong,
@@ -105,7 +105,9 @@ public class CashFlowService
         decimal tongLuong = 0;
         if (!existsBangLuong)
         {
-            var nhanViens = await _db.NhanViens.Include(x => x.VaiTro).Where(x => x.TrangThaiHoatDong == true).ToListAsync();
+            var nhanViens = await _db.NhanViens.Include(x => x.VaiTro)
+                .Where(x => x.TrangThaiHoatDong == true && x.HoTen != "Quản trị viên" && (x.VaiTro == null || x.VaiTro.TenVaiTro != "Quản trị viên"))
+                .ToListAsync();
             var listNew = new List<BangLuong>();
             var random = new Random();
             foreach (var nv in nhanViens)

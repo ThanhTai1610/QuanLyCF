@@ -16,7 +16,8 @@ export default defineConfig({
     },
   },
   server: {
-    // Cho phep host cua cloudflared/ngrok (de public web)
+    host: '0.0.0.0',
+    // Cho phep host cua cloudflared/ngrok/LAN (de public web)
     allowedHosts: true,
     // Proxy /api -> backend: chi can 1 link public, cung origin nen khong dinh CORS
     proxy: {

@@ -18,7 +18,7 @@ public class TablesController : ControllerBase
     private readonly IConfiguration _cfg;
     public TablesController(QuanLyCFDbContext db, IConfiguration cfg) { _db = db; _cfg = cfg; }
 
-    private string FeOrigin => _cfg["Cors:FrontendOrigin"]?.TrimEnd('/') ?? "http://localhost:5173";
+    private string FeOrigin => _cfg["Cors:FrontendOrigin"]?.TrimEnd('/') ?? "http://192.168.1.7:5173";
     private static string TaoQRHash() => Guid.NewGuid().ToString("N");
 
     [HttpGet]
@@ -30,11 +30,59 @@ public class TablesController : ControllerBase
         if (!string.IsNullOrWhiteSpace(trangThai)) query = query.Where(x => x.TrangThai == trangThai);
 
         var data = await query.OrderBy(x => x.TenBan).ToListAsync();
+        bool updated = false;
+        var now = DateTime.UtcNow;
+
+        // 1. Đồng bộ trạng thái và PIN của các bàn thành viên theo bàn chính
+        foreach (var ban in data)
+        {
+            if (ban.MaBanChinh.HasValue && ban.BanChinh != null)
+            {
+                if (ban.TrangThai != ban.BanChinh.TrangThai || ban.MaPinSession != ban.BanChinh.MaPinSession)
+                {
+                    ban.TrangThai = ban.BanChinh.TrangThai;
+                    ban.MaPinSession = ban.BanChinh.MaPinSession;
+                    ban.ThoiGianKhoaHetHan = ban.BanChinh.ThoiGianKhoaHetHan;
+                    ban.SoDienThoaiDatBan = ban.BanChinh.SoDienThoaiDatBan;
+                    updated = true;
+                }
+            }
+        }
+
+        // 2. Tự động sinh hoặc dọn dẹp mã PIN cho các bàn
+        foreach (var ban in data)
+        {
+            if (ban.TrangThai == "CoKhach" && string.IsNullOrEmpty(ban.MaPinSession))
+            {
+                ban.MaPinSession = Random.Shared.Next(1000, 9999).ToString();
+                ban.ThoiGianKhoaHetHan = now.AddHours(2);
+                updated = true;
+                foreach (var tv in data.Where(x => x.MaBanChinh == ban.MaBan))
+                {
+                    tv.TrangThai = "CoKhach";
+                    tv.MaPinSession = ban.MaPinSession;
+                    tv.ThoiGianKhoaHetHan = ban.ThoiGianKhoaHetHan;
+                }
+            }
+            else if (ban.TrangThai == "Trong" && !string.IsNullOrEmpty(ban.MaPinSession))
+            {
+                ban.MaPinSession = null;
+                ban.ThoiGianKhoaHetHan = null;
+                ban.SoDienThoaiDatBan = null;
+                updated = true;
+            }
+        }
+
+        if (updated)
+        {
+            await _db.SaveChangesAsync();
+        }
+
         return Ok(data.Select(Map));
     }
 
     [HttpPost]
-    [Authorize(Policy = Quyens.BanQuanLy)]
+    [Authorize(Policy = Quyens.BanXem)]
     public async Task<IActionResult> Create(SaveTableRequest req)
     {
         if (await _db.Bans.AnyAsync(x => x.TenBan == req.TenBan.Trim()))
@@ -57,7 +105,7 @@ public class TablesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Policy = Quyens.BanQuanLy)]
+    [Authorize(Policy = Quyens.BanXem)]
     public async Task<IActionResult> Update(int id, SaveTableRequest req)
     {
         var ban = await _db.Bans.FindAsync(id);
@@ -83,12 +131,38 @@ public class TablesController : ControllerBase
             return BadRequest(new { message = "Trạng thái không hợp lệ (Trong/CoKhach/BaoTri)." });
         var ban = await _db.Bans.FindAsync(id);
         if (ban is null) return NotFound();
-        ban.TrangThai = req.TrangThai;
-        if (req.TrangThai == "Trong")
+        // Nếu đổi trạng thái bàn chính hoặc bàn phụ, áp dụng cho cả nhóm bàn ghép
+        var mainId = ban.MaBanChinh ?? ban.MaBan;
+        var allTablesInGroup = await _db.Bans.Where(x => x.MaBan == mainId || x.MaBanChinh == mainId).ToListAsync();
+
+        foreach (var b in allTablesInGroup)
         {
-            ban.MaPinSession = null;
-            ban.ThoiGianKhoaHetHan = null;
-            ban.SoDienThoaiDatBan = null;
+            b.TrangThai = req.TrangThai;
+            if (req.TrangThai == "Trong")
+            {
+                b.MaPinSession = null;
+                b.ThoiGianKhoaHetHan = null;
+                b.SoDienThoaiDatBan = null;
+                b.MaBanChinh = null;
+
+                // Đóng hoàn toàn mọi đơn của đợt khách cũ để bàn sạch sẽ đón lượt khách mới
+                var oldOrders = await _db.DonHangs.Where(d => d.MaBan == b.MaBan && d.TrangThaiDon != "Huy" && d.TrangThaiDon != "DaDongBan").ToListAsync();
+                foreach (var o in oldOrders)
+                {
+                    o.TrangThaiDon = "DaDongBan";
+                    o.ThoiGianCapNhat = DateTime.UtcNow;
+                }
+            }
+            else if (req.TrangThai == "CoKhach")
+            {
+                if (string.IsNullOrEmpty(ban.MaPinSession))
+                {
+                    ban.MaPinSession = Random.Shared.Next(1000, 9999).ToString();
+                    ban.ThoiGianKhoaHetHan = DateTime.UtcNow.AddHours(2);
+                }
+                b.MaPinSession = ban.MaPinSession;
+                b.ThoiGianKhoaHetHan = ban.ThoiGianKhoaHetHan;
+            }
         }
         await _db.SaveChangesAsync();
         return Ok(new { ban.TrangThai });
@@ -121,15 +195,27 @@ public class TablesController : ControllerBase
         if (ban is null) return NotFound(new { message = "Mã QR không hợp lệ hoặc bàn đã bị xoá." });
 
         var now = DateTime.UtcNow;
-        bool hasActiveOrders = await _db.DonHangs.AnyAsync(d => d.MaBan == ban.MaBan && (d.TrangThaiDon == "ChoXacNhan" || d.TrangThaiDon == "DangPha"));
+        bool hasActiveOrders = await _db.DonHangs.AnyAsync(d => d.MaBan == ban.MaBan && (d.TrangThaiDon == "ChoThanhToan" || d.TrangThaiDon == "ChoXacNhan" || d.TrangThaiDon == "DangPha" || d.TrangThaiDon == "DaPhaXong" || d.TrangThaiDon == "HoanThanh"));
 
-        bool isOccupiedOrLocked = ban.TrangThai == "CoKhach" || hasActiveOrders || (ban.ThoiGianKhoaHetHan.HasValue && ban.ThoiGianKhoaHetHan.Value > now);
+        bool isReallyOccupied = ban.TrangThai == "CoKhach" && hasActiveOrders;
 
-        if (!isOccupiedOrLocked)
+        if (!isReallyOccupied)
         {
-            // Bàn đang Trống và hết hạn khóa cũ => Quét mới: Tự động khóa giữ bàn 5 phút & sinh PIN 4 số
+            // Bàn đang Trống (hoặc không có đơn dở dang) => Lượt quét đầu tiên của khách mới:
+            // Tự động cấp PIN mới, khóa bàn và KHÔNG BẮT NHẬP PIN đối với người đầu tiên
+            ban.TrangThai = "CoKhach";
             ban.MaPinSession = Random.Shared.Next(1000, 9999).ToString();
-            ban.ThoiGianKhoaHetHan = now.AddMinutes(5);
+            ban.ThoiGianKhoaHetHan = now.AddHours(2);
+            ban.SoDienThoaiDatBan = null;
+
+            // Đóng hoàn toàn mọi đơn cũ của lượt khách trước để giải phóng bàn sạch sẽ
+            var oldUnclosed = await _db.DonHangs.Where(d => d.MaBan == ban.MaBan && d.TrangThaiDon != "Huy" && d.TrangThaiDon != "DaDongBan").ToListAsync();
+            foreach (var o in oldUnclosed)
+            {
+                o.TrangThaiDon = "DaDongBan";
+                o.ThoiGianCapNhat = now;
+            }
+
             await _db.SaveChangesAsync();
 
             return Ok(new
@@ -137,19 +223,19 @@ public class TablesController : ControllerBase
                 maBan = ban.MaBan,
                 tenBan = ban.TenBan,
                 trangThai = ban.TrangThai,
-                requiresPin = false, // Bàn trống mới quét => không bắt nhập PIN
+                requiresPin = false, // Người đầu tiên quét => Vào thẳng & được cung cấp mã PIN
                 maPinSession = ban.MaPinSession,
                 thoiGianKhoaHetHan = ban.ThoiGianKhoaHetHan
             });
         }
 
-        // Bàn đang có khách hoặc đang trong thời gian 5 phút khóa bởi người khác
+        // Bàn thực sự đang có khách & đơn hàng dở dang => Người quét sau bắt buộc phải nhập PIN
         return Ok(new
         {
             maBan = ban.MaBan,
             tenBan = ban.TenBan,
             trangThai = ban.TrangThai,
-            requiresPin = true, // Bắt buộc nhập PIN 4 số hoặc SĐT đã đặt bàn
+            requiresPin = true, // Người quét sau mới phải nhập mã PIN của người đầu tiên
             maPinSession = (string?)null,
             thoiGianKhoaHetHan = ban.ThoiGianKhoaHetHan
         });
@@ -196,7 +282,7 @@ public class TablesController : ControllerBase
 
     /// <summary>Tạo lại mã QR (khi nghi lộ/đổi bàn).</summary>
     [HttpPost("{id:int}/regenerate-qr")]
-    [Authorize(Policy = Quyens.BanQuanLy)]
+    [Authorize(Policy = Quyens.BanXem)]
     public async Task<IActionResult> RegenerateQr(int id)
     {
         var ban = await _db.Bans.FindAsync(id);
@@ -210,7 +296,7 @@ public class TablesController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Policy = Quyens.BanQuanLy)]
+    [Authorize(Policy = Quyens.BanXem)]
     public async Task<IActionResult> Delete(int id)
     {
         var ban = await _db.Bans.FindAsync(id);
@@ -232,7 +318,7 @@ public class TablesController : ControllerBase
 
     /// <summary>Ghép nhiều bàn về 1 bàn chính (phục vụ chung 1 đoàn khách).</summary>
     [HttpPost("merge")]
-    [Authorize(Policy = Quyens.BanQuanLy)]
+    [Authorize(Policy = Quyens.BanXem)]
     public async Task<IActionResult> Merge(MergeTablesRequest req)
     {
         var chinh = await _db.Bans.FindAsync(req.MaBanChinh);
@@ -260,7 +346,7 @@ public class TablesController : ControllerBase
 
     /// <summary>Tách bàn: nếu là bàn chính → giải tán cả nhóm; nếu là thành viên → tách riêng bàn đó.</summary>
     [HttpPost("{id:int}/unmerge")]
-    [Authorize(Policy = Quyens.BanQuanLy)]
+    [Authorize(Policy = Quyens.BanXem)]
     public async Task<IActionResult> Unmerge(int id)
     {
         var ban = await _db.Bans.FindAsync(id);

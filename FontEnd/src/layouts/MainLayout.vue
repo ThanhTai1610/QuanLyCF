@@ -145,21 +145,26 @@
                 class="flex items-start justify-between gap-2 p-2.5 rounded-lg bg-cream/30 border border-cream-deep/60">
                 <div class="min-w-0">
                   <p class="text-xs font-bold text-espresso">
-                    {{ req.tenBan }} yêu cầu 
-                    <span class="text-caramel font-extrabold">
+                    {{ req.tenBan }}
+                    <span :class="req.loaiYeuCau === 'CanBungNuoc' || req.loaiYeuCau === 'GiaoDo' ? 'text-emerald-700 font-black' : 'text-caramel font-extrabold'">
                       {{
-                        req.loaiYeuCau === 'GoiPhucVu'
-                          ? 'gọi phục vụ'
+                        req.loaiYeuCau === 'CanBungNuoc' || req.loaiYeuCau === 'GiaoDo'
+                          ? '— 🍷 CẦN BƯNG NƯỚC'
+                          : req.loaiYeuCau === 'GoiPhucVu'
+                          ? 'yêu cầu gọi phục vụ'
                           : req.loaiYeuCau === 'ThanhToanTienMat'
-                          ? 'thanh toán tiền mặt'
-                          : 'thanh toán chuyển khoản'
+                          ? 'yêu cầu thanh toán tiền mặt'
+                          : 'yêu cầu thanh toán chuyển khoản'
                       }}
                     </span>
                   </p>
                   <p class="text-[10px] text-muted-foreground mt-0.5" v-if="req.ghiChu">Ghi chú: {{ req.ghiChu }}</p>
                 </div>
                 <button @click="resolveRequest(req.id)"
-                  class="h-6 px-2 rounded bg-caramel hover:bg-brown text-cream text-[10px] font-bold transition-all shadow-xs active:scale-95 shrink-0">
+                  :class="[
+                    'h-6 px-2 rounded text-white text-[10px] font-bold transition-all shadow-xs active:scale-95 shrink-0 cursor-pointer',
+                    req.loaiYeuCau === 'CanBungNuoc' || req.loaiYeuCau === 'GiaoDo' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-caramel hover:bg-brown'
+                  ]">
                   Xử lý
                 </button>
               </div>
@@ -354,7 +359,9 @@ async function loadServiceRequests() {
       if (data.length > previousCount.value) {
         const newReqs = data.filter((x: any) => !serviceRequests.value.some((y: any) => y.id === x.id))
         newReqs.forEach((r: any) => {
-          const typeStr = r.loaiYeuCau === 'GoiPhucVu'
+          const typeStr = r.loaiYeuCau === 'CanBungNuoc' || r.loaiYeuCau === 'GiaoDo'
+            ? '🍷 CẦN BƯNG NƯỚC (Bếp đã pha xong)'
+            : r.loaiYeuCau === 'GoiPhucVu'
             ? 'gọi phục vụ'
             : r.loaiYeuCau === 'ThanhToanTienMat'
             ? 'yêu cầu thanh toán tiền mặt'

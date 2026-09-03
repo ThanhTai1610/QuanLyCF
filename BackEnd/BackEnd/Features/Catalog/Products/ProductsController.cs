@@ -31,7 +31,7 @@ public class ProductsController : ControllerBase
         var data = await query.OrderBy(x => x.TenSanPham)
             .Select(x => new ProductListItem(
                 x.MaSanPham, x.TenSanPham, x.MaDanhMuc, x.DanhMuc != null ? x.DanhMuc.TenDanhMuc : null,
-                x.GiaBan, x.GiaVonDuKien, x.HinhAnh, x.KieuMon, x.LaMonNoiBat, x.TrangThaiBan))
+                x.GiaBan, x.GiaVonDuKien, x.HinhAnh, x.KieuMon, x.LaMonNoiBat, x.TrangThaiBan, x.DiemTichLuy ?? 0))
             .ToListAsync();
         return Ok(data);
     }
@@ -67,6 +67,7 @@ public class ProductsController : ControllerBase
             LaMonNoiBat = req.LaMonNoiBat,
             KieuMon = string.IsNullOrWhiteSpace(req.KieuMon) ? "MonChinh" : req.KieuMon,
             TrangThaiBan = req.TrangThaiBan,
+            DiemTichLuy = req.DiemTichLuy ?? 0,
             KichCos = (req.KichCos ?? new()).Select(s => new KichCoSanPham
             {
                 TenKichCo = s.TenKichCo, GiaCongThem = s.GiaCongThem, TrangThaiHoatDong = s.TrangThaiHoatDong
@@ -99,6 +100,7 @@ public class ProductsController : ControllerBase
         sp.LaMonNoiBat = req.LaMonNoiBat;
         sp.KieuMon = string.IsNullOrWhiteSpace(req.KieuMon) ? "MonChinh" : req.KieuMon;
         sp.TrangThaiBan = req.TrangThaiBan;
+        sp.DiemTichLuy = req.DiemTichLuy ?? 0;
 
         // Thay toàn bộ danh sách size
         _db.KichCoSanPhams.RemoveRange(sp.KichCos);
@@ -109,6 +111,42 @@ public class ProductsController : ControllerBase
 
         await _db.SaveChangesAsync();
         return NoContent();
+    }
+
+    public record ToggleStatusRequest(bool TrangThaiBan);
+
+    [HttpPatch("{id:int}/status")]
+    [Authorize(Policy = Quyens.SanPhamQuanLy)]
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] ToggleStatusRequest req)
+    {
+        var sp = await _db.SanPhams.FindAsync(id);
+        if (sp is null) return NotFound(new { message = "Sản phẩm không tồn tại." });
+        sp.TrangThaiBan = req.TrangThaiBan;
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "Đã cập nhật trạng thái bán thành công.", trangThaiBan = sp.TrangThaiBan });
+    }
+
+    public record BulkUpdatePointsItem(int MaSanPham, int DiemTichLuy);
+    public record BulkUpdatePointsRequest(List<BulkUpdatePointsItem> Items);
+
+    [HttpPut("bulk-points")]
+    [Authorize(Policy = Quyens.SanPhamQuanLy)]
+    public async Task<IActionResult> BulkUpdatePoints(BulkUpdatePointsRequest req)
+    {
+        if (req.Items is null || req.Items.Count == 0) return BadRequest(new { message = "Danh sách cập nhật rỗng." });
+        var ids = req.Items.Select(x => x.MaSanPham).ToList();
+        var sps = await _db.SanPhams.Where(x => ids.Contains(x.MaSanPham)).ToListAsync();
+        var dict = req.Items.ToDictionary(x => x.MaSanPham, x => x.DiemTichLuy);
+
+        foreach (var sp in sps)
+        {
+            if (dict.TryGetValue(sp.MaSanPham, out var pts))
+            {
+                sp.DiemTichLuy = pts >= 0 ? pts : 0;
+            }
+        }
+        await _db.SaveChangesAsync();
+        return Ok(new { message = $"Đã cập nhật điểm tích lũy cho {sps.Count} sản phẩm." });
     }
 
     [HttpDelete("{id:int}")]
@@ -127,5 +165,6 @@ public class ProductsController : ControllerBase
     private static ProductDetail ToDetail(SanPham x) => new(
         x.MaSanPham, x.TenSanPham, x.MaDanhMuc, x.MaVach_SKU, x.GiaBan, x.GiaVonDuKien,
         x.HinhAnh, x.MoTa, x.LuongCalo, x.ThoiGianChuanBiPhut, x.LaMonNoiBat, x.KieuMon, x.TrangThaiBan,
-        x.KichCos.Select(s => new SizeDto(s.TenKichCo, s.GiaCongThem, s.TrangThaiHoatDong)));
+        x.KichCos.Select(s => new SizeDto(s.TenKichCo, s.GiaCongThem, s.TrangThaiHoatDong)),
+        x.DiemTichLuy ?? 0);
 }

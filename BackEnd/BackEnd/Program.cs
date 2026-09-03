@@ -74,10 +74,9 @@ namespace BackEnd
             builder.Services.AddMemoryCache();
             builder.Services.AddHttpClient();
 
-            // ── CORS cho frontend Vite ──────────────────────────
-            var feOrigin = builder.Configuration["Cors:FrontendOrigin"] ?? "http://localhost:5173";
+            // ── CORS cho frontend Vite & thiết bị mạng LAN ────────
             builder.Services.AddCors(o => o.AddPolicy("frontend", p =>
-                p.WithOrigins(feOrigin).AllowAnyHeader().AllowAnyMethod()));
+                p.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod()));
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();

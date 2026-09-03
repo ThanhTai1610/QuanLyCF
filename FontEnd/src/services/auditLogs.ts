@@ -45,5 +45,16 @@ export const auditLogsApi = {
 
   clearLogs() {
     return api.del<void>('/api/audit-logs')
+  },
+
+  createLog(payload: {
+    maNhanVien?: number | null
+    hanhDong: string
+    module: string
+    duLieuCu?: string | null
+    duLieuMoi?: string | null
+    thietBi?: string | null
+  }) {
+    return api.post<AuditLogItem>('/api/audit-logs', payload)
   }
 }

@@ -13,6 +13,9 @@ export interface ComboListItem {
   hinhAnh: string | null
   trangThaiHoatDong: boolean
   soMon: number
+  apDungKhungGio?: boolean
+  gioBatDau?: string | null
+  gioKetThuc?: string | null
 }
 
 export interface ComboDetail {
@@ -23,6 +26,9 @@ export interface ComboDetail {
   moTa: string | null
   trangThaiHoatDong: boolean
   chiTiets: ComboLineDto[]
+  apDungKhungGio?: boolean
+  gioBatDau?: string | null
+  gioKetThuc?: string | null
 }
 
 export interface SaveComboRequest {
@@ -32,6 +38,9 @@ export interface SaveComboRequest {
   moTa?: string | null
   trangThaiHoatDong: boolean
   chiTiets: ComboLineDto[]
+  apDungKhungGio?: boolean
+  gioBatDau?: string | null
+  gioKetThuc?: string | null
 }
 
 export const combosApi = {

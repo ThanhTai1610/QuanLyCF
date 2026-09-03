@@ -103,9 +103,17 @@ public class PaymentService
         _db.ThanhToanChiTiets.Add(ct);
 
         // Cập nhật trạng thái đơn hàng (Xác nhận đơn và chuyển sang chế biến nếu đang chờ)
-        if (don.TrangThaiDon == "ChoXacNhan")
+        if (don.TrangThaiDon == "ChoXacNhan" || don.TrangThaiDon == "ChoThanhToan")
         {
             don.TrangThaiDon = "DangPha";
+        }
+        foreach (var item in don.ChiTiets)
+        {
+            if (item.TrangThaiBep == "ChoThanhToan")
+            {
+                item.TrangThaiBep = "ChoLam";
+                item.ThoiGianBaoBep = DateTime.UtcNow;
+            }
         }
         don.ThoiGianCapNhat = DateTime.UtcNow;
         await TichDiemChoKhachHangAsync(don);
@@ -651,9 +659,17 @@ public class PaymentService
         }
 
         // Cập nhật trạng thái đơn hàng (xác nhận đơn hàng)
-        if (don.TrangThaiDon == "ChoXacNhan")
+        if (don.TrangThaiDon == "ChoXacNhan" || don.TrangThaiDon == "ChoThanhToan")
         {
             don.TrangThaiDon = "DangPha";
+        }
+        foreach (var item in don.ChiTiets)
+        {
+            if (item.TrangThaiBep == "ChoThanhToan")
+            {
+                item.TrangThaiBep = "ChoLam";
+                item.ThoiGianBaoBep = DateTime.UtcNow;
+            }
         }
         don.ThoiGianCapNhat = DateTime.UtcNow;
         await TichDiemChoKhachHangAsync(don);
@@ -713,9 +729,17 @@ public class PaymentService
         }
 
         // Cập nhật trạng thái đơn hàng (xác nhận đơn hàng)
-        if (don.TrangThaiDon == "ChoXacNhan")
+        if (don.TrangThaiDon == "ChoXacNhan" || don.TrangThaiDon == "ChoThanhToan")
         {
             don.TrangThaiDon = "DangPha";
+        }
+        foreach (var item in don.ChiTiets)
+        {
+            if (item.TrangThaiBep == "ChoThanhToan")
+            {
+                item.TrangThaiBep = "ChoLam";
+                item.ThoiGianBaoBep = DateTime.UtcNow;
+            }
         }
         don.ThoiGianCapNhat = DateTime.UtcNow;
         await TichDiemChoKhachHangAsync(don);

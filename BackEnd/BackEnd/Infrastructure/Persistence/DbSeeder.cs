@@ -72,6 +72,31 @@ public static class DbSeeder
         }
         await db.SaveChangesAsync();
 
+        // 1.5. Đảm bảo phân quyền chuẩn cho các vai trò hệ thống
+        var allQuyens = await db.Quyens.ToListAsync();
+        int QId(string code) => allQuyens.FirstOrDefault(q => q.MaCode == code)?.MaQuyen ?? 0;
+
+        var defaultRolePermissions = new Dictionary<int, string[]>
+        {
+            [1] = allQuyens.Select(q => q.MaCode).ToArray(),
+            [2] = new[] { "SANPHAM_XEM", "KHO_XEM", "DONHANG_XEM", "DONHANG_XULY", "BEP_XEM", "BAN_XEM", "BAN_QUANLY" },
+            [3] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY", "THANHTOAN", "KHACHHANG_XEM", "BAN_XEM", "BAN_QUANLY", "HOADON_XEM" },
+            [4] = new[] { "SANPHAM_XEM", "DONHANG_XEM", "DONHANG_XULY", "BAN_XEM", "BAN_QUANLY" },
+        };
+
+        foreach (var (vtId, codes) in defaultRolePermissions)
+        {
+            foreach (var code in codes)
+            {
+                var qId = QId(code);
+                if (qId > 0 && !await db.VaiTroQuyens.AnyAsync(x => x.MaVaiTro == vtId && x.MaQuyen == qId))
+                {
+                    db.VaiTroQuyens.Add(new VaiTroQuyen { MaVaiTro = vtId, MaQuyen = qId });
+                }
+            }
+        }
+        await db.SaveChangesAsync();
+
         // 2. Seed khu vực và bàn mẫu (nếu chưa có)
         if (!await db.KhuVucBans.AnyAsync())
         {

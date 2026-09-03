@@ -52,7 +52,7 @@
                 ? 'bg-gradient-to-r from-[#CC8033] to-[#B36B22] text-white rounded-2xl rounded-tr-sm' 
                 : 'bg-white border border-[#EAE3D9] text-[#2A231E] rounded-2xl rounded-tl-sm'
             ]">
-              <p class="font-medium">{{ m.text }}</p>
+              <p class="font-medium whitespace-pre-line">{{ m.text }}</p>
               
               <!-- Recommend Items (Bot only) -->
               <div v-if="m.recommendItems" class="mt-3 space-y-2.5">
@@ -64,7 +64,7 @@
                   </div>
                   <button
                     @click="addToCart(it)"
-                    class="w-8 h-8 rounded-full bg-[#2A231E] text-white flex items-center justify-center hover:bg-[#CC8033] transition-colors shadow-sm shrink-0"
+                    class="w-8 h-8 rounded-full bg-[#2A231E] text-white flex items-center justify-center hover:bg-[#CC8033] transition-colors shadow-sm shrink-0 cursor-pointer"
                     title="Thêm vào giỏ"
                   >
                     <Plus class="w-4 h-4" stroke-width="2.5" />
@@ -73,8 +73,8 @@
               </div>
 
               <!-- Suggestions (Bot only) -->
-              <div v-if="m.suggestions" class="mt-3 flex flex-wrap gap-2">
-                <button v-for="s in m.suggestions" :key="s" @click="send(s)" class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-[#FDFBF7] border border-[#CC8033]/30 text-[#CC8033] hover:bg-[#CC8033] hover:text-white transition-all shadow-sm active:scale-95">
+              <div v-if="m.suggestions" class="mt-3 flex flex-wrap gap-1.5">
+                <button v-for="s in m.suggestions" :key="s" @click="send(s)" class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-[#FDFBF7] border border-[#CC8033]/30 text-[#CC8033] hover:bg-[#CC8033] hover:text-white transition-all shadow-xs active:scale-95 cursor-pointer">
                   {{ s }}
                 </button>
               </div>
@@ -89,26 +89,39 @@
           </div>
         </div>
 
+        <!-- Quick Chips Action Bar -->
+        <div class="px-3 py-2 bg-[#FAF6F0] flex gap-1.5 overflow-x-auto border-t border-[#EAE3D9]/60 scrollbar-none">
+          <button 
+            v-for="chip in quickChips" 
+            :key="chip.text" 
+            @click="send(chip.action)"
+            class="shrink-0 text-[11px] font-bold px-3 py-1 rounded-full bg-white border border-[#CC8033]/30 text-[#CC8033] hover:bg-[#CC8033] hover:text-white transition-all shadow-2xs flex items-center gap-1 cursor-pointer active:scale-95"
+          >
+            <span>{{ chip.icon }}</span>
+            <span>{{ chip.text }}</span>
+          </button>
+        </div>
+
         <!-- Input Area -->
-        <div class="bg-white border-t border-[#EAE3D9] p-3.5">
+        <div class="bg-white border-t border-[#EAE3D9] p-3">
           <form
             @submit.prevent="send(input)"
             class="flex items-center gap-2"
           >
             <input
               v-model="input"
-              placeholder="Nhập tin nhắn..."
-              class="flex-1 h-11 px-4 rounded-full bg-[#FAF6F0] border border-[#EAE3D9] text-sm text-[#2A231E] font-medium outline-none focus:ring-2 focus:ring-[#CC8033]/20 focus:border-[#CC8033] transition-all placeholder:text-[#C5BEB8]"
+              placeholder="Nhập tin nhắn (ví dụ: đố tôi câu đố, bói nước...)"
+              class="flex-1 h-10 px-4 rounded-full bg-[#FAF6F0] border border-[#EAE3D9] text-xs text-[#2A231E] font-medium outline-none focus:ring-2 focus:ring-[#CC8033]/20 focus:border-[#CC8033] transition-all placeholder:text-[#C5BEB8]"
             />
             <button 
               type="submit" 
               :disabled="!input.trim()"
-              class="w-11 h-11 rounded-full bg-[#2A231E] hover:bg-[#CC8033] disabled:bg-[#D5CEC4] disabled:cursor-not-allowed text-white flex items-center justify-center transition-all shadow-sm shrink-0"
+              class="w-10 h-10 rounded-full bg-[#2A231E] hover:bg-[#CC8033] disabled:bg-[#D5CEC4] disabled:cursor-not-allowed text-white flex items-center justify-center transition-all shadow-sm shrink-0 cursor-pointer"
             >
               <Send class="w-4 h-4 -ml-0.5" stroke-width="2.5" />
             </button>
           </form>
-          <div class="text-center text-[9px] font-bold uppercase tracking-widest text-[#C5BEB8] mt-2">
+          <div class="text-center text-[9px] font-bold uppercase tracking-widest text-[#C5BEB8] mt-1.5">
             Powered by AI <Sparkles class="inline w-2.5 h-2.5 text-[#CC8033] mb-0.5" />
           </div>
         </div>
@@ -136,11 +149,23 @@ interface Msg {
 const toast = { success: (msg: string) => alert('Thành công: ' + msg) }
 const storeInfo = useStoreInfoStore()
 
+const quickChips = [
+  { icon: '🎯', text: 'Đố vui đồ uống', action: 'Cho tôi một câu đố vui về đồ uống!' },
+  { icon: '🔮', text: 'Bói đồ uống', action: 'Bói cho tôi 1 ly nước hợp tâm trạng hôm nay!' },
+  { icon: '☕', text: 'Bestseller', action: 'Món nào bán chạy nhất quán?' },
+  { icon: '🍰', text: 'Combo bánh', action: 'Có combo bánh ngọt + nước nào ngon?' }
+]
+
 const initialMsgs = computed<Msg[]>(() => [
   {
     role: "bot",
-    text: `Xin chào! Tôi là ${storeInfo.tenAI} ☕ Tôi có thể giúp bạn chọn món hợp gu hôm nay. Bạn muốn gì?`,
-    suggestions: ["Món phổ biến hôm nay", "Gợi ý cho người ít ngọt", "Combo cà phê + bánh", "Tôi muốn gì đó mát lạnh"],
+    text: `Xin chào! Mình là ${storeInfo.tenAI} ☕ Mình có thể đố vui về đồ uống, bói nước hợp tâm trạng và tư vấn món siêu ngon cho bạn đó!`,
+    suggestions: [
+      "🎯 Đố vui đồ uống",
+      "🔮 Bói đồ uống tâm trạng",
+      "☕ Món bán chạy nhất",
+      "🍰 Combo bánh + nước",
+    ],
   },
 ])
 
@@ -152,6 +177,28 @@ onMounted(async () => {
     realMenu.value = data.filter((m: any) => m.kieuMon !== 'Topping')
   } catch {}
 })
+
+// Danh sách câu đố dự phòng khi AI offline
+const sampleRiddles = [
+  {
+    question: "🎯 CÂU ĐỐ: Món nước nào có nhiều sữa hơn cà phê, ngọt ngào béo ngậy được mệnh danh là 'cà phê dành cho người sợ đắng'?",
+    options: ["A. Bạc xỉu", "B. Cà phê đen đá", "C. Espresso"],
+    answer: "A. Bạc xỉu",
+    recommendKeyword: "bạc xỉu"
+  },
+  {
+    question: "🎯 CÂU ĐỐ: Loại hạt cà phê nào chiếm 90% sản lượng tại Việt Nam, có vị đắng đậm đà và hàm lượng Caffein cao gấp đôi Arabica?",
+    options: ["A. Arabica", "B. Robusta", "C. Culi"],
+    answer: "B. Robusta",
+    recommendKeyword: "cà phê"
+  },
+  {
+    question: "🎯 CÂU ĐỐ: Món trà nào hòa quyện giữa vị chát thanh mát của trà xanh và vị thơm ngậy quyến rũ của lớp kem phô mai sánh mịn ở trên?",
+    options: ["A. Trà chanh", "B. Trà sữa Macchiato", "C. Cà phê trứng"],
+    answer: "B. Trà sữa Macchiato",
+    recommendKeyword: "trà"
+  }
+]
 
 const respond = async (q: string): Promise<Msg> => {
   const lower = q.toLowerCase()
@@ -165,37 +212,32 @@ const respond = async (q: string): Promise<Msg> => {
       }))
   }
 
-  // Giữ lại các thẻ gợi ý trực quan (có nút Add to Cart) cho các luồng cơ bản
-  if (lower.includes("phổ biến") || lower.includes("bán chạy")) {
+  if (lower.includes("bán chạy") || lower.includes("bestseller") || lower.includes("món phổ biến")) {
     return {
       role: "bot",
-      text: "Hôm nay các món này được order nhiều nhất:",
+      text: "🔥 Các món Best-Seller ngon nức tiếng tại quán hôm nay:",
       recommendItems: getMappedRealMenu(m => true).slice(0, 3),
+      suggestions: ["🎯 Cho mình 1 câu đố vui!", "🔮 Bói đồ uống theo tâm trạng"]
     }
   }
   if (lower.includes("ít ngọt")) {
     return {
       role: "bot",
-      text: "Với người ít ngọt, mình gợi ý vài món đậm vị cà phê nhé:",
+      text: "Dành cho người đậm gu, ít ngọt thanh dịu nè ☕:",
       recommendItems: getMappedRealMenu(m => (m.tenDanhMuc || '').toLowerCase().includes("cà phê")).slice(0, 2),
+      suggestions: ["🎯 Đố vui đồ uống", "🍰 Có bánh nào ăn kèm không?"]
     }
   }
   if (lower.includes("mát") || lower.includes("lạnh") || lower.includes("đá xay")) {
     return {
       role: "bot",
-      text: "Hôm nay nóng quá! Mời bạn thử các món đá xay refresh nè:",
+      text: "Sảng khoái đập tan cơn khát với các món mát lạnh này nha 🧊:",
       recommendItems: getMappedRealMenu(m => (m.tenDanhMuc || '').toLowerCase().includes("đá xay") || (m.tenDanhMuc || '').toLowerCase().includes("trà")).slice(0, 3),
-    }
-  }
-  if (lower.includes("combo") || lower.includes("bánh")) {
-    return {
-      role: "bot",
-      text: "Bạn thử dùng nước kết hợp với một chút bánh xem sao nhé 😋",
-      recommendItems: getMappedRealMenu(m => (m.tenDanhMuc || '').toLowerCase().includes("bánh")).slice(0, 2),
+      suggestions: ["🎯 Chơi đố vui nào", "☕ Có món cà phê nào ngon không?"]
     }
   }
 
-  // Nếu không khớp các lệnh đặc biệt -> Gọi AI Gemini ở Backend xử lý!
+  // Gửi trực tiếp yêu cầu (Đố vui / Bói nước / Hỏi đáp) lên AI Backend!
   try {
     const res = await fetch('/api/chatbot/ask', {
       method: 'POST',
@@ -204,20 +246,16 @@ const respond = async (q: string): Promise<Msg> => {
     })
     
     if (!res.ok) {
-        let errStr = 'Lỗi hệ thống AI'
-        try {
-            const errJson = await res.json()
-            errStr = errJson.message || errStr
-        } catch {
-            errStr = 'Không thể kết nối đến máy chủ AI (Có thể cần khởi động lại Backend)'
-        }
-        throw new Error(errStr)
+        throw new Error('Server AI đang cập nhật')
     }
     
     const data = await res.json()
-    const botReply: Msg = { role: "bot", text: data.reply }
+    const botReply: Msg = { 
+      role: "bot", 
+      text: data.reply,
+      suggestions: ["🎯 Đố câu khác đi!", "🔮 Bói đồ uống khác", "☕ Món hot hôm nay"]
+    }
     
-    // Nếu AI có gợi ý ID món ăn, ánh xạ sang dạng thẻ giao diện
     if (data.recommendedIds && Array.isArray(data.recommendedIds) && data.recommendedIds.length > 0) {
         const mappedItems = realMenu.value
             .filter(m => data.recommendedIds.includes(m.maSanPham))
@@ -233,10 +271,21 @@ const respond = async (q: string): Promise<Msg> => {
     }
     return botReply
   } catch (error: any) {
+      // Fallback thông minh khi đố vui nếu AI offline
+      if (lower.includes("đố") || lower.includes("câu đố")) {
+        const randomRiddle = sampleRiddles[Math.floor(Math.random() * sampleRiddles.length)]
+        return {
+          role: "bot",
+          text: `${randomRiddle.question}\n\nCác lựa chọn:\n${randomRiddle.options.join('\n')}`,
+          suggestions: [randomRiddle.answer, "Cho câu đố khác đi"],
+          recommendItems: getMappedRealMenu(m => m.tenSanPham.toLowerCase().includes(randomRiddle.recommendKeyword)).slice(0, 1)
+        }
+      }
+
       return {
           role: "bot",
-          text: error.message || "Xin lỗi, não bộ AI của mình đang tải hơi chậm 😅 Bạn thử bấm các gợi ý bên trên nhé!",
-          suggestions: ["Món phổ biến hôm nay", "Tôi muốn gì đó mát lạnh"]
+          text: "Xin lỗi bạn nha, não bộ AI đang suy nghĩ hơi chậm tí ☕ Bạn thử bấm các tính năng bên dưới nha:",
+          suggestions: ["🎯 🎯 Đố vui đồ uống", "🔮 🔮 Bói đồ uống", "☕ ☕ Món Bestseller"]
       }
   }
 }

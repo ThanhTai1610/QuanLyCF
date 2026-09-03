@@ -52,6 +52,7 @@ public class DonTuNhanVien
     public string? LyDo { get; set; }
     public string TrangThai { get; set; } = "ChoDuyet"; // ChoDuyet, DaDuyet, TuChoi
     public int? MaNguoiDuyet { get; set; }
+    public string? GhiChuDuyet { get; set; }
     public DateTime ThoiGianTao { get; set; }
 }
 

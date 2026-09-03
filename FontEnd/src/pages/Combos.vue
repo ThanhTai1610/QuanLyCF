@@ -56,6 +56,9 @@
                 <h3 class="text-white font-premium-serif font-bold text-xl leading-tight drop-shadow-lg truncate">{{ combo.name }}</h3>
                 <p class="text-white/80 text-[11px] font-semibold mt-1 tracking-wide">{{ combo.items.length }} món · {{ combo.items.reduce((s,i)=>s+i.qty,0) }} phần</p>
               </div>
+              <span v-if="combo.apDungKhungGio && combo.gioBatDau && combo.gioKetThuc" class="shrink-0 bg-amber-500/90 text-white px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider backdrop-blur-md shadow-md border border-white/20 flex items-center gap-1">
+                <Clock class="w-3 h-3" /> {{ formatTimeDisplay(combo.gioBatDau) }} - {{ formatTimeDisplay(combo.gioKetThuc) }}
+              </span>
               <span
                 :class="combo.active ? 'bg-emerald-500/90 shadow-emerald-500/30' : 'bg-red-500/90 shadow-red-500/30'"
                 class="shrink-0 text-white px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest backdrop-blur-md shadow-md border border-white/20">
@@ -163,6 +166,36 @@
                 <label class="block text-[10px] uppercase tracking-widest font-bold text-[#8A8178] mb-1.5">Mô tả</label>
                 <textarea v-model="form.description" rows="2" placeholder="Mô tả ngắn gọn..."
                   class="w-full px-4 py-3 border border-[#EAE3D9] rounded-xl text-sm font-medium resize-none focus:border-[#CC8033] outline-none"></textarea>
+              </div>
+
+              <!-- Khung giờ hiển thị -->
+              <div class="space-y-3 p-3.5 bg-[#FAF6F0] rounded-xl border border-[#EAE3D9]">
+                <div class="flex items-center justify-between">
+                  <label class="text-[11px] uppercase tracking-wider font-bold text-[#2A231E] flex items-center gap-1.5 cursor-pointer">
+                    <Clock class="w-4 h-4 text-[#CC8033]" />
+                    <span>Áp dụng khung giờ hiển thị</span>
+                  </label>
+                  <input type="checkbox" v-model="form.apDungKhungGio" class="w-4 h-4 text-[#CC8033] rounded focus:ring-[#CC8033] cursor-pointer" />
+                </div>
+                
+                <div v-if="form.apDungKhungGio" class="grid grid-cols-2 gap-3 pt-1 animate-in fade-in duration-200">
+                  <div>
+                    <label class="block text-[9px] uppercase tracking-widest font-bold text-[#8A8178] mb-1">Giờ bắt đầu</label>
+                    <input v-model="form.gioBatDau" type="time" class="w-full px-3 py-2 border border-[#EAE3D9] rounded-xl text-xs font-bold text-[#2A231E] bg-white outline-none focus:border-[#CC8033]" />
+                  </div>
+                  <div>
+                    <label class="block text-[9px] uppercase tracking-widest font-bold text-[#8A8178] mb-1">Giờ kết thúc</label>
+                    <input v-model="form.gioKetThuc" type="time" class="w-full px-3 py-2 border border-[#EAE3D9] rounded-xl text-xs font-bold text-[#2A231E] bg-white outline-none focus:border-[#CC8033]" />
+                  </div>
+                  <p class="col-span-2 text-[10px] text-[#8A8178] italic font-medium leading-tight">
+                    💡 Tự động xuất hiện trên menu khách hàng khi đến giờ và tự động ẩn khi hết giờ.
+                  </p>
+                  <p class="col-span-2 text-[10px] text-[#8A4F1A] font-medium leading-relaxed bg-amber-50 p-2.5 rounded-lg border border-amber-200/60">
+                    💡 <strong>Cách chọn giờ chiều trong bảng chọn:</strong><br />
+                    • Để chọn <strong>4h55 chiều</strong>: Chọn <code>04</code> | <code>55</code> | <strong>CH</strong><br />
+                    • Để chọn <strong>6h00 sáng</strong>: Chọn <code>06</code> | <code>00</code> | <strong>SA</strong>
+                  </p>
+                </div>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -310,7 +343,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { Plus, CheckCircle, Tag, Pencil, Power, Trash2, X, Check, Layers, Search, UploadCloud, Coffee } from 'lucide-vue-next'
+import { Plus, CheckCircle, Tag, Pencil, Power, Trash2, X, Check, Layers, Search, UploadCloud, Coffee, Clock } from 'lucide-vue-next'
 import { combosApi } from '@/services/combos'
 import { productsApi, type ProductListItem, type CategoryItem } from '@/services/products'
 import { useToast } from '@/stores/toast'
@@ -320,11 +353,25 @@ const toast = useToast()
 const alert = useAlert()
 const formatVND = (v: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v)
 
+const formatTimeDisplay = (timeStr?: string | null) => {
+  if (!timeStr) return ''
+  const parts = timeStr.split(':')
+  if (parts.length < 2) return timeStr
+  const h = parseInt(parts[0], 10)
+  const m = parts[1]
+  if (isNaN(h)) return timeStr
+  const period = h >= 12 ? 'CH' : 'SA'
+  const displayH = h % 12 === 0 ? 12 : h % 12
+  const padH = String(displayH).padStart(2, '0')
+  return `${padH}:${m} ${period}`
+}
+
 interface ComboItem { menuId: number; name: string; image: string; qty: number; price: number }
 interface Combo {
   id: number; name: string; description: string
   originalPrice: number; comboPrice: number
   active: boolean; items: ComboItem[]; coverImage?: string
+  apDungKhungGio?: boolean; gioBatDau?: string; gioKetThuc?: string
 }
 
 const combos = ref<Combo[]>([])
@@ -356,6 +403,9 @@ const fetchCombos = async () => {
         comboPrice: data.giaCombo,
         active: data.trangThaiHoatDong,
         coverImage: data.hinhAnh || '',
+        apDungKhungGio: data.apDungKhungGio || false,
+        gioBatDau: data.gioBatDau || '06:00',
+        gioKetThuc: data.gioKetThuc || '10:30',
         items: itemsMapped
       }
     })
@@ -509,16 +559,19 @@ const recalcOriginalPrice = () => {
 
 const openCreate = () => {
   editingId.value = null
-  form.value = { name: '', description: '', originalPrice: 0, comboPrice: 0, coverImage: '', items: [] }
-  errors.value = { name: '', comboPrice: '', items: '' }
+  form.value = { name: '', description: '', originalPrice: 0, comboPrice: 0, coverImage: '', items: [], apDungKhungGio: false, gioBatDau: '06:00', gioKetThuc: '10:30' }
+  errors.value = { name: '', comboPrice: '', items: '', coverImage: '' }
   activeCat.value = 'all'; menuSearch.value = ''
   isModalOpen.value = true
 }
 
 const editCombo = (c: Combo) => {
   editingId.value = c.id
-  form.value = { name: c.name, description: c.description, originalPrice: c.originalPrice, comboPrice: c.comboPrice, coverImage: c.coverImage ?? '', items: c.items.map(i => ({ ...i })) }
-  errors.value = { name: '', comboPrice: '', items: '' }
+  form.value = {
+    name: c.name, description: c.description, originalPrice: c.originalPrice, comboPrice: c.comboPrice, coverImage: c.coverImage ?? '', items: c.items.map(i => ({ ...i })),
+    apDungKhungGio: c.apDungKhungGio || false, gioBatDau: c.gioBatDau || '06:00', gioKetThuc: c.gioKetThuc || '10:30'
+  }
+  errors.value = { name: '', comboPrice: '', items: '', coverImage: '' }
   activeCat.value = 'all'; menuSearch.value = ''
   isModalOpen.value = true
 }
@@ -532,6 +585,9 @@ const saveCombo = async () => {
       hinhAnh: form.value.coverImage || null,
       moTa: form.value.description || null,
       trangThaiHoatDong: true,
+      apDungKhungGio: form.value.apDungKhungGio,
+      gioBatDau: form.value.apDungKhungGio ? form.value.gioBatDau : null,
+      gioKetThuc: form.value.apDungKhungGio ? form.value.gioKetThuc : null,
       chiTiets: form.value.items.map(i => ({ maSanPham: i.menuId, soLuong: i.qty }))
     }
     
@@ -557,6 +613,9 @@ const toggleActive = async (c: Combo) => {
       hinhAnh: c.coverImage || null,
       moTa: c.description || null,
       trangThaiHoatDong: !c.active,
+      apDungKhungGio: c.apDungKhungGio || false,
+      gioBatDau: c.gioBatDau || null,
+      gioKetThuc: c.gioKetThuc || null,
       chiTiets: c.items.map(i => ({ maSanPham: i.menuId, soLuong: i.qty }))
     })
     c.active = !c.active

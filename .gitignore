@@ -2,6 +2,12 @@
 # .NET Core / ASP.NET Web API
 # ========================================
 
+# Scratch / Temporary files
+_settings_snapshot.json
+_tok.txt
+gen-testcase-settings.js
+temp_testcase/
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

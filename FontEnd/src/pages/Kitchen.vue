@@ -32,10 +32,6 @@
         <div class="h-8 w-px bg-white/10"></div>
         <div class="flex items-center gap-4">
           <div class="font-premium-sans text-3xl font-medium tabular-nums tracking-tight text-[#CC8033]">{{ timeString }}</div>
-          <button @click="muted = !muted" class="w-9 h-9 rounded-lg border border-white/10 flex items-center justify-center">
-            <VolumeX v-if="muted" class="w-4 h-4 text-[#8A8178]" />
-            <Volume2 v-else class="w-4 h-4 text-[#CC8033]" />
-          </button>
         </div>
       </div>
     </header>
@@ -67,11 +63,11 @@
       </div>
 
       <div v-if="activeTab === 'active'" class="flex items-center gap-3 mb-2">
-        <!-- Bộ lọc Trạm pha chế -->
+        <!-- Bộ lọc Loại Đơn Hàng -->
         <div class="flex items-center bg-black/40 rounded-lg border border-white/10 p-1">
-          <button @click="stationFilter = 'all'" :class="stationFilter === 'all' ? 'bg-[#CC8033] text-white shadow-sm' : 'text-[#8A8178] hover:text-white'" class="px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all">Tất cả trạm</button>
-          <button @click="stationFilter = 'bar'" :class="stationFilter === 'bar' ? 'bg-[#CC8033] text-white shadow-sm' : 'text-[#8A8178] hover:text-white'" class="px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all">Quầy Pha Chế</button>
-          <button @click="stationFilter = 'kitchen'" :class="stationFilter === 'kitchen' ? 'bg-[#CC8033] text-white shadow-sm' : 'text-[#8A8178] hover:text-white'" class="px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all">Quầy Bánh</button>
+          <button @click="orderTypeFilter = 'all'" :class="orderTypeFilter === 'all' ? 'bg-[#CC8033] text-white shadow-sm' : 'text-[#8A8178] hover:text-white'" class="px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all">Tất cả đơn</button>
+          <button @click="orderTypeFilter = 'takeaway'" :class="orderTypeFilter === 'takeaway' ? 'bg-[#CC8033] text-white shadow-sm' : 'text-[#8A8178] hover:text-white'" class="px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all">Mang Về</button>
+          <button @click="orderTypeFilter = 'dinein'" :class="orderTypeFilter === 'dinein' ? 'bg-[#CC8033] text-white shadow-sm' : 'text-[#8A8178] hover:text-white'" class="px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all">Tại Quán</button>
         </div>
         <!-- Chế độ Xem -->
         <div class="flex items-center bg-black/40 rounded-lg border border-white/10 p-1">
@@ -147,7 +143,6 @@
           <!-- Items List -->
           <div class="flex-1 p-4 space-y-3">
             <div v-for="(it, i) in o.items" :key="i"
-              v-show="stationFilter === 'all' || getStation(it.name) === stationFilter"
               :class="['rounded-lg transition-all duration-200', it.outOfStock ? 'bg-red-500/5 border border-red-500/20 p-2 -mx-1' : '']">
               <button @click="toggle(o.id, i)" :disabled="it.outOfStock" class="w-full flex items-start gap-3 text-left group disabled:cursor-not-allowed">
                 <!-- Checkbox -->
@@ -284,10 +279,10 @@
           <Clock class="w-3 h-3" />
           Hôm nay
         </div>
-        <button @click="clearHistory" v-if="completedOrders.length > 0"
-          class="ml-auto flex items-center gap-1.5 px-3 h-9 rounded-lg border border-red-500/20 bg-red-500/5 text-red-400 text-[10px] font-bold uppercase tracking-wide hover:bg-red-500/10 transition-colors">
-          <Trash2 class="w-3 h-3" stroke-width="2" />
-          Xoá lịch sử
+        <button @click="handleClearHistoryClick" v-if="completedOrders.length > 0"
+          class="ml-auto flex items-center gap-1.5 px-3 h-9 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-[10px] font-bold uppercase tracking-wide hover:bg-red-500/20 transition-all shadow-xs cursor-pointer">
+          <Lock class="w-3 h-3 text-red-400" />
+          <span>Xoá lịch sử</span>
         </button>
       </div>
 
@@ -399,7 +394,7 @@
         <!-- Thermal Label Mockup -->
         <div id="print-label-content" class="bg-[#F8F9FA] border-2 border-dashed border-gray-300 p-4 rounded-xl font-mono text-xs text-black shadow-inner flex flex-col justify-between min-h-[160px]">
           <div class="border-b border-gray-400 pb-2 text-center">
-            <div class="font-bold text-sm tracking-widest text-espresso">BREWMANAGER COFFEE</div>
+            <div class="font-bold text-sm tracking-widest text-espresso">{{ storeInfoStore.tenQuan.toUpperCase() }}</div>
             <div class="text-[9px] text-gray-500">Mã đơn: {{ printLabelData?.orderId }}</div>
           </div>
           
@@ -438,6 +433,126 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal xác nhận Báo Hết Nguyên Liệu (Bếp) -->
+    <div v-if="outOfStockModalOpen && outOfStockTarget" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+      <div class="relative w-full max-w-md bg-[#1A1512] rounded-3xl border border-amber-500/30 p-6 shadow-2xl space-y-5 text-white animate-in zoom-in-95 duration-200">
+        <div class="flex items-center gap-3 border-b border-white/10 pb-4">
+          <div class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center shrink-0">
+            <AlertTriangle class="w-6 h-6" />
+          </div>
+          <div>
+            <h3 class="font-premium-serif text-lg font-bold text-amber-400">Xác nhận báo hết nguyên liệu</h3>
+            <p class="text-xs text-[#8A8178] mt-0.5">Xác nhận tình trạng kho thực tế tại bếp</p>
+          </div>
+        </div>
+
+        <div class="space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10 text-xs leading-relaxed">
+          <div class="flex justify-between items-center pb-2 border-b border-white/10">
+            <span class="text-[#8A8178]">Đơn hàng:</span>
+            <span class="font-bold text-white">{{ outOfStockTarget.table }}</span>
+          </div>
+          <div class="flex justify-between items-center pb-2 border-b border-white/10">
+            <span class="text-[#8A8178]">Món báo hết:</span>
+            <span class="font-bold text-amber-400 text-sm">{{ outOfStockTarget.itemName }}</span>
+          </div>
+          <p class="text-white/80 pt-1">
+            ⚠️ Nguyên liệu cho món này hiện tại <strong>chỉ còn đủ làm cho 1 ly / món đang chờ này</strong>.
+          </p>
+          <p class="text-white/70">
+            Sau khi xác nhận, món <strong>{{ outOfStockTarget.itemName }}</strong> sẽ tự động chuyển sang trạng thái <span class="text-red-400 font-bold">TẠM HẾT</span> trên cả <strong>Bán hàng tại quầy (POS)</strong> và <strong>Thực đơn gọi món (QR Menu)</strong>. Khách &amp; Thu ngân không thể đặt thêm món này nữa cho tới khi Quản lý mở lại ở <strong>Thực đơn</strong>.
+          </p>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button
+            @click="outOfStockModalOpen = false; outOfStockTarget = null"
+            class="flex-1 h-11 rounded-xl border border-white/20 bg-white/5 text-white/80 hover:bg-white/10 font-bold text-xs uppercase tracking-wider transition-all"
+          >
+            Hủy bỏ
+          </button>
+          <button
+            @click="confirmOutOfStock"
+            class="flex-1 h-11 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-red-900/40 transition-all flex items-center justify-center gap-2"
+          >
+            <AlertTriangle class="w-4 h-4" />
+            Xác nhận Báo Hết
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Xác thực Mã PIN Admin 0000 Xóa Lịch Sử -->
+    <div v-if="showAdminAuthModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200" @click="showAdminAuthModal = false">
+      <div class="relative w-full max-w-sm bg-[#1A1512] rounded-3xl border border-red-500/40 p-6 shadow-2xl space-y-4 text-white animate-in zoom-in-95 duration-200" @click.stop>
+        <div class="flex items-center gap-3 border-b border-white/10 pb-3">
+          <div class="w-10 h-10 rounded-2xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center shrink-0">
+            <Lock class="w-5 h-5" />
+          </div>
+          <div class="text-left">
+            <h3 class="font-premium-serif text-base font-bold text-red-400">Xác Nhận Mã PIN Admin</h3>
+            <p class="text-[10px] text-[#8A8178] font-semibold">
+              {{ isAdmin ? 'Nhập mã PIN 4 số (Mặc định: 0000)' : 'Vui lòng nhập mã PIN bảo mật 4 số của Quản trị viên' }}
+            </p>
+          </div>
+        </div>
+
+        <div class="space-y-3 text-center">
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-wider text-[#8A8178] block">MÃ PIN BẢO MẬT ADMIN:</label>
+            <input 
+              v-model="adminPinInput" 
+              type="password" 
+              maxlength="4"
+              :placeholder="isAdmin ? '0000' : '••••'" 
+              class="w-full px-4 py-2.5 bg-black/60 border border-white/20 rounded-2xl text-2xl font-black text-[#CC8033] placeholder:text-white/20 focus:outline-none focus:border-[#CC8033] text-center tracking-[0.5em]"
+              @keyup.enter="verifyAdminPinAndClear" 
+            />
+            <p v-if="adminAuthError" class="text-xs font-bold text-red-400 pt-0.5">
+              {{ adminAuthError }}
+            </p>
+          </div>
+
+          <!-- Bàn phím số cảm ứng 4 số -->
+          <div class="grid grid-cols-3 gap-2 pt-1 max-w-[230px] mx-auto">
+            <button v-for="num in ['1','2','3','4','5','6','7','8','9']" :key="num" 
+              @click="adminPinInput = (adminPinInput + num).slice(0, 4)"
+              class="py-2 rounded-xl bg-white/10 hover:bg-white/20 active:bg-[#CC8033] text-white font-bold text-base border border-white/10 transition-all active:scale-95 shadow-xs cursor-pointer">
+              {{ num }}
+            </button>
+            <button @click="adminPinInput = ''" class="py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold text-xs border border-red-500/30 transition-all active:scale-95 cursor-pointer">
+              Xóa
+            </button>
+            <button @click="adminPinInput = (adminPinInput + '0').slice(0, 4)" class="py-2 rounded-xl bg-white/10 hover:bg-white/20 active:bg-[#CC8033] text-white font-bold text-base border border-white/10 transition-all active:scale-95 shadow-xs cursor-pointer">
+              0
+            </button>
+            <button v-if="isAdmin" @click="adminPinInput = '0000'" class="py-2 rounded-xl bg-[#CC8033]/20 hover:bg-[#CC8033]/40 text-[#E89E53] font-bold text-[10px] border border-[#CC8033]/30 transition-all active:scale-95 cursor-pointer">
+              0000
+            </button>
+            <button v-else @click="adminPinInput = adminPinInput.slice(0, -1)" class="py-2 rounded-xl bg-white/5 hover:bg-white/15 text-white/70 font-bold text-xs border border-white/10 transition-all active:scale-95 cursor-pointer">
+              ⌫ Lùi
+            </button>
+          </div>
+        </div>
+
+        <div class="flex gap-2.5 pt-2 border-t border-white/10">
+          <button
+            @click="showAdminAuthModal = false"
+            class="flex-1 h-10 rounded-xl border border-white/20 bg-white/5 text-white/80 hover:bg-white/10 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+          >
+            Hủy
+          </button>
+          <button
+            @click="verifyAdminPinAndClear"
+            :disabled="!adminPinInput.trim() || adminAuthBusy"
+            class="flex-1 h-10 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-red-900/40 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+          >
+            <Lock class="w-3.5 h-3.5" />
+            Xóa Lịch Sử
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -446,12 +561,39 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import {
   Volume2, VolumeX, Coffee, ChevronLeft, ChevronRight, ChevronDown,
   Check, CheckCircle2, Search, Clock, Trash2, History, ClipboardList,
-  X, AlertTriangle, LayoutGrid, List, Bell, Zap, Printer, XCircle
+  X, AlertTriangle, LayoutGrid, List, Bell, Zap, Printer, XCircle, Lock
 } from 'lucide-vue-next'
 import { useOrderStore } from '@/stores/orders'
 import { useStoreInfoStore } from '@/stores/storeInfo'
 import { useToast } from '@/stores/toast'
+import { useAuthStore } from '@/stores/auth'
+import { api } from '@/services/api'
+import { auditLogsApi } from '@/services/auditLogs'
+import { ordersApi } from '@/services/orders'
 import type { Order } from '@/data/orders'
+
+const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('quanlycf_orders_sync') : null
+
+const sendCanBungNuocRequest = async (o: Order) => {
+  try {
+    let maBan = o.maBan || 0
+    if (!maBan && o.table) {
+      maBan = parseInt(o.table.replace(/\D/g, ''), 10)
+    }
+    if (maBan && maBan > 0) {
+      await ordersApi.createServiceRequest({
+        maBan,
+        loaiYeuCau: 'CanBungNuoc',
+        ghiChu: `Bếp đã pha xong đồ uống cho ${o.table} (Đơn #${o.id.replace('DH-', '')})`
+      })
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'SERVICE_REQUEST_CHANGED', ts: Date.now() })
+      }
+    }
+  } catch (err) {
+    console.error('Lỗi tạo yêu cầu bưng nước:', err)
+  }
+}
 
 // ── Types ──────────────────────────────────────────────────────
 interface KItem    { name: string; qty: number; done: boolean }
@@ -472,7 +614,6 @@ const activeOrders = computed(() =>
 // ── State ──────────────────────────────────────────────────────
 const completedOrders  = ref<KDone[]>([])
 const now              = ref(Date.now())
-const muted            = ref(false)
 
 // --- Print Label State ---
 const showPrintModal = ref(false)
@@ -511,29 +652,30 @@ const itemsPerPage     = 8
 const historySearch    = ref('')
 const expandedHistory  = ref<Set<string>>(new Set())
 const viewMode         = ref<'table' | 'item'>('table')
-const stationFilter    = ref<'all' | 'bar' | 'kitchen'>('all')
+const orderTypeFilter  = ref<'all' | 'takeaway' | 'dinein'>('all')
 
-const getStation = (name: string) => {
-  const n = name.toLowerCase()
-  if (n.includes('bánh') || n.includes('cheesecake') || n.includes('croissant') || n.includes('tiramisu')) return 'kitchen'
-  return 'bar'
+const isTakeaway = (table: string) => {
+  const t = (table || '').toLowerCase()
+  return t.includes('mang về') || t.includes('takeaway') || t.includes('mang đi')
 }
 
 const filteredActiveOrders = computed(() => {
-  return activeOrders.value.filter(o => 
-    stationFilter.value === 'all' || o.items.some(it => getStation(it.name) === stationFilter.value)
-  ).sort((a, b) => {
-    if (a.isPriority && !b.isPriority) return -1;
-    if (!a.isPriority && b.isPriority) return 1;
-    return 0;
+  return activeOrders.value.filter(o => {
+    if (orderTypeFilter.value === 'all') return true
+    if (orderTypeFilter.value === 'takeaway') return isTakeaway(o.table)
+    if (orderTypeFilter.value === 'dinein') return !isTakeaway(o.table)
+    return true
+  }).sort((a, b) => {
+    if (a.isPriority && !b.isPriority) return -1
+    if (!a.isPriority && b.isPriority) return 1
+    return 0
   })
 })
 
 const aggregatedItems = computed(() => {
   const map = new Map<string, { qty: number; done: number; outOfStock: number; tables: string[] }>()
   filteredActiveOrders.value.forEach(o => {
-    const validItems = o.items.filter(it => stationFilter.value === 'all' || getStation(it.name) === stationFilter.value)
-    validItems.forEach(it => {
+    o.items.forEach(it => {
       const key = it.name
       if (!map.has(key)) map.set(key, { qty: 0, done: 0, outOfStock: 0, tables: [] })
       const group = map.get(key)!
@@ -546,54 +688,44 @@ const aggregatedItems = computed(() => {
   return Array.from(map.entries()).map(([name, data]) => ({ name, ...data })).sort((a, b) => b.qty - a.qty)
 })
 
-// Pre-seed a few history entries for demo
-completedOrders.value = [
-  { id: '1038', table: 'Bàn 2',  duration: 7  * 60 * 1000, completedAt: '09:14', items: [{ name: 'Espresso đôi', qty: 2, done: true }, { name: 'Bánh mì bơ tỏi', qty: 1, done: true }] },
-  { id: '1039', table: 'Bàn 9',  duration: 12 * 60 * 1000, completedAt: '09:32', items: [{ name: 'Trà sữa trân châu', qty: 3, done: true }] },
-  { id: '1040', table: 'Bàn 4',  duration: 5  * 60 * 1000, completedAt: '09:58', items: [{ name: 'Cappuccino', qty: 1, done: true }, { name: 'Cheesecake dâu', qty: 2, done: true }] },
-  { id: '1041', table: 'Bàn 11', duration: 18 * 60 * 1000, completedAt: '10:25', items: [{ name: 'Matcha đá xay', qty: 2, done: true }, { name: 'Croissant bơ', qty: 2, done: true }, { name: 'Nước cam ép', qty: 1, done: true }] },
-]
-
-// ── Timer & Audio ──────────────────────────────────────────────
-let timer: ReturnType<typeof setInterval> | null = null
-
-const playSound = (type: 'new' | 'alarm' | 'vip') => {
-  if (muted.value) return
+const saveCompletedOrders = () => {
   try {
-     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-     const osc = ctx.createOscillator()
-     const gain = ctx.createGain()
-     osc.connect(gain)
-     gain.connect(ctx.destination)
-     if (type === 'new') { osc.frequency.value = 800; gain.gain.setValueAtTime(0.1, ctx.currentTime); osc.start(); osc.stop(ctx.currentTime + 0.2) }
-     else if (type === 'vip') { osc.frequency.value = 1200; gain.gain.setValueAtTime(0.1, ctx.currentTime); osc.type='square'; osc.start(); osc.stop(ctx.currentTime + 0.3) }
-     else if (type === 'alarm') { osc.frequency.value = 400; gain.gain.setValueAtTime(0.2, ctx.currentTime); osc.type='sawtooth'; osc.start(); osc.stop(ctx.currentTime + 0.5) }
-  } catch(e) {}
+    localStorage.setItem('kitchen_completed_orders', JSON.stringify(completedOrders.value))
+  } catch (e) {}
 }
 
-watch(() => activeOrders.value.length, (newVal, oldVal) => {
-  if (newVal > oldVal) {
-     const latest = activeOrders.value[0]
-     if (latest?.isPriority) playSound('vip')
-     else playSound('new')
-  }
-})
+const loadCompletedOrders = () => {
+  try {
+    const raw = localStorage.getItem('kitchen_completed_orders')
+    if (raw) {
+      completedOrders.value = JSON.parse(raw)
+      return
+    }
+  } catch (e) {}
+  completedOrders.value = []
+}
+
+loadCompletedOrders()
+
+// ── Timer ──────────────────────────────────────────────
+let timer: ReturnType<typeof setInterval> | null = null
+
+const playSound = (_type?: 'new' | 'alarm' | 'vip') => {
+  // Đã tắt hoàn toàn âm thanh màn hình bếp theo yêu cầu
+  return
+}
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted (() => { 
   orderStore.fetchOrders()
   pollTimer = setInterval(() => {
-    orderStore.fetchOrders()
-  }, 5000)
+    if (!document.hidden) {
+      orderStore.fetchOrders()
+    }
+  }, 2000)
   timer = setInterval(() => { 
     now.value = Date.now() 
-    if (!muted.value && Math.floor(now.value / 1000) % 10 === 0) {
-       // Báo động mỗi 10s cho đơn đỏ
-       if (activeOrders.value.some(o => (now.value - o.createdTs) > 20*60000 && !o.isPriority && o.status !== 'ready')) {
-          playSound('alarm')
-       }
-    }
   }, 1000) 
 })
 onUnmounted(() => { 
@@ -643,7 +775,7 @@ const avgDuration = computed(() => {
 const isAllDone = (o: Order) => o.items.every(i => i.done || i.outOfStock)
 
 const fmtElapsed = (started: number) => {
-  const s = Math.floor((now.value - started) / 1000)
+  const s = Math.max(0, Math.floor((now.value - started) / 1000))
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
 
@@ -654,7 +786,7 @@ const fmtDuration = (ms: number) => {
 }
 
 const colorByMin = (started: number) => {
-  const m = (now.value - started) / 60000
+  const m = Math.max(0, (now.value - started) / 60000)
   if (m < 10) return 'text-emerald-400 border-emerald-500/30 bg-emerald-500/5'
   if (m < 20) return 'text-amber-400 border-amber-500/30 bg-amber-500/5'
   return 'text-red-400 border-red-500/60 bg-red-500/10 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.4)]'
@@ -682,41 +814,90 @@ const toggle = (oid: string, idx: number) => {
   }
 }
 
+// Out of stock confirmation modal state
+const outOfStockModalOpen = ref(false)
+const outOfStockTarget = ref<{ oid: string; idx: number; itemName: string; table: string } | null>(null)
+
 const reportOutOfStock = (oid: string, idx: number) => {
   const o = orderStore.getById(oid)
   const it = o?.items[idx]
-  if (it) {
-    const wasOutOfStock = it.outOfStock
+  if (!it) return
+
+  if (it.outOfStock) {
+    // Nếu đang outOfStock -> khôi phục nguyên liệu trực tiếp
     orderStore.toggleOutOfStock(oid, idx)
-    if (!wasOutOfStock) {
-      toast.warning(`Đã báo hết nguyên liệu cho: ${it.name}`, 'Cảnh báo kho')
-    } else {
-      toast.success(`Đã khôi phục nguyên liệu cho: ${it.name}`, 'Cập nhật kho')
+    toast.success(`Đã khôi phục nguyên liệu cho: ${it.name}`, 'Cập nhật kho')
+  } else {
+    // Mở popup xác nhận báo hết
+    outOfStockTarget.value = {
+      oid,
+      idx,
+      itemName: it.name,
+      table: o?.table || 'Đơn hàng'
     }
+    outOfStockModalOpen.value = true
   }
+}
+
+const confirmOutOfStock = () => {
+  if (!outOfStockTarget.value) return
+  const { oid, idx, itemName, table } = outOfStockTarget.value
+  orderStore.toggleOutOfStock(oid, idx)
+  toast.warning(`Đã báo hết nguyên liệu cho: ${itemName} (Đã chuyển TẠM HẾT trên POS & Menu)`, 'Khóa món thành công')
+  
+  auditLogsApi.createLog({
+    maNhanVien: authStore.user?.maNhanVien,
+    hanhDong: 'BÁO HẾT MÓN',
+    module: 'BẾP - KDS',
+    duLieuMoi: `Mới: Nhân viên bếp báo hết nguyên liệu món [${itemName}] tại ${table}. Món đã được tạm khóa trên POS & QR Menu.`
+  }).catch(() => {})
+
+  outOfStockModalOpen.value = false
+  outOfStockTarget.value = null
 }
 
 const markReady = (o: Order) => {
   if (!isAllDone(o)) return
   orderStore.updateStatus(o.id, 'ready')
   orderStore.notifyPos(o.table)
-  toast.success(`Đơn hàng ${o.table} đã pha xong!`, 'Sẵn sàng giao')
+  sendCanBungNuocRequest(o)
+  toast.success(`Đã thông báo BƯNG NƯỚC cho Phục vụ tại ${o.table}!`, 'Sẵn sàng giao')
+
+  auditLogsApi.createLog({
+    maNhanVien: authStore.user?.maNhanVien,
+    hanhDong: 'PHA XONG MÓN',
+    module: 'BẾP - KDS',
+    duLieuMoi: `Mới: Bếp đã pha chế xong toàn bộ đồ uống cho [${o.table}] (${o.items.length} món).`
+  }).catch(() => {})
 }
 
 const complete = (o: Order) => {
-  if (o.status !== 'ready') return
   const duration = Date.now() - o.createdTs
   const completedAt = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-  completedOrders.value.unshift({
-    id: o.id,
-    table: o.table,
-    items: o.items.map(i => ({ name: i.name, qty: i.qty, done: i.done, outOfStock: i.outOfStock })),
-    duration,
-    completedAt,
-  })
+
+  const exists = completedOrders.value.some(item => item.id === o.id)
+  if (!exists) {
+    completedOrders.value.unshift({
+      id: o.id,
+      table: o.table,
+      items: o.items.map(i => ({ name: i.name, qty: i.qty, done: i.done, outOfStock: i.outOfStock })),
+      duration,
+      completedAt,
+    })
+    saveCompletedOrders()
+  }
+
   orderStore.updateStatus(o.id, 'done')
+  sendCanBungNuocRequest(o)
   if (currentPage.value > totalPages.value && currentPage.value > 1) currentPage.value--
   toast.success(`Đã hoàn tất giao đồ cho ${o.table}`, 'Hoàn tất đơn')
+
+  auditLogsApi.createLog({
+    maNhanVien: authStore.user?.maNhanVien,
+    hanhDong: 'GIAO ĐỒ',
+    module: 'BẾP - KDS',
+    duLieuMoi: `Mới: Bếp đã hoàn tất giao đồ cho [${o.table}]. Thời gian phục vụ: ${fmtDuration(duration)}.`
+  }).catch(() => {})
 }
 
 const toggleHistory = (id: string) => {
@@ -725,11 +906,60 @@ const toggleHistory = (id: string) => {
   expandedHistory.value = new Set(expandedHistory.value) // trigger reactivity
 }
 
-const clearHistory = () => {
-  if (confirm('Xoá toàn bộ lịch sử hôm nay?')) {
-    completedOrders.value = []
-    toast.success('Đã xóa toàn bộ lịch sử hôm nay.', 'Lịch sử')
+const authStore = useAuthStore()
+
+const isAdmin = computed(() => {
+  const user = authStore.user
+  if (!user) return false
+  const roleId = user.maVaiTro
+  const roleName = (user.tenVaiTro || user.vaiTro || '').toLowerCase()
+  const quyens = user.quyens || []
+  return roleId === 1 || roleName.includes('admin') || roleName.includes('quản lý') || roleName.includes('quanly') || quyens.includes('System.Admin') || quyens.includes('CAIDAT_QUANLY')
+})
+
+// --- State Xác thực Admin xóa Lịch sử ---
+const showAdminAuthModal = ref(false)
+const adminPinInput = ref('')
+const adminAuthError = ref('')
+const adminAuthBusy = ref(false)
+
+const handleClearHistoryClick = () => {
+  if (completedOrders.value.length === 0) return
+  adminPinInput.value = ''
+  adminAuthError.value = ''
+  showAdminAuthModal.value = true
+}
+
+const verifyAdminPinAndClear = async () => {
+  adminAuthError.value = ''
+  const pin = adminPinInput.value.trim()
+  if (!pin) {
+    adminAuthError.value = 'Vui lòng nhập mã PIN Admin 4 số!'
+    return
   }
+
+  // Quy định mã PIN Admin xóa lịch sử: '0000' (hoặc 1234, admin, 8888)
+  if (['0000', '1234', '8888', '123456', 'admin'].includes(pin.toLowerCase())) {
+    completedOrders.value = []
+    localStorage.removeItem('kitchen_completed_orders')
+    showAdminAuthModal.value = false
+    toast.success('Xác thực Mã PIN thành công! Đã xóa toàn bộ lịch sử pha chế.', 'Quản trị viên')
+
+    auditLogsApi.createLog({
+      maNhanVien: authStore.user?.maNhanVien,
+      hanhDong: 'XOÁ LỊCH SỬ',
+      module: 'BẾP - KDS',
+      duLieuMoi: 'Mới: Quản trị viên đã xác thực PIN và xóa toàn bộ lịch sử pha chế trong ngày.'
+    }).catch(() => {})
+  } else {
+    adminAuthError.value = isAdmin.value
+      ? 'Mã PIN Admin không chính xác (Mặc định: 0000)!'
+      : 'Mã PIN Admin không chính xác. Vui lòng thử lại!'
+  }
+}
+
+const clearHistory = () => {
+  handleClearHistoryClick()
 }
 </script>
 

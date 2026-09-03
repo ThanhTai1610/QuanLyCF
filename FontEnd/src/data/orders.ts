@@ -17,6 +17,7 @@ export interface OrderItem {
 export interface Order {
   id: string;
   originalId?: number;
+  maBan?: number | null;
   table: string;
   items: OrderItem[];
   total: number;

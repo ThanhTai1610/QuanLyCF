@@ -23,7 +23,7 @@ public class ZonesController : ControllerBase
             .ToListAsync());
 
     [HttpPost]
-    [Authorize(Policy = Quyens.BanQuanLy)]
+    [Authorize(Policy = Quyens.BanXem)]
     public async Task<IActionResult> Create(SaveZoneRequest req)
     {
         var kv = new KhuVucBan { TenKhuVuc = req.TenKhuVuc.Trim(), PhuThu = req.PhuThu };
@@ -33,7 +33,7 @@ public class ZonesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Policy = Quyens.BanQuanLy)]
+    [Authorize(Policy = Quyens.BanXem)]
     public async Task<IActionResult> Update(int id, SaveZoneRequest req)
     {
         var kv = await _db.KhuVucBans.FindAsync(id);
@@ -45,7 +45,7 @@ public class ZonesController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Policy = Quyens.BanQuanLy)]
+    [Authorize(Policy = Quyens.BanXem)]
     public async Task<IActionResult> Delete(int id)
     {
         var kv = await _db.KhuVucBans.FindAsync(id);

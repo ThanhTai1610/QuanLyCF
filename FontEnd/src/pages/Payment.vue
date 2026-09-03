@@ -7,7 +7,7 @@
       </div>
 
       <h1 class="font-display text-3xl text-espresso font-semibold">Cảm ơn bạn đã đến! ☕</h1>
-      <p class="text-muted-foreground mt-2">Đơn #{{ orderId }} đã được thanh toán thành công</p>
+      <p class="text-muted-foreground mt-2">Đơn #{{ effectiveOrderId || orderId || 'hàng' }} đã được thanh toán thành công</p>
 
       <div class="mt-8 p-5 rounded-lg bg-[#F5F2ED] border border-[#EAE3D9] text-left space-y-3">
         <div v-for="(it, i) in items" :key="i" class="flex justify-between text-sm">
@@ -45,7 +45,7 @@
       <div class="p-6 space-y-6">
         <!-- Order Summary -->
         <div class="bg-[#F5F2ED] rounded-lg border border-[#EAE3D9] p-5">
-          <h2 class="font-display text-lg text-espresso font-semibold">Đơn #{{ orderId }} — {{ tableLabel }}</h2>
+          <h2 class="font-display text-lg text-espresso font-semibold">Đơn {{ effectiveOrderId ? '#' + effectiveOrderId : 'đặt món' }} — {{ tableLabel }}</h2>
           <div class="mt-4 space-y-3">
             <div v-for="(it, i) in items" :key="i" class="flex justify-between text-sm">
               <span class="text-espresso">{{ it.name }} × {{ it.qty }}</span>
@@ -324,6 +324,7 @@ import { tablesApi } from '@/services/tables'
 const route = useRoute()
 const orderStore = useOrderStore()
 const orderId = String(route.params.orderId || '')
+const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('quanlycf_orders_sync') : null
 
 // Kiểm tra xem ID đơn hàng có phải ID thật (kiểu số tự tăng từ API backend)
 const isRealOrder = computed(() => {
@@ -342,13 +343,69 @@ const effectiveOrderId = computed(() => {
   return isRealOrder.value ? orderIdNum.value : realBackendOrderId.value
 })
 
-// Lấy đúng đơn từ store
+// Lấy đúng đơn từ store hoặc fetch từ Backend API
+const apiOrderData = ref<any>(null)
+
+const fetchBackendOrderDetails = async () => {
+  if (isRealOrder.value && orderIdNum.value > 0) {
+    try {
+      const data: any = await ordersApi.getById(orderIdNum.value)
+      if (data) {
+        apiOrderData.value = data
+      }
+    } catch (e) {
+      console.error('Lỗi khi tải thông tin đơn hàng từ Backend:', e)
+    }
+  }
+}
+
 const order = computed(() => orderStore.getById(orderId))
-const items = computed(() => order.value?.items ?? [])
-const tableLabel = computed(() => order.value?.table ?? '—')
+const pendingCart = ref<any>(null)
+
+const loadPendingCart = () => {
+  try {
+    const raw = sessionStorage.getItem('pending_guest_cart')
+    if (raw) {
+      pendingCart.value = JSON.parse(raw)
+      if (pendingCart.value.appliedPromo) {
+        appliedPromo.value = pendingCart.value.appliedPromo
+      }
+      if (pendingCart.value.pointsDiscount) {
+        selectedRewardPoints.value = pendingCart.value.pointsDiscount
+      }
+    }
+  } catch (e) {}
+}
+
+const items = computed(() => {
+  if (pendingCart.value?.displayItems?.length) {
+    return pendingCart.value.displayItems
+  }
+  if (order.value?.items?.length) {
+    return order.value.items
+  }
+  if (apiOrderData.value?.chiTiets?.length) {
+    return apiOrderData.value.chiTiets.map((c: any) => ({
+      id: String(c.maChiTiet || c.maSanPham),
+      name: (c.tenSanPham || c.sanPham?.tenSanPham || 'Món') + (c.tenKichCo ? ` (${c.tenKichCo})` : (c.kichCo?.tenKichCo ? ` (${c.kichCo.tenKichCo})` : '')),
+      qty: c.soLuong,
+      price: c.donGia,
+      note: c.ghiChuMon
+    }))
+  }
+  return []
+})
+
+const tableLabel = computed(() => {
+  if (pendingCart.value?.tenBan) return pendingCart.value.tenBan
+  if (order.value?.table) return order.value.table
+  if (apiOrderData.value?.tenBan) return apiOrderData.value.tenBan
+  if (apiOrderData.value?.ban?.tenBan) return apiOrderData.value.ban.tenBan
+  return '—'
+})
 
 const methods = [
-  { id: "cash", label: "Tiền mặt", sub: "Thanh toán tại quầy" },
+  { id: "cash", label: "Tiền mặt", sub: "Thanh toán tại bàn" },
   { id: "qr", label: "Chuyển khoản QR", sub: "Quét mã QR ngân hàng" },
   { id: "momo", label: "MoMo", sub: "Ví điện tử MoMo" }
 ]
@@ -364,7 +421,15 @@ const loading = ref(false)
 const errorMessage = ref<string | null>(null)
 let statusInterval: number | null = null
 
-const subtotal = computed(() => items.value.reduce((s, i) => s + i.qty * i.price, 0))
+const subtotal = computed(() => {
+  if (items.value.length > 0) {
+    return items.value.reduce((s, i) => s + i.qty * i.price, 0)
+  }
+  if (apiOrderData.value?.thanhTien) {
+    return apiOrderData.value.thanhTien
+  }
+  return 0
+})
 const voucherCode = ref('')
 const voucherError = ref('')
 const activePromos = ref<Promotion[]>([])
@@ -638,14 +703,30 @@ const initPayment = async () => {
 }
 
 const updateLocalStoragePoints = async () => {
-  if (customerProfile.value && customerProfile.value.email) {
-    try {
-      const updated = await loyaltyApi.checkPublicEmail(customerProfile.value.email)
+  if (!customerProfile.value) return
+  try {
+    let updated: any = null
+    if (customerProfile.value.email) {
+      updated = await loyaltyApi.checkPublicEmail(customerProfile.value.email)
+    } else if (customerProfile.value.id) {
+      const detail = await loyaltyApi.get(customerProfile.value.id)
+      if (detail) {
+        updated = {
+          id: detail.id,
+          name: detail.name,
+          phone: detail.phone,
+          email: detail.email || '',
+          tier: detail.tier,
+          points: detail.points
+        }
+      }
+    }
+    if (updated) {
       localStorage.setItem('brewCustomerProfile', JSON.stringify(updated))
       customerProfile.value = updated
-    } catch (e) {
-      console.error('Không thể cập nhật điểm tích lũy sau thanh toán:', e)
     }
+  } catch (e) {
+    console.error('Không thể cập nhật điểm tích lũy sau thanh toán:', e)
   }
 }
 
@@ -676,38 +757,73 @@ const stopStatusPolling = () => {
 }
 
 const handlePay = async () => {
-  if (effectiveOrderId.value) {
-    loading.value = true
-    errorMessage.value = null
-    try {
+  loading.value = true
+  errorMessage.value = null
+  try {
+    let orderBeId = effectiveOrderId.value
+
+    // Nếu đơn chưa được tạo trên DB (khách vừa chọn món từ menu QR) => TẠO ĐƠN TRÊN BACKEND NGAY LÚC NÀY!
+    if (!orderBeId && pendingCart.value) {
+      const orderRes: any = await ordersApi.guestCreate({
+        maBan: pendingCart.value.maBan,
+        items: pendingCart.value.items,
+        ghiChuDonHang: pendingCart.value.ghiChuDonHang,
+        maKhachHang: pendingCart.value.maKhachHang
+      })
+      const createdOrder = orderRes?.order || orderRes
+      orderBeId = createdOrder.maDonHang
+      realBackendOrderId.value = orderBeId
+      if (orderRes?.maPinSession && pendingCart.value.maBan) {
+        sessionStorage.setItem(`table_pin_${pendingCart.value.maBan}`, orderRes.maPinSession)
+      }
+    }
+
+    if (orderBeId) {
       if (method.value === 'cash') {
         const res = await paymentsApi.payCash({
-          maDonHang: effectiveOrderId.value,
+          maDonHang: orderBeId,
           soTienKhachTra: total.value,
           maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null
         })
         if (res.success) {
-          orderStore.markPaid(orderId, method.value)
+          sessionStorage.removeItem('pending_guest_cart')
           paid.value = true
+          if (syncChannel) {
+            try { syncChannel.postMessage({ type: 'ORDERS_CHANGED', ts: Date.now() }) } catch (e) {}
+          }
           await updateLocalStoragePoints()
         } else {
           errorMessage.value = res.message
         }
       } else if (method.value === 'momo' || method.value === 'qr') {
-        if (payUrl.value) {
-          window.open(payUrl.value, '_blank')
+        const res = method.value === 'momo'
+          ? await paymentsApi.payMomo({ maDonHang: orderBeId, maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null })
+          : await paymentsApi.payVietQr({ maDonHang: orderBeId, maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null })
+
+        if (res.success) {
+          sessionStorage.removeItem('pending_guest_cart')
+          if (res.payUrl) window.open(res.payUrl, '_blank')
+          paid.value = true
+          if (syncChannel) {
+            try { syncChannel.postMessage({ type: 'ORDERS_CHANGED', ts: Date.now() }) } catch (e) {}
+          }
+          await updateLocalStoragePoints()
+        } else {
+          errorMessage.value = res.message
         }
       }
-    } catch (err: any) {
-      errorMessage.value = err.message || 'Lỗi xử lý thanh toán.'
-    } finally {
-      loading.value = false
+    } else {
+      sessionStorage.removeItem('pending_guest_cart')
+      paid.value = true
+      if (syncChannel) {
+        try { syncChannel.postMessage({ type: 'ORDERS_CHANGED', ts: Date.now() }) } catch (e) {}
+      }
+      await updateLocalStoragePoints()
     }
-  } else {
-    // Fallback nếu không có ID backend (đơn mock bị lỗi mạng)
-    orderStore.markPaid(orderId, method.value)
-    paid.value = true
-    await updateLocalStoragePoints()
+  } catch (err: any) {
+    errorMessage.value = err.message || 'Lỗi xử lý thanh toán.'
+  } finally {
+    loading.value = false
   }
 }
 
@@ -717,8 +833,13 @@ watch(method, () => {
 
 onMounted(async () => {
   loadCustomerProfile()
-  await syncMockOrderToBackend()
-  initPayment()
+  loadPendingCart()
+  if (isRealOrder.value) {
+    await fetchBackendOrderDetails()
+  } else if (!pendingCart.value) {
+    await syncMockOrderToBackend()
+  }
+  await initPayment()
   loadActivePromotions()
   loadSavedVouchers()
   loadRewards()

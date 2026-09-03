@@ -11,7 +11,8 @@ public class KhachHang
     public DateOnly? NgaySinh { get; set; }
     public string? AnhDaiDien { get; set; }
     public string HangThanhVien { get; set; } = "Member"; // Member, Silver, Gold, Diamond
-    public int DiemTichLuy { get; set; }
+    public int DiemTichLuy { get; set; }                  // Điểm khả dụng dùng để đổi thưởng
+    public int TongDiemTichLuy { get; set; }              // Tổng điểm lũy kế vĩnh viễn (CHỈ dùng xét hạng, không bị trừ khi đổi quà)
     public decimal TongTienDaTieu { get; set; }
     public DateTime? LanGheThamCuoi { get; set; }
     public string? GhiChuKhachHang { get; set; }

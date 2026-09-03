@@ -16,6 +16,9 @@ export interface MenuItem {
   moTa: string | null
   laMonNoiBat: boolean
   kichCos: MenuSize[]
+  apDungKhungGio?: boolean
+  gioBatDau?: string | null
+  gioKetThuc?: string | null
 }
 
 export interface OrderItem {
@@ -74,12 +77,17 @@ export interface CheckoutResult {
   thanhTien: number
   tienThoiLai: number
   phuongThuc: string
+  diemTichLuy?: number
+  maPinSession?: string | null
 }
 
 export const ordersApi = {
-  menu: () => api.get<MenuItem[]>('/api/orders/menu'),
+  menu: (isPos = false) => api.get<MenuItem[]>(`/api/orders/menu?isPos=${isPos}`),
+  getAll: () => api.get<OrderDto[]>('/api/orders'),
+  getById: (id: number) => api.get<OrderDto>(`/api/orders/${id}`),
   checkout: (body: CheckoutBody) => api.post<CheckoutResult>('/api/orders/checkout', body),
   active: () => api.get<OrderDto[]>('/api/orders/active'),
+  kitchenActive: () => api.get<OrderDto[]>('/api/orders/kitchen-active'),
   create: (body: CreateOrderBody) => api.post<OrderDto>('/api/orders', body),
   move: (maDon: number, maBanMoi: number) =>
     api.put<MoveOrderResult>(`/api/orders/${maDon}/move`, { maBanMoi }),
@@ -87,6 +95,8 @@ export const ordersApi = {
     api.put<void>(`/api/orders/${maDon}/cancel`, { lyDo: lyDo ?? null }),
   updateStatus: (maDon: number, status: string) =>
     api.put<void>(`/api/orders/${maDon}/status`, { status }),
+  updateItemKitchenStatus: (maChiTiet: number, trangThaiBep: string) =>
+    api.put<{ success: boolean; trangThaiBep: string }>(`/api/orders/items/${maChiTiet}/kitchen-status`, { trangThaiBep }),
 
   // Đóng bàn / hoàn tác / lịch sử
   closeTable: (maBan: number) => api.post<void>(`/api/orders/close-table/${maBan}`),
@@ -94,8 +104,17 @@ export const ordersApi = {
   history: (maBan: number) => api.get<OrderDto[]>(`/api/orders/history/${maBan}`),
   restore: (maDon: number) => api.post<void>(`/api/orders/${maDon}/restore`),
 
+  // Gửi Email Mã PIN Bàn & Hóa Đơn
+  sendEmailReceipt: (payload: {
+    email: string
+    maDonHang?: number
+    tenBan?: string
+    maPinSession?: string | null
+  }) => api.post<{ message: string }>('/api/orders/send-email-receipt', payload),
+
   // Guest order history and service request calls
   guestHistory: (maBan: number) => api.get<OrderDto[]>(`/api/orders/guest/history/${maBan}`),
+  getCustomerHistory: (email: string) => api.get<OrderDto[]>(`/api/orders/customer-history?email=${encodeURIComponent(email)}`),
   createServiceRequest: (body: { maBan: number; loaiYeuCau: string; ghiChu: string | null }) =>
     api.post<any>('/api/service-requests', body),
   getActiveServiceRequests: () => api.get<any[]>('/api/service-requests/active'),
