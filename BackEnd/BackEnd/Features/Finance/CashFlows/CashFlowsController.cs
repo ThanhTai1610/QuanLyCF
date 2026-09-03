@@ -23,8 +23,16 @@ public class CashFlowsController : ControllerBase
     {
         if (year == 0) year = DateTime.UtcNow.Year;
         if (month == 0) month = DateTime.UtcNow.Month;
-        var data = await _service.LayDanhSachAsync(year, month);
-        return Ok(data);
+        try
+        {
+            var data = await _service.LayDanhSachAsync(year, month);
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CashFlow List Error] {ex.Message}");
+            return Ok(new List<CashFlowListItem>());
+        }
     }
 
     [HttpGet("summary")]
@@ -33,8 +41,16 @@ public class CashFlowsController : ControllerBase
     {
         if (year == 0) year = DateTime.UtcNow.Year;
         if (month == 0) month = DateTime.UtcNow.Month;
-        var data = await _service.TinhTongKetAsync(year, month);
-        return Ok(data);
+        try
+        {
+            var data = await _service.TinhTongKetAsync(year, month);
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CashFlow Summary Error] {ex.Message}");
+            return Ok(new CashFlowSummary(0, 0, 0, 0, 0, 0));
+        }
     }
 
     [HttpPost("out")]
@@ -52,7 +68,15 @@ public class CashFlowsController : ControllerBase
     {
         if (year == 0) year = DateTime.UtcNow.Year;
         if (month == 0) month = DateTime.UtcNow.Month;
-        var data = await _service.LayBangLuongAsync(year, month);
-        return Ok(data);
+        try
+        {
+            var data = await _service.LayBangLuongAsync(year, month);
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CashFlow Salaries Error] {ex.Message}");
+            return Ok(new List<SalaryListItem>());
+        }
     }
 }

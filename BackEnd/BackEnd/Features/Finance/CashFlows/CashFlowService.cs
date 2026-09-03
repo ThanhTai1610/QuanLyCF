@@ -14,8 +14,11 @@ public class CashFlowService
     {
         await DamBaoDuLieuKhaoSatAsync(year, month);
 
+        var start = new DateTime(year, month, 1);
+        var end = start.AddMonths(1);
+
         var query = _db.DongTiens.Include(x => x.NhanVienGhiNhan)
-            .Where(x => x.ThoiGianTao.Year == year && x.ThoiGianTao.Month == month)
+            .Where(x => x.ThoiGianTao >= start && x.ThoiGianTao < end)
             .OrderByDescending(x => x.ThoiGianTao);
 
         return await query.Select(x => new CashFlowListItem(
@@ -27,7 +30,7 @@ public class CashFlowService
             x.NguoiNopNhan,
             x.GhiChu,
             x.ThoiGianTao,
-            x.NhanVienGhiNhan.HoTen
+            x.NhanVienGhiNhan != null ? x.NhanVienGhiNhan.HoTen : "Hệ thống"
         )).ToListAsync();
     }
 
@@ -35,8 +38,11 @@ public class CashFlowService
     {
         await DamBaoDuLieuKhaoSatAsync(year, month);
 
+        var start = new DateTime(year, month, 1);
+        var end = start.AddMonths(1);
+
         var list = await _db.DongTiens
-            .Where(x => x.ThoiGianTao.Year == year && x.ThoiGianTao.Month == month)
+            .Where(x => x.ThoiGianTao >= start && x.ThoiGianTao < end)
             .GroupBy(x => new { x.LoaiGiaoDich, x.NhomGiaoDich })
             .Select(g => new { g.Key.LoaiGiaoDich, g.Key.NhomGiaoDich, Tong = g.Sum(x => x.SoTien) })
             .ToListAsync();
@@ -151,27 +157,11 @@ public class CashFlowService
             tongLuong = await _db.BangLuongs.Where(x => x.Ky == ky).SumAsync(x => x.ThucLanh);
         }
 
-        // One-time fix for existing mock times (moving 21:30 to 06:00 and 14:00 to 07:00)
-        var oldRevenueMocks = await _db.DongTiens
-            .Where(x => x.NhomGiaoDich == "DoanhThuPOS" && x.ThoiGianTao.Year == year && x.ThoiGianTao.Month == month && x.ThoiGianTao.Hour == 21 && x.ThoiGianTao.Minute == 30)
-            .ToListAsync();
-        if (oldRevenueMocks.Any())
-        {
-            foreach (var r in oldRevenueMocks) r.ThoiGianTao = new DateTime(r.ThoiGianTao.Year, r.ThoiGianTao.Month, r.ThoiGianTao.Day, 6, 0, 0, DateTimeKind.Utc);
-            await _db.SaveChangesAsync();
-        }
-
-        var oldImportMocks = await _db.DongTiens
-            .Where(x => x.NhomGiaoDich == "NhapHang" && x.ThoiGianTao.Year == year && x.ThoiGianTao.Month == month && x.ThoiGianTao.Hour == 14 && x.ThoiGianTao.Minute == 0)
-            .ToListAsync();
-        if (oldImportMocks.Any())
-        {
-            foreach (var r in oldImportMocks) r.ThoiGianTao = new DateTime(r.ThoiGianTao.Year, r.ThoiGianTao.Month, r.ThoiGianTao.Day, 7, 0, 0, DateTimeKind.Utc);
-            await _db.SaveChangesAsync();
-        }
+        var start = new DateTime(year, month, 1);
+        var end = start.AddMonths(1);
 
         // 2. Sinh dòng tiền DongTien nếu chưa có giao dịch nào của tháng này
-        var existsDongTien = await _db.DongTiens.AnyAsync(x => x.ThoiGianTao.Year == year && x.ThoiGianTao.Month == month);
+        var existsDongTien = await _db.DongTiens.AnyAsync(x => x.ThoiGianTao >= start && x.ThoiGianTao < end);
         if (!existsDongTien)
         {
             var random = new Random();
