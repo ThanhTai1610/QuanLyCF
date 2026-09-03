@@ -18,7 +18,29 @@ public class TablesController : ControllerBase
     private readonly IConfiguration _cfg;
     public TablesController(QuanLyCFDbContext db, IConfiguration cfg) { _db = db; _cfg = cfg; }
 
-    private string FeOrigin => _cfg["Cors:FrontendOrigin"]?.TrimEnd('/') ?? "http://192.168.1.7:5173";
+    private string FeOrigin
+    {
+        get
+        {
+            var origin = Request?.Headers["Origin"].FirstOrDefault() ?? Request?.Headers["Referer"].FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(origin))
+            {
+                try
+                {
+                    var uri = new Uri(origin);
+                    var host = $"{uri.Scheme}://{uri.Authority}".TrimEnd('/');
+                    if (!host.Contains("192.168")) return host;
+                }
+                catch { }
+            }
+            var cfgOrigin = _cfg["Cors:FrontendOrigin"]?.TrimEnd('/');
+            if (!string.IsNullOrWhiteSpace(cfgOrigin) && !cfgOrigin.Contains("localhost") && !cfgOrigin.Contains("192.168"))
+            {
+                return cfgOrigin;
+            }
+            return "https://caphef6.website";
+        }
+    }
     private static string TaoQRHash() => Guid.NewGuid().ToString("N");
 
     [HttpGet]

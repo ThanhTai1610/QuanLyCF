@@ -951,7 +951,11 @@ async function loadAll(isBackground = false) {
       tablesApi.listZones().catch(err => { console.warn('Lỗi load khu vực:', err); return []; }),
       ordersApi.active().catch(err => { console.warn('Lỗi load đơn đang hoạt động:', err); return []; })
     ])
-    tables.value = t || []
+    const currentOrigin = window.location.origin
+    tables.value = (t || []).map(item => ({
+      ...item,
+      urlDatMon: item.urlDatMon ? item.urlDatMon.replace(/^https?:\/\/(192\.168\.\d+\.\d+|localhost)(:\d+)?/, currentOrigin) : item.urlDatMon
+    }))
     zones.value = z || []
     orders.value = o || []
   } catch (e) {
