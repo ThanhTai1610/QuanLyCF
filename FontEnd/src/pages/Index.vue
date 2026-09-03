@@ -1055,7 +1055,7 @@
       <span class="tracking-wide">Gọi phục vụ</span>
     </button>
 
-    <!-- MODAL GỌI PHỤC VỤ HỖ TRỢ TẠI BÀN -->
+    <!-- MODAL BÁO CẦN QUÉT MÃ QR BÀN -->
     <Transition
       enter-active-class="transition duration-300 ease-out"
       enter-from-class="opacity-0 scale-95"
@@ -1064,7 +1064,52 @@
       leave-from-class="opacity-100 scale-100"
       leave-to-class="opacity-0 scale-95"
     >
-      <div v-if="showCallSupportModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+      <div v-if="showNeedQrScanModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+        <div class="bg-[#1C130E] border border-white/15 text-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-5 text-center relative overflow-hidden">
+          <button @click="showNeedQrScanModal = false" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors cursor-pointer">
+            <X class="w-4 h-4" />
+          </button>
+
+          <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-[#CC8033] to-[#E89E53] flex items-center justify-center shadow-lg shadow-[#CC8033]/30">
+            <QrCode class="w-8 h-8 text-white animate-pulse" />
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="font-premium-serif text-lg font-bold text-[#E89E53]">Cần Quét Mã QR Tại Bàn</h3>
+            <p class="text-xs text-white/80 leading-relaxed">
+              Bạn chưa ở trong phiên phục vụ của bàn nào. Vui lòng quét mã QR dán trên mặt bàn tại quán để bắt đầu gọi phục vụ &amp; đặt món nhé!
+            </p>
+          </div>
+
+          <div class="space-y-2 pt-2">
+            <button
+              @click="showNeedQrScanModal = false; openQrScannerModal()"
+              class="w-full h-12 rounded-xl bg-gradient-to-r from-[#CC8033] via-[#E89E53] to-[#F59E0B] text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-[#CC8033]/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+            >
+              <Camera class="w-4 h-4" />
+              <span>Quét mã QR Bàn ngay</span>
+            </button>
+            <button
+              @click="showNeedQrScanModal = false"
+              class="w-full h-10 rounded-xl bg-white/5 border border-white/10 text-white/70 text-xs font-bold hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              Để sau
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- MODAL GỌI PHỤC VỤ HỖ TRỢ TẠI BÀN (Khi đã ở trong bàn) -->
+    <Transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="opacity-0 scale-95"
+      enter-to-class="opacity-100 scale-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100 scale-100"
+      leave-to-class="opacity-0 scale-95"
+    >
+      <div v-if="showCallSupportModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
         <div class="bg-[#1C130E] border border-white/15 text-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 relative overflow-hidden">
           <button @click="showCallSupportModal = false" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors cursor-pointer">
             <X class="w-4 h-4" />
@@ -1074,41 +1119,43 @@
             <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500 to-amber-500 flex items-center justify-center shadow-lg shadow-red-900/30">
               <BellRing class="w-6 h-6 text-white animate-bounce" />
             </div>
-            <div>
+            <div class="text-left">
               <h3 class="font-premium-serif text-lg font-bold text-red-400">Gọi Nhân Viên Hỗ Trợ</h3>
-              <p class="text-xs text-white/70">Chọn số bàn để nhân viên đến phục vụ ngay</p>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span class="text-xs text-white/70">Vị trí:</span>
+                <span class="text-xs font-bold text-[#E89E53] bg-[#CC8033]/20 px-2.5 py-0.5 rounded-md border border-[#CC8033]/40">
+                  📍 {{ currentTableName || 'Bàn ' + selectedTableId }}
+                </span>
+              </div>
             </div>
           </div>
 
-          <!-- Chọn số bàn -->
-          <div class="space-y-2">
-            <label class="text-xs font-bold uppercase tracking-wider text-[#D5B08D] block">1. Chọn bàn của bạn:</label>
-            <div v-if="tablesList.length > 0" class="grid grid-cols-4 gap-2 max-h-44 overflow-y-auto pr-1 custom-scrollbar">
+          <!-- Gợi ý nhanh yêu cầu -->
+          <div class="space-y-2 text-left">
+            <label class="text-[10px] font-bold uppercase tracking-wider text-[#D5B08D] block">Chọn nhanh nhu cầu:</label>
+            <div class="flex flex-wrap gap-2">
               <button
-                v-for="t in tablesList"
-                :key="t.maBan"
-                @click="selectedTableId = t.maBan"
+                v-for="chip in quickChips"
+                :key="chip"
+                @click="callSupportNote = chip"
                 :class="[
-                  'py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer',
-                  selectedTableId === t.maBan
-                    ? 'bg-gradient-to-r from-[#CC8033] to-[#B3702C] border-[#CC8033] text-white shadow-md scale-105'
+                  'px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer',
+                  callSupportNote === chip
+                    ? 'bg-[#CC8033] border-[#CC8033] text-white font-bold shadow-md'
                     : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
                 ]"
               >
-                {{ t.tenBan }}
+                {{ chip }}
               </button>
-            </div>
-            <div v-else class="text-xs text-white/60 text-center py-4 bg-white/5 rounded-xl">
-              Đang tải danh sách bàn...
             </div>
           </div>
 
           <!-- Ghi chú tùy chọn -->
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold uppercase tracking-wider text-[#D5B08D] block">2. Ghi chú yêu cầu (Tùy chọn):</label>
+          <div class="space-y-1.5 text-left">
+            <label class="text-[10px] font-bold uppercase tracking-wider text-[#D5B08D] block">Ghi chú cụ thể (Tùy chọn):</label>
             <input
               v-model="callSupportNote"
-              placeholder="VD: Cho xin thêm ly đá, nước lọc, hỗ trợ thanh toán..."
+              placeholder="VD: Cho xin thêm 2 ly đá, nước lọc, nĩa..."
               class="w-full px-4 py-2.5 bg-black/50 border border-white/15 rounded-xl text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-[#CC8033] transition-colors"
             />
           </div>
@@ -1175,42 +1222,42 @@ const historyLoading = ref(false)
 
 // Gọi phục vụ hỗ trợ từ Trang chủ
 const showCallSupportModal = ref(false)
+const showNeedQrScanModal = ref(false)
 const callStaffLoading = ref(false)
 const selectedTableId = ref<number | null>(null)
+const currentTableName = ref('')
 const tablesList = ref<any[]>([])
 const callSupportNote = ref('')
+const quickChips = ref(['🧊 Xin thêm ly đá', '🧻 Cho xin khăn lạnh', '💧 Xin nước lọc', '💳 Hỗ trợ thanh toán'])
 
 const openCallSupportModal = async () => {
-  try {
-    const data = await ordersApi.tables()
-    tablesList.value = data || []
-    const saved = localStorage.getItem('user_table_id')
-    if (saved) {
-      selectedTableId.value = parseInt(saved, 10)
-    } else if (tablesList.value.length > 0) {
-      selectedTableId.value = tablesList.value[0].maBan
-    }
-  } catch (e) {}
-  showCallSupportModal.value = true
+  const savedId = localStorage.getItem('user_table_id')
+  const savedName = localStorage.getItem('user_table_name')
+
+  if (savedId) {
+    selectedTableId.value = parseInt(savedId, 10)
+    currentTableName.value = savedName || `Bàn ${savedId}`
+    showCallSupportModal.value = true
+  } else {
+    // Khách chưa quét QR bàn -> yêu cầu quét mã QR
+    showNeedQrScanModal.value = true
+  }
 }
 
 const sendCallSupportRequest = async () => {
   if (!selectedTableId.value) {
-    showToast('Chọn bàn', 'Vui lòng chọn số bàn của bạn!', 'info')
+    showNeedQrScanModal.value = true
     return
   }
-  const targetTable = tablesList.value.find(t => t.maBan === selectedTableId.value)
-  const tenBanStr = targetTable ? targetTable.tenBan : `Bàn ${selectedTableId.value}`
+  const tenBanStr = currentTableName.value || `Bàn ${selectedTableId.value}`
 
   callStaffLoading.value = true
   try {
     await ordersApi.createServiceRequest({
       maBan: selectedTableId.value,
       loaiYeuCau: 'GoiPhucVu',
-      ghiChu: `Khách hàng gọi nhân viên hỗ trợ từ Trang chủ (${tenBanStr}) ${callSupportNote.value ? '- Ghi chú: ' + callSupportNote.value : ''}`
+      ghiChu: `Khách gọi hỗ trợ tại ${tenBanStr}${callSupportNote.value ? ' - Yêu cầu: ' + callSupportNote.value : ''}`
     })
-
-    localStorage.setItem('user_table_id', selectedTableId.value.toString())
 
     if (typeof BroadcastChannel !== 'undefined') {
       const channel = new BroadcastChannel('quanlycf_orders_sync')

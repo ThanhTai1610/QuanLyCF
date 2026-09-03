@@ -1251,6 +1251,10 @@ const checkTableLockStatus = async () => {
     const res = await tablesApi.getQrInfo(qrParam)
     realMaBan.value = res.maBan
     realTenBan.value = res.tenBan
+    if (res.maBan) {
+      localStorage.setItem('user_table_id', res.maBan.toString())
+      localStorage.setItem('user_table_name', res.tenBan || `Bàn ${res.maBan}`)
+    }
 
     if (res.requiresPin) {
       const savedPin = sessionStorage.getItem(`table_pin_${res.maBan}`)
