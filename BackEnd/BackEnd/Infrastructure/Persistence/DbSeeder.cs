@@ -128,14 +128,14 @@ public static class DbSeeder
         }
 
         // 2.0. Seed Danh Mục
-        if (!await db.DanhMucSanPhams.AnyAsync())
+        if (!await db.DanhMucs.AnyAsync())
         {
-            db.DanhMucSanPhams.AddRange(
-                new DanhMucSanPham { TenDanhMuc = "Cà phê", ThuTuHienThi = 1 },
-                new DanhMucSanPham { TenDanhMuc = "Trà & Trà sữa", ThuTuHienThi = 2 },
-                new DanhMucSanPham { TenDanhMuc = "Đá xay", ThuTuHienThi = 3 },
-                new DanhMucSanPham { TenDanhMuc = "Bánh ngọt & Ăn nhẹ", ThuTuHienThi = 4 },
-                new DanhMucSanPham { TenDanhMuc = "Nước ép & Trái cây", ThuTuHienThi = 5 }
+            db.DanhMucs.AddRange(
+                new DanhMuc { TenDanhMuc = "Cà phê", ThuTuHienThi = 1 },
+                new DanhMuc { TenDanhMuc = "Trà & Trà sữa", ThuTuHienThi = 2 },
+                new DanhMuc { TenDanhMuc = "Đá xay", ThuTuHienThi = 3 },
+                new DanhMuc { TenDanhMuc = "Bánh ngọt & Ăn nhẹ", ThuTuHienThi = 4 },
+                new DanhMuc { TenDanhMuc = "Nước ép & Trái cây", ThuTuHienThi = 5 }
             );
             await db.SaveChangesAsync();
         }
