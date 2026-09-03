@@ -80,9 +80,15 @@ const authStore = useAuthStore()
 const route = useRoute()
 const checking = ref(false)
 
-// Chỉ coi là Staff/Admin route nếu đang thực sự ở các trang quản trị
+// Cho phép Quản trị viên / Nhân viên truy cập TẤT CẢ các trang quản trị ngay cả khi đang bật Bảo trì
 const isStaffRoute = computed(() => {
   const path = route.path.toLowerCase()
+  const isCustomerPath = path === '/' || path.startsWith('/menu/') || path.startsWith('/payment') || path.startsWith('/lich-su-don')
+  
+  if (authStore.isAuthenticated && !isCustomerPath) {
+    return true
+  }
+
   return path.startsWith('/login') ||
          path.startsWith('/staff-login') ||
          path.startsWith('/tables') ||
@@ -101,7 +107,12 @@ const isStaffRoute = computed(() => {
          path.startsWith('/stocktake') ||
          path.startsWith('/shifts') ||
          path.startsWith('/staff') ||
-         path.startsWith('/roles')
+         path.startsWith('/roles') ||
+         path.startsWith('/system-logs') ||
+         path.startsWith('/check-in') ||
+         path.startsWith('/cashflow') ||
+         path.startsWith('/revenue-report') ||
+         path.startsWith('/loyalty')
 })
 
 const checkStatus = async () => {
