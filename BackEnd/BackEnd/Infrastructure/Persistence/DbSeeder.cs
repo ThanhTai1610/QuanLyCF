@@ -632,6 +632,24 @@ public static class DbSeeder
             db.Set<KhachHang>().Add(kh5);
             await db.SaveChangesAsync();
         }
+
+        // 6. Seed Bảng Lương từ SQL Server gốc
+        if (!await db.BangLuongs.AnyAsync())
+        {
+            db.BangLuongs.AddRange(BangLuongSeedData.GetSeedData());
+            await db.SaveChangesAsync();
+        }
+
+        // 7. Seed Đơn Hàng & Chi Tiết Đơn Hàng từ SQL Server gốc
+        if (!await db.DonHangs.AnyAsync())
+        {
+            var (orders, details) = DonHangSeedData.GetSeedData();
+            db.DonHangs.AddRange(orders);
+            await db.SaveChangesAsync();
+
+            db.ChiTietDonHangs.AddRange(details);
+            await db.SaveChangesAsync();
+        }
     }
 }
 
