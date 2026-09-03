@@ -99,19 +99,27 @@ namespace BackEnd
 
             var app = builder.Build();
 
-            // ── Tự migrate + seed khi khởi động ─────────────────
+            // ── Tự migrate + seed khi khởi động (bọc try-catch để không crash khi chưa nối DB cloud) ──
             using (var scope = app.Services.CreateScope())
             {
-                var db = scope.ServiceProvider.GetRequiredService<QuanLyCFDbContext>();
-                await db.Database.MigrateAsync();
-                await DbSeeder.SeedAsync(db);
+                try
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<QuanLyCFDbContext>();
+                    await db.Database.MigrateAsync();
+                    await DbSeeder.SeedAsync(db);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[DB WARN] Database connection pending or failed: {ex.Message}");
+                }
             }
 
-            if (app.Environment.IsDevelopment())
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "QuanLyCF API v1");
+                c.RoutePrefix = "swagger";
+            });
 
             app.UseStaticFiles(); // Cho phép truy cập ảnh tải lên (thư mục wwwroot)
             app.UseHttpsRedirection();
