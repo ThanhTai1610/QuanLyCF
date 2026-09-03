@@ -568,10 +568,10 @@
             <div class="w-9 h-9 rounded-lg bg-caramel flex items-center justify-center text-cream">
               <Coffee class="w-5 h-5" />
             </div>
-            <span class="font-display text-lg text-cream font-bold">{{ tenQuan || 'BrewManager' }}</span>
+            <span class="font-display text-lg text-cream font-bold">{{ storeInfoStore.tenQuan || 'cà phê F6' }}</span>
           </div>
           <p class="text-xs text-cream/50 leading-relaxed font-semibold">
-            {{ moTaQuan || 'Hệ thống giải pháp vận hành tối giản, tinh tế cho các mô hình quán cafe, trà sữa, trà chanh hiện đại.' }}
+            {{ storeInfoStore.moTaQuan || 'Quán cà phê đặc sản với không gian ấm cúng. Phục vụ cà phê pha máy, trà, bánh ngọt và các loại đồ uống đá xay.' }}
           </p>
         </div>
 
@@ -596,15 +596,15 @@
         <div class="space-y-4">
           <h4 class="font-bold text-xs text-cream uppercase tracking-wider">Liên Hệ</h4>
           <p class="text-xs text-cream/50 leading-relaxed">
-            Email: contact@brewmanager.vn<br />
-            Hotline: {{ storeInfoStore.soDienThoai || '1900 6789' }}<br />
-            Địa chỉ: {{ storeInfoStore.diaChi || '123 Đường Cà Phê, Quận 1, TP. HCM' }}
+            Email: {{ storeInfoStore.soDienThoai ? (storeInfoStore.soDienThoai + '@caphef6.website') : 'contact@caphef6.website' }}<br />
+            Hotline: {{ storeInfoStore.soDienThoai || '1111' }}<br />
+            Địa chỉ: {{ storeInfoStore.diaChi || '123 Nguyễn Huệ, Quận 1, TP.HCM' }}
           </p>
         </div>
       </div>
 
       <div class="max-w-6xl mx-auto px-6 mt-12 pt-8 border-t border-white/5 text-center text-[10px] text-cream/40 flex flex-col sm:flex-row justify-between gap-4">
-        <span>© 2026 {{ tenQuan || 'BrewManager' }}. Mọi quyền được bảo lưu. Thiết kế pha chế tỉ mỉ.</span>
+        <span>© 2026 {{ storeInfoStore.tenQuan || 'cà phê F6' }}. Mọi quyền được bảo lưu. Thiết kế pha chế tỉ mỉ.</span>
         <div class="flex gap-4 justify-center">
           <a href="#" class="hover:text-caramel transition-colors">Chính sách bảo mật</a>
           <a href="#" class="hover:text-caramel transition-colors">Điều khoản dịch vụ</a>
