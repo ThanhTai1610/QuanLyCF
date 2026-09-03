@@ -168,12 +168,8 @@ public class CashFlowService
             var nhanVienDuyet = await _db.NhanViens.FirstOrDefaultAsync(x => x.TrangThaiHoatDong == true) ?? new NhanVien { MaNhanVien = 1 };
             var listDongTien = new List<DongTien>();
 
-            // Lấy số ngày của tháng (nếu là tháng hiện tại thì chỉ sinh đến ngày hiện tại)
+            // Lấy số ngày của tháng
             var daysInMonth = DateTime.DaysInMonth(year, month);
-            if (year == DateTime.UtcNow.Year && month == DateTime.UtcNow.Month)
-            {
-                daysInMonth = DateTime.UtcNow.Day;
-            }
 
             // A. Chi phí cố định mặt bằng (đầu tháng)
             listDongTien.Add(new DongTien
