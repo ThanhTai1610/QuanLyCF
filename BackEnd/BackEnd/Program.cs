@@ -20,8 +20,18 @@ namespace BackEnd
             builder.Configuration.AddEnvironmentVariables();
 
             // ── EF Core ─────────────────────────────────────────
+            var rawConnStr = builder.Configuration.GetConnectionString("QuanLyCF");
             builder.Services.AddDbContext<QuanLyCFDbContext>(opt =>
-                opt.UseSqlServer(builder.Configuration.GetConnectionString("QuanLyCF")));
+            {
+                if (!string.IsNullOrWhiteSpace(rawConnStr) && rawConnStr.Contains("Server=") && !rawConnStr.Contains("localhost"))
+                {
+                    opt.UseSqlServer(rawConnStr);
+                }
+                else
+                {
+                    opt.UseSqlite("Data Source=QuanLyCF.db");
+                }
+            });
 
             // ── JWT ─────────────────────────────────────────────
             builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
@@ -99,18 +109,25 @@ namespace BackEnd
 
             var app = builder.Build();
 
-            // ── Tự migrate + seed khi khởi động (bọc try-catch để không crash khi chưa nối DB cloud) ──
+            // ── Tự migrate + seed khi khởi động ──
             using (var scope = app.Services.CreateScope())
             {
                 try
                 {
                     var db = scope.ServiceProvider.GetRequiredService<QuanLyCFDbContext>();
-                    await db.Database.MigrateAsync();
+                    if (db.Database.IsSqlite())
+                    {
+                        await db.Database.EnsureCreatedAsync();
+                    }
+                    else
+                    {
+                        await db.Database.MigrateAsync();
+                    }
                     await DbSeeder.SeedAsync(db);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[DB WARN] Database connection pending or failed: {ex.Message}");
+                    Console.WriteLine($"[DB WARN] Database setup note: {ex.Message}");
                 }
             }
 
