@@ -108,7 +108,7 @@ public class DashboardService
         if (month.HasValue)
         {
             // Xem theo từng ngày trong tháng
-            periodStart = new DateTime(year, month.Value, 1, 0, 0, 0, DateTimeKind.Utc);
+            periodStart = new DateTime(year, month.Value, 1);
             periodEnd   = periodStart.AddMonths(1);
             prevStart   = periodStart.AddMonths(-1);
             prevEnd     = periodStart;
@@ -116,9 +116,9 @@ public class DashboardService
         else
         {
             // Xem 12 tháng trong năm
-            periodStart = new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            periodEnd   = new DateTime(year + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            prevStart   = new DateTime(year - 1, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            periodStart = new DateTime(year, 1, 1);
+            periodEnd   = new DateTime(year + 1, 1, 1);
+            prevStart   = new DateTime(year - 1, 1, 1);
             prevEnd     = periodStart;
         }
 
@@ -129,11 +129,13 @@ public class DashboardService
                      && d.TrangThaiDon != "Huy")
             .ToListAsync();
 
-        // Lấy đơn hàng kỳ trước để tính tăng trưởng
-        var prevRevenue = await _db.DonHangs
+        // Lấy đơn hàng kỳ trước để tính tăng trưởng (lấy về memory sum để tương thích SQLite/SqlServer)
+        var prevAmounts = await _db.DonHangs
             .Where(d => d.ThoiGianTao >= prevStart && d.ThoiGianTao < prevEnd
                      && d.TrangThaiDon != "Huy")
-            .SumAsync(d => (decimal?)d.ThanhTien) ?? 0;
+            .Select(d => d.ThanhTien)
+            .ToListAsync();
+        var prevRevenue = prevAmounts.Sum();
 
         var totalRevenue = orders.Sum(d => d.ThanhTien);
         var totalOrders  = orders.Count;
