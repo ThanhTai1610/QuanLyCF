@@ -160,102 +160,11 @@ public class CashFlowService
         var start = new DateTime(year, month, 1);
         var end = start.AddMonths(1);
 
-        // 2. Sinh dòng tiền DongTien nếu chưa có giao dịch nào của tháng này
-        var existsDongTien = await _db.DongTiens.AnyAsync(x => x.ThoiGianTao >= start && x.ThoiGianTao < end);
-        if (!existsDongTien)
+        // 2. Nạp dữ liệu dòng tiền chính xác từ SQL Server gốc nếu CSDL rỗng
+        if (!await _db.DongTiens.AnyAsync())
         {
-            var random = new Random();
-            var nhanVienDuyet = await _db.NhanViens.FirstOrDefaultAsync(x => x.TrangThaiHoatDong == true) ?? new NhanVien { MaNhanVien = 1 };
-            var listDongTien = new List<DongTien>();
-
-            // Lấy số ngày của tháng
-            var daysInMonth = DateTime.DaysInMonth(year, month);
-
-            // A. Chi phí cố định mặt bằng (đầu tháng)
-            listDongTien.Add(new DongTien
-            {
-                LoaiGiaoDich = "Chi",
-                NhomGiaoDich = "MatBang",
-                PhuongThucThanhToan = "ChuyenKhoan",
-                SoTien = 15000000,
-                NguoiNopNhan = "Chủ nhà số 123",
-                GhiChu = $"Chi phí thuê mặt bằng {ky}",
-                MaNhanVienGhiNhan = nhanVienDuyet.MaNhanVien,
-                ThoiGianTao = new DateTime(year, month, 1, 9, 0, 0, DateTimeKind.Utc)
-            });
-
-            // B. Chi phí điện nước (ngày 5)
-            if (daysInMonth >= 5)
-            {
-                listDongTien.Add(new DongTien
-                {
-                    LoaiGiaoDich = "Chi",
-                    NhomGiaoDich = "DienNuoc",
-                    PhuongThucThanhToan = "ChuyenKhoan",
-                    SoTien = random.Next(20, 35) * 100000, // 2tr - 3.5tr
-                    NguoiNopNhan = "Điện lực & Cấp nước Quận 1",
-                    GhiChu = $"Hóa đơn điện nước kinh doanh {ky}",
-                    MaNhanVienGhiNhan = nhanVienDuyet.MaNhanVien,
-                    ThoiGianTao = new DateTime(year, month, 5, 10, 0, 0, DateTimeKind.Utc)
-                });
-            }
-
-            // C. Chi phí lương (ngày 10)
-            if (daysInMonth >= 10 && tongLuong > 0)
-            {
-                listDongTien.Add(new DongTien
-                {
-                    LoaiGiaoDich = "Chi",
-                    NhomGiaoDich = "TraLuong",
-                    PhuongThucThanhToan = "ChuyenKhoan",
-                    SoTien = tongLuong,
-                    NguoiNopNhan = "Tập thể nhân viên",
-                    GhiChu = $"Thanh toán lương nhân sự kì {ky}",
-                    MaNhanVienGhiNhan = nhanVienDuyet.MaNhanVien,
-                    ThoiGianTao = new DateTime(year, month, 10, 15, 0, 0, DateTimeKind.Utc)
-                });
-            }
-
-            // D. Doanh thu POS hằng ngày và chi phí nhập hàng rải rác
-            for (int d = 1; d <= daysInMonth; d++)
-            {
-                // Doanh thu (ngày nào cũng có thu)
-                var dailyRevenue = random.Next(25, 60) * 100000; // 2.5tr - 6tr
-                listDongTien.Add(new DongTien
-                {
-                    LoaiGiaoDich = "Thu",
-                    NhomGiaoDich = "DoanhThuPOS",
-                    PhuongThucThanhToan = "ChuyenKhoan",
-                    SoTien = dailyRevenue,
-                    NguoiNopNhan = "Khách hàng POS",
-                    GhiChu = $"Tổng doanh thu bán hàng ngày {d}/{month:D2}",
-                    MaNhanVienGhiNhan = nhanVienDuyet.MaNhanVien,
-                    ThoiGianTao = new DateTime(year, month, d, 6, 0, 0, DateTimeKind.Utc)
-                });
-
-                // Nhập hàng (2-3 ngày 1 lần)
-                if (d % 3 == 1)
-                {
-                    var importCost = random.Next(5, 15) * 200000; // 1tr - 3tr
-                    listDongTien.Add(new DongTien
-                    {
-                        LoaiGiaoDich = "Chi",
-                        NhomGiaoDich = "NhapHang",
-                        PhuongThucThanhToan = "TienMat",
-                        SoTien = importCost,
-                        NguoiNopNhan = "Nhà cung cấp Nguyên liệu",
-                        GhiChu = $"Chi phí nhập nguyên liệu định kỳ ngày {d}/{month:D2}",
-                        MaNhanVienGhiNhan = nhanVienDuyet.MaNhanVien,
-                        ThoiGianTao = new DateTime(year, month, d, 7, 0, 0, DateTimeKind.Utc)
-                    });
-                }
-            }
-
-            if (listDongTien.Any())
-            {
-                _db.DongTiens.AddRange(listDongTien);
-                await _db.SaveChangesAsync();
-            }
+            _db.DongTiens.AddRange(DongTienSeedData.GetSeedData());
+            await _db.SaveChangesAsync();
         }
     }
 }
