@@ -48,8 +48,17 @@
     </div>
 
     <!-- Thông báo lỗi -->
-    <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
-      {{ error }}
+    <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span>⚠️ {{ error }}</span>
+      </div>
+      <button
+        @click="fetchReport"
+        :disabled="loading"
+        class="px-3 py-1.5 bg-white border border-red-300 text-red-700 hover:bg-red-100 disabled:opacity-50 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 whitespace-nowrap"
+      >
+        <span>🔄 Thử lại ngay</span>
+      </button>
     </div>
 
     <!-- KPI Cards -->
