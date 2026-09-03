@@ -318,14 +318,16 @@ const save = async () => {
 
     // Cập nhật store toàn cục ngay lập tức — các trang khác thay đổi không cần reload
     storeInfoStore.setInfo({
-      tenQuan:     storeName.value,
-      diaChi:      storeAddress.value,
-      soDienThoai: storePhone.value,
-      moTaQuan:    storeDesc.value,
-      gioMoCua:    `${openTime.value} - ${closeTime.value}`,
-      anhTrangChu: heroImage.value,
-      tenAI:       tenAI.value,
-      xungHoAI:    xungHoAI.value,
+      tenQuan:         storeName.value,
+      diaChi:          storeAddress.value,
+      soDienThoai:     storePhone.value,
+      moTaQuan:        storeDesc.value,
+      gioMoCua:        `${openTime.value} - ${closeTime.value}`,
+      anhTrangChu:     heroImage.value,
+      tenAI:           tenAI.value,
+      xungHoAI:        xungHoAI.value,
+      cheDoBaoTri:     maintenanceMode.value,
+      thongDiepBaoTri: maintenanceMessage.value,
     })
 
     if (maintenanceMode.value) {

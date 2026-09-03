@@ -19,6 +19,8 @@ export const useStoreInfoStore = defineStore('storeInfo', () => {
   const anhTrangChu = ref('')
   const tenAI       = ref('Barista AI')
   const xungHoAI    = ref('tôi - bạn')
+  const cheDoBaoTri     = ref(false)
+  const thongDiepBaoTri = ref('')
   const loaded      = ref(false)
 
   /** Tên quán đầy đủ */
@@ -55,14 +57,16 @@ export const useStoreInfoStore = defineStore('storeInfo', () => {
   }
 
   function applyData(data: any) {
-    if (data.tenQuan     !== undefined) tenQuan.value     = data.tenQuan     || 'cà phê F6'
-    if (data.diaChi      !== undefined) diaChi.value      = data.diaChi      || ''
-    if (data.soDienThoai !== undefined) soDienThoai.value = data.soDienThoai || ''
-    if (data.moTaQuan    !== undefined) moTaQuan.value    = data.moTaQuan    || ''
-    if (data.gioMoCua    !== undefined) gioMoCua.value    = data.gioMoCua    || ''
-    if (data.anhTrangChu !== undefined) anhTrangChu.value = data.anhTrangChu || ''
-    if (data.tenAI       !== undefined) tenAI.value       = data.tenAI       || 'Barista AI'
-    if (data.xungHoAI    !== undefined) xungHoAI.value    = data.xungHoAI    || 'tôi - bạn'
+    if (data.tenQuan         !== undefined) tenQuan.value         = data.tenQuan         || 'cà phê F6'
+    if (data.diaChi          !== undefined) diaChi.value          = data.diaChi          || ''
+    if (data.soDienThoai     !== undefined) soDienThoai.value     = data.soDienThoai     || ''
+    if (data.moTaQuan        !== undefined) moTaQuan.value        = data.moTaQuan        || ''
+    if (data.gioMoCua        !== undefined) gioMoCua.value        = data.gioMoCua        || ''
+    if (data.anhTrangChu     !== undefined) anhTrangChu.value     = data.anhTrangChu     || ''
+    if (data.tenAI           !== undefined) tenAI.value           = data.tenAI           || 'Barista AI'
+    if (data.xungHoAI        !== undefined) xungHoAI.value        = data.xungHoAI        || 'tôi - bạn'
+    if (data.cheDoBaoTri     !== undefined) cheDoBaoTri.value     = !!data.cheDoBaoTri
+    if (data.thongDiepBaoTri !== undefined) thongDiepBaoTri.value = data.thongDiepBaoTri || ''
   }
 
   /** Fetch từ API Backend */
@@ -73,8 +77,10 @@ export const useStoreInfoStore = defineStore('storeInfo', () => {
       if (data) {
         setInfo(data, true)
       }
-    } catch {
-      // Giữ giá trị hiện tại nếu lỗi mạng
+    } catch (err: any) {
+      if (err?.status === 503 || err?.response?.status === 503) {
+        cheDoBaoTri.value = true
+      }
     } finally {
       loaded.value = true
     }
@@ -91,6 +97,8 @@ export const useStoreInfoStore = defineStore('storeInfo', () => {
       anhTrangChu?: string
       tenAI?: string
       xungHoAI?: string
+      cheDoBaoTri?: boolean
+      thongDiepBaoTri?: string
     },
     broadcast = true
   ) {
@@ -105,6 +113,8 @@ export const useStoreInfoStore = defineStore('storeInfo', () => {
       anhTrangChu: anhTrangChu.value,
       tenAI: tenAI.value,
       xungHoAI: xungHoAI.value,
+      cheDoBaoTri: cheDoBaoTri.value,
+      thongDiepBaoTri: thongDiepBaoTri.value,
     }
 
     try {
@@ -130,6 +140,8 @@ export const useStoreInfoStore = defineStore('storeInfo', () => {
     anhTrangChu,
     tenAI,
     xungHoAI,
+    cheDoBaoTri,
+    thongDiepBaoTri,
     loaded,
     fetchInfo,
     setInfo,
