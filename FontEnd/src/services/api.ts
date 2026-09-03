@@ -62,11 +62,13 @@ async function request<T>(method: string, endpoint: string, body?: unknown, daTh
     throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.')
   }
 
-  // Hệ thống đang bảo trì → chuyển hướng về trang bảo trì
-  if (res.status === 503 && !endpoint.includes('/api/settings/maintenance')) {
-    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/maintenance')) {
-      window.location.href = '/maintenance'
-    }
+  // Hệ thống đang bảo trì → cập nhật cờ bảo trì trong Pinia Store
+  if (res.status === 503) {
+    try {
+      const { useStoreInfoStore } = await import('@/stores/storeInfo')
+      const store = useStoreInfoStore()
+      store.cheDoBaoTri = true
+    } catch {}
     throw new Error('Hệ thống đang bảo trì. Vui lòng quay lại sau.')
   }
 
