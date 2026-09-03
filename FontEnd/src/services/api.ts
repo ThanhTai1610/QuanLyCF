@@ -1,7 +1,7 @@
 // Client goi API dung chung: tu gan JWT, tu lam moi token khi het han, boc message loi cua BE.
 // Mac dinh goi tuong doi ('' -> cung origin) de Vite proxy /api ve backend.
-// Dat VITE_API_URL neu muon goi thang toi 1 backend URL cu the.
-const BASE_URL = import.meta.env.VITE_API_URL || ''
+// Dat VITE_API_BASE_URL neu muon goi thang toi 1 backend URL cu the (Vercel deployment).
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
 const TOKEN_KEY = 'accessToken'
 const REFRESH_KEY = 'refreshToken'
