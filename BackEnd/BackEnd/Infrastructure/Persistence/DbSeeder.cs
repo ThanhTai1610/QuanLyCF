@@ -124,6 +124,20 @@ public static class DbSeeder
                 new Ban { MaKhuVuc = kvSanVuon.MaKhuVuc, TenBan = "Bàn S2", SucChua = 4, MaQRHash = "qr-ban-s2", TrangThai = "Trong" },
                 new Ban { MaKhuVuc = kvSanVuon.MaKhuVuc, TenBan = "Bàn S3", SucChua = 6, MaQRHash = "qr-ban-s3", TrangThai = "Trong" }
             );
+            await db.SaveChangesAsync();
+        }
+
+        // 2.0. Seed Danh Mục
+        if (!await db.DanhMucSanPhams.AnyAsync())
+        {
+            db.DanhMucSanPhams.AddRange(
+                new DanhMucSanPham { TenDanhMuc = "Cà phê", ThuTuHienThi = 1 },
+                new DanhMucSanPham { TenDanhMuc = "Trà & Trà sữa", ThuTuHienThi = 2 },
+                new DanhMucSanPham { TenDanhMuc = "Đá xay", ThuTuHienThi = 3 },
+                new DanhMucSanPham { TenDanhMuc = "Bánh ngọt & Ăn nhẹ", ThuTuHienThi = 4 },
+                new DanhMucSanPham { TenDanhMuc = "Nước ép & Trái cây", ThuTuHienThi = 5 }
+            );
+            await db.SaveChangesAsync();
         }
 
         // 2.1 Seed ca làm việc mẫu (nếu chưa có)
@@ -133,6 +147,84 @@ public static class DbSeeder
                 new CaLamViec { TenCa = "Ca Sáng", GioBatDau = new TimeOnly(7, 0), GioKetThuc = new TimeOnly(14, 0), TrangThaiHoatDong = true },
                 new CaLamViec { TenCa = "Ca Chiều", GioBatDau = new TimeOnly(14, 0), GioKetThuc = new TimeOnly(22, 0), TrangThaiHoatDong = true },
                 new CaLamViec { TenCa = "Ca Tối", GioBatDau = new TimeOnly(18, 0), GioKetThuc = new TimeOnly(23, 59), TrangThaiHoatDong = true }
+            );
+            await db.SaveChangesAsync();
+        }
+
+        // 2.2 Seed Lịch phân ca tuần này
+        if (!await db.PhanCaLamViecs.AnyAsync())
+        {
+            var nvPha = await db.NhanViens.FirstOrDefaultAsync(x => x.Email == "phache@brew.vn");
+            var nvThu = await db.NhanViens.FirstOrDefaultAsync(x => x.Email == "thungan@brew.vn");
+            var nvPhuc = await db.NhanViens.FirstOrDefaultAsync(x => x.Email == "phucvu@brew.vn");
+            var caSang = await db.CaLamViecs.FirstOrDefaultAsync(x => x.TenCa == "Ca Sáng");
+            var caChieu = await db.CaLamViecs.FirstOrDefaultAsync(x => x.TenCa == "Ca Chiều");
+
+            if (nvPhuc != null && caSang != null)
+            {
+                var today = DateOnly.FromDateTime(DateTime.Today);
+                for (int i = -3; i <= 3; i++)
+                {
+                    db.PhanCaLamViecs.Add(new PhanCaLamViec
+                    {
+                        MaNhanVien = nvPhuc.MaNhanVien,
+                        MaCa = caSang.MaCa,
+                        NgayLamViec = today.AddDays(i),
+                        GhiChu = "Ca cố định"
+                    });
+                }
+            }
+
+            if (nvPha != null && caChieu != null)
+            {
+                var today = DateOnly.FromDateTime(DateTime.Today);
+                for (int i = -2; i <= 4; i++)
+                {
+                    db.PhanCaLamViecs.Add(new PhanCaLamViec
+                    {
+                        MaNhanVien = nvPha.MaNhanVien,
+                        MaCa = caChieu.MaCa,
+                        NgayLamViec = today.AddDays(i),
+                        GhiChu = "Ca chiều"
+                    });
+                }
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        // 2.3 Seed Khuyến mãi mẫu
+        if (!await db.KhuyenMais.AnyAsync())
+        {
+            db.KhuyenMais.AddRange(
+                new KhuyenMai
+                {
+                    TenChuongTrinh = "Mừng Khai Trương",
+                    MaGiamGia = "KHAITRUONG",
+                    LoaiGiamGia = "PhanTram",
+                    GiaTriGiam = 20,
+                    GiamToiDa = 50000,
+                    DonToiThieu = 50000,
+                    SoLuongGioiHan = 100,
+                    SoLuongDaDung = 12,
+                    TrangThaiHoatDong = true,
+                    NgayBatDau = DateTime.UtcNow.AddDays(-10),
+                    NgayKetThuc = DateTime.UtcNow.AddDays(30)
+                },
+                new KhuyenMai
+                {
+                    TenChuongTrinh = "Giờ Vàng Cà Phê",
+                    MaGiamGia = "COFFEE15",
+                    LoaiGiamGia = "PhanTram",
+                    GiaTriGiam = 15,
+                    GiamToiDa = 30000,
+                    DonToiThieu = 30000,
+                    SoLuongGioiHan = 200,
+                    SoLuongDaDung = 45,
+                    TrangThaiHoatDong = true,
+                    NgayBatDau = DateTime.UtcNow.AddDays(-5),
+                    NgayKetThuc = DateTime.UtcNow.AddDays(15)
+                }
             );
             await db.SaveChangesAsync();
         }
