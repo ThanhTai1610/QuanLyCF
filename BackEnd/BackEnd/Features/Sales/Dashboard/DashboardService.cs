@@ -45,8 +45,9 @@ public class DashboardService
 
         // Top items today
         var itemsToday = todayOrders
+            .Where(d => d.ChiTiets != null)
             .SelectMany(d => d.ChiTiets)
-            .Where(c => c.SanPham != null && c.SanPham.KieuMon != "Topping")
+            .Where(c => c != null && c.SanPham != null && c.SanPham.KieuMon != "Topping")
             .GroupBy(c => c.SanPham!.TenSanPham)
             .Select(g => new { Name = g.Key, Qty = g.Sum(c => c.SoLuong) })
             .OrderByDescending(x => x.Qty)
@@ -179,8 +180,9 @@ public class DashboardService
 
         // Top 10 sản phẩm doanh thu cao nhất
         var topProducts = orders
+            .Where(o => o.ChiTiets != null)
             .SelectMany(o => o.ChiTiets)
-            .Where(c => c.SanPham != null && c.SanPham.KieuMon != "Topping")
+            .Where(c => c != null && c.SanPham != null && c.SanPham.KieuMon != "Topping")
             .GroupBy(c => c.SanPham!.TenSanPham)
             .Select(g => new TopProductRevenueDto(
                 g.Key,

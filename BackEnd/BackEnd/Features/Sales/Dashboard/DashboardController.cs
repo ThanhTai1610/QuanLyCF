@@ -18,8 +18,21 @@ public class DashboardController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetDashboard()
     {
-        var data = await _service.GetDashboardDataAsync();
-        return Ok(data);
+        try
+        {
+            var data = await _service.GetDashboardDataAsync();
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Dashboard Error] {ex.Message}");
+            return Ok(new DashboardDataDto(
+                new DashboardStatsDto(0, 0, 0, 0, 0, 0, "Chưa có", 0),
+                new List<DailyRevenueDto>(),
+                new List<TopItemDto>(),
+                new List<RecentOrderDto>()
+            ));
+        }
     }
 
     /// <summary>GET /api/dashboard/revenue-report?year=2026 hoặc ?year=2026&month=6</summary>
@@ -29,7 +42,20 @@ public class DashboardController : ControllerBase
         int y = year ?? DateTime.UtcNow.Year;
         if (month.HasValue && (month < 1 || month > 12))
             return BadRequest("Tháng phải từ 1 đến 12.");
-        var data = await _service.GetMonthlyReportAsync(y, month);
-        return Ok(data);
+        try
+        {
+            var data = await _service.GetMonthlyReportAsync(y, month);
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[RevenueReport Error] {ex.Message}");
+            return Ok(new MonthlyReportDto(
+                y, month, 0, 0, 0, 0,
+                new List<MonthlyRevenueDto>(),
+                new List<DailyRevenueDetailDto>(),
+                new List<TopProductRevenueDto>()
+            ));
+        }
     }
 }
