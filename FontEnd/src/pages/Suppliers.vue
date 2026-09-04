@@ -633,39 +633,93 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import {
   Plus, Search, Phone, TrendingDown, CheckCircle2, AlertTriangle, Eye, X, Trash2,
   Box, Layers, Users, ClipboardList, ChevronRight, Truck, Package, ClipboardCheck,
   Pencil, Info, Sparkles
 } from 'lucide-vue-next'
+import { suppliersApi } from '@/services/suppliers'
+import { stockReceiptsApi } from '@/services/stockReceipts'
+import { materialsApi } from '@/services/materials'
 
 // ── Types ───────────────────────────────────────────────
-interface Supplier { code: string; name: string; phone: string; group: string; debt: number }
+interface Supplier { id?: number; code: string; name: string; phone: string; group: string; debt: number }
 interface UnitConversion { name: string; conversion?: string }
-interface Material { id: string; name: string; category?: string; units: UnitConversion[] }
+interface Material { id: string; rawId?: number; name: string; category?: string; units: UnitConversion[] }
 interface ReceiptRow { materialId: string; unit: string; qty: number; price: number; expiryDate: string; _materialSearchStr?: string; isAiLoading?: boolean; _aiConversionInput?: string; _isEditingConversion?: boolean }
-interface Receipt { id: string; date: string; supplierCode: string; supplier: string; rows: ReceiptRow[]; total: number; paid: number; note: string; paymentMethod: string }
+interface Receipt { id: string; rawId?: number; date: string; supplierCode: string; supplier: string; rows: ReceiptRow[]; total: number; paid: number; note: string; paymentMethod: string }
 
-// ── Master data (mock) ──────────────────────────────────
+// ── Master data ──────────────────────────────────
 const materials = ref<Material[]>([
-  { id: 'RAW-CF-001', name: 'Hạt cà phê Robusta', category: 'Nguyên liệu thô', units: [{name: 'Bao', conversion: '50 Kg'}, {name: 'Kg', conversion: '1000g'}, {name: 'g'}] },
-  { id: 'SEM-TC-012', name: 'Trân châu đen nấu sẵn', category: 'Bán thành phẩm / Topping', units: [{name: 'Khay', conversion: '10 Kg'}, {name: 'Kg', conversion: '1000g'}, {name: 'g'}] },
-  { id: 'RAW-MK-005', name: 'Sữa đặc Ngôi sao Phương Nam', category: 'Nguyên liệu thô', units: [{name: 'Thùng', conversion: '24 Lon'}, {name: 'Lon', conversion: '380g'}] },
-  { id: 'RAW-MK-002', name: 'Sữa tươi thanh trùng 1L', category: 'Nguyên liệu thô', units: [{name: 'Thùng', conversion: '12 Lốc'}, {name: 'Lốc', conversion: '4 Hộp'}, {name: 'Hộp', conversion: '1000ml'}] },
-  { id: 'SUP-CUP-01', name: 'Ly giấy Takeaway 450ml', category: 'Vật tư', units: [{name: 'Thùng', conversion: '1000 Chiếc'}, {name: 'Cây', conversion: '50 Chiếc'}, {name: 'Chiếc'}] },
+  { id: '1', name: 'Hạt cà phê Robusta', category: 'Nguyên liệu thô', units: [{name: 'Kg'}] },
+  { id: '2', name: 'Sữa tươi thanh trùng 1L', category: 'Nguyên liệu thô', units: [{name: 'Hộp'}] },
+  { id: '3', name: 'Sữa đặc Ngôi sao Phương Nam', category: 'Nguyên liệu thô', units: [{name: 'Lon'}] },
+  { id: '4', name: 'Trân châu đen nấu sẵn', category: 'Bán thành phẩm / Topping', units: [{name: 'Kg'}] },
+  { id: '5', name: 'Ly giấy Takeaway 450ml', category: 'Vật tư', units: [{name: 'Chiếc'}] },
 ])
 
 const suppliers = ref<Supplier[]>([
-  { code: 'SUP-001', name: 'Đại lý Sữa Vinamilk Quận 1', phone: '0901 234 567', group: 'Sữa & Chế phẩm', debt: 12500000 },
-  { code: 'SUP-002', name: 'NPP Cafe Trung Nguyên', phone: '0988 111 222', group: 'Cà phê hạt', debt: 8000000 },
-  { code: 'SUP-003', name: 'Bao Bì Xanh Sài Gòn', phone: '0912 345 678', group: 'Ly, ống hút, vật tư', debt: 0 },
+  { id: 1, code: 'SUP-001', name: 'Đại lý Sữa Vinamilk Quận 1', phone: '0901 234 567', group: 'Sữa & Chế phẩm', debt: 12500000 },
+  { id: 2, code: 'SUP-002', name: 'NPP Cafe Trung Nguyên', phone: '0988 111 222', group: 'Cà phê hạt', debt: 8000000 },
+  { id: 3, code: 'SUP-003', name: 'Bao Bì Xanh Sài Gòn', phone: '0912 345 678', group: 'Ly, ống hút, vật tư', debt: 0 },
 ])
 
 const receipts = ref<Receipt[]>([
-  { id: 'INB-2406-003', date: '03/06/2026 08:30', supplierCode: 'SUP-001', supplier: 'Đại lý Sữa Vinamilk Quận 1', rows: [{ materialId: 'RAW-MK-002', unit: 'Thùng', qty: 100, price: 45000, expiryDate: '' }], total: 4500000, paid: 4500000, note: '', paymentMethod: 'ChuyenKhoan' },
-  { id: 'INB-2406-002', date: '02/06/2026 14:15', supplierCode: 'SUP-002', supplier: 'NPP Cafe Trung Nguyên', rows: [{ materialId: 'RAW-CF-001', unit: 'Bao', qty: 16, price: 500000, expiryDate: '' }], total: 8000000, paid: 0, note: 'Hàng quý 2', paymentMethod: 'ChuyenKhoan' },
+  { id: 'INB-2406-003', date: '03/06/2026 08:30', supplierCode: 'SUP-001', supplier: 'Đại lý Sữa Vinamilk Quận 1', rows: [{ materialId: '2', unit: 'Hộp', qty: 100, price: 45000, expiryDate: '' }], total: 4500000, paid: 4500000, note: '', paymentMethod: 'ChuyenKhoan' },
+  { id: 'INB-2406-002', date: '02/06/2026 14:15', supplierCode: 'SUP-002', supplier: 'NPP Cafe Trung Nguyên', rows: [{ materialId: '1', unit: 'Kg', qty: 16, price: 500000, expiryDate: '' }], total: 8000000, paid: 0, note: 'Hàng quý 2', paymentMethod: 'ChuyenKhoan' },
 ])
+
+const loadBackendData = async () => {
+  try {
+    const [rawSuppliers, rawMaterials, rawReceipts] = await Promise.all([
+      suppliersApi.list().catch(() => []),
+      materialsApi.list().catch(() => []),
+      stockReceiptsApi.list().catch(() => [])
+    ])
+
+    if (rawSuppliers && rawSuppliers.length > 0) {
+      suppliers.value = rawSuppliers.map(s => ({
+        id: s.maNhaCungCap,
+        code: `SUP-${String(s.maNhaCungCap).padStart(3, '0')}`,
+        name: s.tenNhaCungCap,
+        phone: s.soDienThoai || '',
+        group: 'Đối tác cung ứng',
+        debt: s.congNoHienTai || 0
+      }))
+    }
+
+    if (rawMaterials && rawMaterials.length > 0) {
+      materials.value = rawMaterials.map(m => ({
+        id: String(m.maNguyenLieu),
+        rawId: m.maNguyenLieu,
+        name: m.tenNguyenLieu,
+        category: m.phanLoai,
+        sku: m.maVach_SKU || `SKU-${m.maNguyenLieu}`,
+        units: [{ name: m.donViTinh || 'Kg' }]
+      }))
+    }
+
+    if (rawReceipts && rawReceipts.length > 0) {
+      receipts.value = rawReceipts.map(r => ({
+        id: `INB-${String(r.maPhieu).padStart(3, '0')}`,
+        rawId: r.maPhieu,
+        date: new Date(r.thoiGianTao).toLocaleDateString('vi-VN') + ' ' + new Date(r.thoiGianTao).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        supplierCode: '',
+        supplier: r.tenNhaCungCap || 'Khác',
+        rows: [],
+        total: r.tongTienHang,
+        paid: r.tienDaThanhToan,
+        note: '',
+        paymentMethod: 'ChuyenKhoan'
+      }))
+    }
+  } catch (err) {
+    console.error('Lỗi khi tải dữ liệu từ server:', err)
+  }
+}
+
+onMounted(loadBackendData)
 
 // ── Tab + filters ───────────────────────────────────────
 const activeTab = ref<'suppliers' | 'inbound'>('suppliers')
@@ -899,7 +953,7 @@ const openCreateReceipt = () => {
 const addRow = () => draft.value.rows.push(blankRow())
 const removeRow = (idx: number) => draft.value.rows.splice(idx, 1)
 
-const saveReceipt = () => {
+const saveReceipt = async () => {
   // Validate Supplier
   if (!draft.value.supplierCode) { 
     toast('❌ Vui lòng chọn nhà cung cấp!'); 
@@ -962,18 +1016,29 @@ const saveReceipt = () => {
   const sup = suppliers.value.find(s => s.code === draft.value.supplierCode)!
   const total = draftTotal.value
   const debt = draftDebt.value
-  const d = new Date(draft.value.date || Date.now())
-  const dateStr = d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
 
-  receipts.value.unshift({
-    id: draftCode.value, date: dateStr, supplierCode: sup.code, supplier: sup.name,
-    rows: validRows.map(r => ({ ...r })), total, paid: draft.value.paid || 0, note: draft.value.note, paymentMethod: draft.value.paymentMethod
-  })
-  if (debt > 0) sup.debt += debt
-  receiptCounter++
-  isCreateReceiptOpen.value = false
-  activeTab.value = 'inbound'
-  toast(`Đã lưu phiếu ${draftCode.value} • +${formatVND(total)} vào kho`)
+  try {
+    const supId = sup?.id || parseInt(draft.value.supplierCode.replace('SUP-', '')) || 1
+    const payload = {
+      maNhaCungCap: supId,
+      tienDaThanhToan: draft.value.paid || 0,
+      phuongThucThanhToan: draft.value.paymentMethod || 'ChuyenKhoan',
+      ghiChu: draft.value.note || null,
+      chiTiets: validRows.map(r => ({
+        maNguyenLieu: (r as any).rawId || parseInt(r.materialId) || 1,
+        soLuong: r.qty,
+        donGia: r.price
+      }))
+    }
+
+    const res = await stockReceiptsApi.create(payload)
+    toast(`Đã lưu phiếu nhập #${res.maPhieu} • +${formatVND(total)} vào kho!`)
+    isCreateReceiptOpen.value = false
+    activeTab.value = 'inbound'
+    await loadBackendData()
+  } catch (err: any) {
+    toast(`Lỗi lưu phiếu nhập: ${err?.response?.data?.message || err.message}`)
+  }
 }
 
 // ── View receipt ────────────────────────────────────────
@@ -987,17 +1052,28 @@ const openSupplierForm = (s?: Supplier) => {
   supplierForm.value = s ? { ...s } : { code: '', name: '', phone: '', group: '', debt: 0 }
   isSupplierFormOpen.value = true
 }
-const saveSupplier = () => {
+
+const saveSupplier = async () => {
   if (!supplierForm.value.name.trim()) { toast('Vui lòng nhập tên nhà cung cấp'); return }
-  if (supplierForm.value.code) {
-    const i = suppliers.value.findIndex(s => s.code === supplierForm.value.code)
-    if (i !== -1) suppliers.value[i] = { ...supplierForm.value }
-    toast('Đã cập nhật đối tác')
-  } else {
-    suppliers.value.push({ ...supplierForm.value, code: `SUP-${String(supplierCounter++).padStart(3, '0')}` })
-    toast('Đã thêm đối tác mới')
+  try {
+    if (supplierForm.value.id) {
+      await suppliersApi.update(supplierForm.value.id, {
+        tenNhaCungCap: supplierForm.value.name.trim(),
+        soDienThoai: supplierForm.value.phone.trim() || null
+      })
+      toast('Đã cập nhật đối tác')
+    } else {
+      await suppliersApi.create({
+        tenNhaCungCap: supplierForm.value.name.trim(),
+        soDienThoai: supplierForm.value.phone.trim() || null
+      })
+      toast('Đã thêm đối tác mới')
+    }
+    isSupplierFormOpen.value = false
+    await loadBackendData()
+  } catch (err: any) {
+    toast(`Lỗi lưu nhà cung cấp: ${err?.response?.data?.message || err.message}`)
   }
-  isSupplierFormOpen.value = false
 }
 
 // ── Debt payment ────────────────────────────────────────
@@ -1009,13 +1085,21 @@ const openPaymentModal = (s: Supplier) => {
   paymentAmount.value = 0
   paymentMethod.value = 'Chuyển khoản'
 }
-const confirmPayment = () => {
+
+const confirmPayment = async () => {
   if (!payingSupplier.value) return
   const amt = paymentAmount.value || 0
   if (amt <= 0) { toast('Nhập số tiền hợp lệ'); return }
-  payingSupplier.value.debt = Math.max(0, payingSupplier.value.debt - amt)
-  toast(`Đã chi ${formatVND(amt)} (${paymentMethod.value})`)
-  payingSupplier.value = null
+  try {
+    if (payingSupplier.value.id) {
+      await suppliersApi.pay(payingSupplier.value.id, amt, paymentMethod.value)
+    }
+    toast(`Đã chi ${formatVND(amt)} (${paymentMethod.value})`)
+    payingSupplier.value = null
+    await loadBackendData()
+  } catch (err: any) {
+    toast(`Lỗi trả nợ: ${err?.response?.data?.message || err.message}`)
+  }
 }
 </script>
 

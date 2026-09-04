@@ -775,6 +775,164 @@ public static class DbSeeder
                 await db.SaveChangesAsync();
             }
         }
+
+        // 9. Seed Nhà Cung Cấp & Nguyên Liệu & Phiếu Nhập Kho mẫu
+        if (!await db.NhaCungCaps.AnyAsync())
+        {
+            var nccs = new List<NhaCungCap>
+            {
+                new NhaCungCap { TenNhaCungCap = "Đại lý Sữa Vinamilk Quận 1", NguoiLienHe = "Nguyễn Văn A", SoDienThoai = "0901 234 567", Email = "vinamilkq1@gmail.com", DiaChi = "123 Lê Lợi, Q.1, TP.HCM", CongNoHienTai = 12500000 },
+                new NhaCungCap { TenNhaCungCap = "NPP Cafe Trung Nguyên", NguoiLienHe = "Trần Thị B", SoDienThoai = "0988 111 222", Email = "trungnguyen@gmail.com", DiaChi = "45 Nguyễn Huệ, Q.1, TP.HCM", CongNoHienTai = 8000000 },
+                new NhaCungCap { TenNhaCungCap = "Bao Bì Xanh Sài Gòn", NguoiLienHe = "Lê Văn C", SoDienThoai = "0912 345 678", Email = "baobixanh@gmail.com", DiaChi = "78 Điện Biên Phủ, Q.3, TP.HCM", CongNoHienTai = 0 }
+            };
+            db.NhaCungCaps.AddRange(nccs);
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.NguyenLieus.AnyAsync())
+        {
+            var nguyenLieus = new List<NguyenLieu>
+            {
+                new NguyenLieu
+                {
+                    TenNguyenLieu = "Hạt cà phê Robusta",
+                    MaVach_SKU = "RAW-CF-001",
+                    DonViTinh = "Kg",
+                    PhanLoai = "Nguyên liệu thô",
+                    SoLuongTon = 50,
+                    MucTonToiThieu = 10,
+                    MucTonToiDa = 200,
+                    GiaVonTrungBinh = 120000,
+                    HanSuDungNgay = 180,
+                    NgayHetHan = DateTime.UtcNow.AddDays(150),
+                    HinhAnh = null
+                },
+                new NguyenLieu
+                {
+                    TenNguyenLieu = "Sữa tươi thanh trùng 1L",
+                    MaVach_SKU = "RAW-MK-002",
+                    DonViTinh = "Hộp",
+                    PhanLoai = "Nguyên liệu thô",
+                    SoLuongTon = 120,
+                    MucTonToiThieu = 20,
+                    MucTonToiDa = 300,
+                    GiaVonTrungBinh = 32000,
+                    HanSuDungNgay = 30,
+                    NgayHetHan = DateTime.UtcNow.AddDays(25),
+                    HinhAnh = null
+                },
+                new NguyenLieu
+                {
+                    TenNguyenLieu = "Sữa đặc Ngôi sao Phương Nam",
+                    MaVach_SKU = "RAW-MK-005",
+                    DonViTinh = "Lon",
+                    PhanLoai = "Nguyên liệu thô",
+                    SoLuongTon = 80,
+                    MucTonToiThieu = 15,
+                    MucTonToiDa = 200,
+                    GiaVonTrungBinh = 22000,
+                    HanSuDungNgay = 365,
+                    NgayHetHan = DateTime.UtcNow.AddDays(300),
+                    HinhAnh = null
+                },
+                new NguyenLieu
+                {
+                    TenNguyenLieu = "Trân châu đen nấu sẵn",
+                    MaVach_SKU = "SEM-TC-012",
+                    DonViTinh = "Kg",
+                    PhanLoai = "Bán thành phẩm / Topping",
+                    SoLuongTon = 15,
+                    MucTonToiThieu = 5,
+                    MucTonToiDa = 50,
+                    GiaVonTrungBinh = 45000,
+                    HanSuDungNgay = 7,
+                    NgayHetHan = DateTime.UtcNow.AddDays(5),
+                    HinhAnh = null
+                },
+                new NguyenLieu
+                {
+                    TenNguyenLieu = "Ly giấy Takeaway 450ml",
+                    MaVach_SKU = "SUP-CUP-01",
+                    DonViTinh = "Chiếc",
+                    PhanLoai = "Vật tư",
+                    SoLuongTon = 1000,
+                    MucTonToiThieu = 200,
+                    MucTonToiDa = 5000,
+                    GiaVonTrungBinh = 1500,
+                    HanSuDungNgay = 730,
+                    NgayHetHan = DateTime.UtcNow.AddDays(600),
+                    HinhAnh = null
+                },
+                new NguyenLieu
+                {
+                    TenNguyenLieu = "Ống hút giấy thân thiện môi trường",
+                    MaVach_SKU = "SUP-STR-01",
+                    DonViTinh = "Chiếc",
+                    PhanLoai = "Vật tư",
+                    SoLuongTon = 2000,
+                    MucTonToiThieu = 300,
+                    MucTonToiDa = 10000,
+                    GiaVonTrungBinh = 300,
+                    HanSuDungNgay = 730,
+                    NgayHetHan = DateTime.UtcNow.AddDays(600),
+                    HinhAnh = null
+                }
+            };
+            db.NguyenLieus.AddRange(nguyenLieus);
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.PhieuKhos.AnyAsync(x => x.LoaiPhieu == "NhapKho"))
+        {
+            var nccVinamilk = await db.NhaCungCaps.FirstOrDefaultAsync(x => x.TenNhaCungCap.Contains("Vinamilk"));
+            var nccTrungNguyen = await db.NhaCungCaps.FirstOrDefaultAsync(x => x.TenNhaCungCap.Contains("Trung Nguyên"));
+            var nlSuaTuoi = await db.NguyenLieus.FirstOrDefaultAsync(x => x.MaVach_SKU == "RAW-MK-002");
+            var nlCaPhe = await db.NguyenLieus.FirstOrDefaultAsync(x => x.MaVach_SKU == "RAW-CF-001");
+
+            if (nccVinamilk != null && nlSuaTuoi != null)
+            {
+                var phieu1 = new PhieuKho
+                {
+                    LoaiPhieu = "NhapKho",
+                    MaNhanVien = 1,
+                    MaNhaCungCap = nccVinamilk.MaNhaCungCap,
+                    TongTienHang = 4500000,
+                    TienDaThanhToan = 4500000,
+                    TrangThaiThanhToan = "DaThanhToan",
+                    TrangThai = "DaHoanTat",
+                    GhiChu = "Nhập sữa tươi thanh trùng định kỳ",
+                    ThoiGianTao = DateTime.UtcNow.AddDays(-2),
+                    ChiTiets = new List<ChiTietPhieuKho>
+                    {
+                        new ChiTietPhieuKho { MaNguyenLieu = nlSuaTuoi.MaNguyenLieu, SoLuong = 100, DonGia = 45000 }
+                    }
+                };
+                db.PhieuKhos.Add(phieu1);
+            }
+
+            if (nccTrungNguyen != null && nlCaPhe != null)
+            {
+                var phieu2 = new PhieuKho
+                {
+                    LoaiPhieu = "NhapKho",
+                    MaNhanVien = 1,
+                    MaNhaCungCap = nccTrungNguyen.MaNhaCungCap,
+                    TongTienHang = 8000000,
+                    TienDaThanhToan = 0,
+                    TrangThaiThanhToan = "ChuaThanhToan",
+                    TrangThai = "DaHoanTat",
+                    GhiChu = "Nhập hạt cà phê Robusta đợt 1 quý 2",
+                    ThoiGianTao = DateTime.UtcNow.AddDays(-3),
+                    ChiTiets = new List<ChiTietPhieuKho>
+                    {
+                        new ChiTietPhieuKho { MaNguyenLieu = nlCaPhe.MaNguyenLieu, SoLuong = 66.67m, DonGia = 120000 }
+                    }
+                };
+                db.PhieuKhos.Add(phieu2);
+            }
+
+            await db.SaveChangesAsync();
+        }
     }
 }
 
