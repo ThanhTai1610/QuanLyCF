@@ -764,19 +764,63 @@ public class PaymentService
         var kh = await _db.KhachHangs.FindAsync(don.MaKhachHang.Value);
         if (kh == null) return;
 
-        // Tích luỹ 1 điểm cho mỗi 10.000đ giá trị thanh toán của đơn
-        int diemCong = (int)(don.ThanhTien / 10000);
+        // Tránh tích trùng điểm 2 lần cho cùng một đơn hàng
+        bool daTichDiem = await _db.Set<LichSuDiem>()
+            .AnyAsync(ls => ls.MaDonHang == don.MaDonHang && (ls.LoaiBienDong == "Cong" || ls.LoaiBienDong == "Tich"));
+        if (daTichDiem) return;
+
+        // Đảm bảo có danh sách chi tiết đơn hàng
+        var chiTiets = don.ChiTiets;
+        if (chiTiets == null || chiTiets.Count == 0)
+        {
+            chiTiets = await _db.ChiTietDonHangs
+                .Where(ct => ct.MaDonHang == don.MaDonHang)
+                .ToListAsync();
+        }
+
+        int diemCong = 0;
+        if (chiTiets != null && chiTiets.Count > 0)
+        {
+            foreach (var ct in chiTiets)
+            {
+                if (ct.MaSanPham.HasValue && ct.MaSanPham.Value > 0)
+                {
+                    var sp = await _db.SanPhams.FindAsync(ct.MaSanPham.Value);
+                    if (sp != null && sp.DiemTichLuy.HasValue && sp.DiemTichLuy.Value > 0)
+                    {
+                        // Ưu tiên tích điểm theo ly được cài đặt trong thực đơn
+                        diemCong += sp.DiemTichLuy.Value * ct.SoLuong;
+                    }
+                    else
+                    {
+                        // Quy đổi mặc định 10.000đ = 1 điểm cho món không cài điểm riêng
+                        diemCong += (int)(ct.ThanhTien / 10000m);
+                    }
+                }
+            }
+        }
+
+        if (diemCong <= 0)
+        {
+            diemCong = (int)(don.ThanhTien / 10000m);
+        }
+
         if (diemCong <= 0) return;
 
         kh.DiemTichLuy += diemCong;
-        kh.HangThanhVien = GetTierByPoints(kh.DiemTichLuy);
+        kh.TongDiemTichLuy += diemCong;
+        kh.TongTienDaTieu += don.ThanhTien;
+        kh.LanGheThamCuoi = DateTime.UtcNow;
+
+        int maxPts = Math.Max(kh.TongDiemTichLuy, kh.DiemTichLuy);
+        kh.HangThanhVien = GetTierByPoints(maxPts);
 
         var ls = new LichSuDiem
         {
             MaKhachHang = kh.MaKhachHang,
             LoaiBienDong = "Cong",
             SoDiem = diemCong,
-            GhiChu = $"Tích điểm từ đơn hàng #{don.MaDonHang} (Thanh toán: {don.ThanhTien:N0}đ)",
+            GhiChu = $"Tích điểm từ đơn hàng #{don.MaDonHang} (+{diemCong} điểm)",
             MaDonHang = don.MaDonHang,
             ThoiGianTao = DateTime.UtcNow
         };

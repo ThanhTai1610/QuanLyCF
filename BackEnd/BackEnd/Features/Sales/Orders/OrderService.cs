@@ -318,7 +318,9 @@ public class OrderService
         if (don.MaKhachHang is { } khId && khId > 0)
         {
             var kh = await _db.KhachHangs.FindAsync(khId);
-            if (kh != null)
+            bool daTichDiem = await _db.Set<LichSuDiem>()
+                .AnyAsync(ls => ls.MaDonHang == don.MaDonHang && (ls.LoaiBienDong == "Cong" || ls.LoaiBienDong == "Tich"));
+            if (kh != null && !daTichDiem)
             {
                 foreach (var ct in don.ChiTiets)
                 {
