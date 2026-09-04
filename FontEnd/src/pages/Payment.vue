@@ -272,8 +272,12 @@
         <div>
           <h3 class="font-premium-serif text-lg font-bold text-espresso">Xác thực OTP đổi điểm</h3>
           <p class="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-            Mã xác thực 6 số đã được gửi tới email thành viên của bạn. Vui lòng nhập để xác nhận đổi <strong>{{ selectedRewardPoints }} điểm thưởng</strong>.
+            Mã xác thực 6 số đã được gửi tới email <strong class="text-espresso">{{ targetEmail || customerProfile?.email || 'thành viên' }}</strong>. Vui lòng kiểm tra hộp thư (hoặc thư rác/Spam) để xác nhận đổi <strong>{{ selectedRewardPoints }} điểm thưởng</strong>.
           </p>
+        </div>
+
+        <div v-if="demoOtpCode" class="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-xs text-amber-800 font-medium text-center">
+          Mã OTP thử nghiệm: <strong class="font-mono text-amber-900 text-sm tracking-wider">{{ demoOtpCode }}</strong>
         </div>
 
         <div class="space-y-3">
@@ -441,6 +445,8 @@ const otpModalOpen = ref(false)
 const otpCode = ref('')
 const otpError = ref('')
 const otpBusy = ref(false)
+const demoOtpCode = ref('')
+const targetEmail = ref('')
 
 const loadCustomerProfile = () => {
   const saved = localStorage.getItem('brewCustomerProfile')
@@ -495,8 +501,14 @@ watch(selectedRewardPoints, async (newVal) => {
 const triggerSendOtp = async () => {
   if (!customerProfile.value) return
   otpBusy.value = true
+  demoOtpCode.value = ''
+  otpError.value = ''
   try {
-    await loyaltyApi.sendPublicOtp(customerProfile.value.id)
+    const res: any = await loyaltyApi.sendPublicOtp(customerProfile.value.id)
+    targetEmail.value = res?.email || customerProfile.value.email || ''
+    if (res?.demoOtp) {
+      demoOtpCode.value = res.demoOtp
+    }
   } catch (e: any) {
     errorMessage.value = e.message || 'Không thể gửi mã OTP.'
     otpModalOpen.value = false

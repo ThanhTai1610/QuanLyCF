@@ -524,6 +524,20 @@ public static class DbSeeder
             await db.SaveChangesAsync();
         }
 
+        // Cập nhật điểm tích lũy mặc định (1 điểm / ly) cho tất cả món nước trong thực đơn nếu chưa có
+        var unpointedProducts = await db.SanPhams.Where(p => p.DiemTichLuy == null || p.DiemTichLuy == 0).ToListAsync();
+        if (unpointedProducts.Any())
+        {
+            foreach (var sp in unpointedProducts)
+            {
+                if (sp.KieuMon != "Topping")
+                {
+                    sp.DiemTichLuy = 1; // Mặc định 1 ly = 1 điểm
+                }
+            }
+            await db.SaveChangesAsync();
+        }
+
         // 4. Seed phần thưởng mẫu (nếu chưa có)
         if (!await db.Set<PhanThuong>().AnyAsync())
         {

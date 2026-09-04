@@ -779,6 +779,7 @@ public class PaymentService
         }
 
         int diemCong = 0;
+        bool hasExplicitPoints = false;
         if (chiTiets != null && chiTiets.Count > 0)
         {
             foreach (var ct in chiTiets)
@@ -786,21 +787,17 @@ public class PaymentService
                 if (ct.MaSanPham.HasValue && ct.MaSanPham.Value > 0)
                 {
                     var sp = await _db.SanPhams.FindAsync(ct.MaSanPham.Value);
-                    if (sp != null && sp.DiemTichLuy.HasValue && sp.DiemTichLuy.Value > 0)
+                    if (sp != null && sp.DiemTichLuy.HasValue)
                     {
-                        // Ưu tiên tích điểm theo ly được cài đặt trong thực đơn
                         diemCong += sp.DiemTichLuy.Value * ct.SoLuong;
-                    }
-                    else
-                    {
-                        // Quy đổi mặc định 10.000đ = 1 điểm cho món không cài điểm riêng
-                        diemCong += (int)(ct.ThanhTien / 10000m);
+                        hasExplicitPoints = true;
                     }
                 }
             }
         }
 
-        if (diemCong <= 0)
+        // Chỉ quy đổi mặc định 10.000đ = 1 điểm nếu thực đơn hoàn toàn chưa cài đặt điểm cho bất kỳ món nào
+        if (!hasExplicitPoints)
         {
             diemCong = (int)(don.ThanhTien / 10000m);
         }

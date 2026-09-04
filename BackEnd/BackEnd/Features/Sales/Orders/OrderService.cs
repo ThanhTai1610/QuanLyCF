@@ -322,22 +322,23 @@ public class OrderService
                 .AnyAsync(ls => ls.MaDonHang == don.MaDonHang && (ls.LoaiBienDong == "Cong" || ls.LoaiBienDong == "Tich"));
             if (kh != null && !daTichDiem)
             {
+                bool hasExplicitPoints = false;
                 foreach (var ct in don.ChiTiets)
                 {
                     if (ct.MaSanPham.HasValue && ct.MaSanPham.Value > 0)
                     {
                         var sp = await _db.SanPhams.FindAsync(ct.MaSanPham.Value);
-                        if (sp != null && sp.DiemTichLuy.HasValue && sp.DiemTichLuy.Value > 0)
+                        if (sp != null && sp.DiemTichLuy.HasValue)
                         {
                             diemTich += sp.DiemTichLuy.Value * ct.SoLuong;
-                        }
-                        else
-                        {
-                            diemTich += (int)(ct.ThanhTien / 10000m);
+                            hasExplicitPoints = true;
                         }
                     }
                 }
-                if (diemTich <= 0) diemTich = (int)(don.ThanhTien / 10000m);
+                if (!hasExplicitPoints)
+                {
+                    diemTich = (int)(don.ThanhTien / 10000m);
+                }
 
                 kh.DiemTichLuy += diemTich;
                 kh.TongDiemTichLuy += diemTich;

@@ -797,8 +797,12 @@
           <div>
             <h3 class="font-premium-serif text-lg font-bold text-[#1A1512]">Xác thực OTP đổi điểm</h3>
             <p class="text-xs text-[#8A8178] mt-1.5 leading-relaxed">
-              Mã xác thực 6 số đã được gửi tới email thành viên của bạn. Vui lòng nhập để xác nhận đổi <strong>{{ selectedRewardPoints }} điểm thưởng</strong>.
+              Mã xác thực 6 số đã được gửi tới email <strong class="text-[#1A1512]">{{ targetEmail || customerEmail || 'thành viên' }}</strong>. Vui lòng kiểm tra hộp thư (hoặc thư rác/Spam) để xác nhận đổi <strong>{{ selectedRewardPoints }} điểm thưởng</strong>.
             </p>
+          </div>
+
+          <div v-if="demoOtpCode" class="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-xs text-amber-800 font-medium text-center">
+            Mã OTP thử nghiệm: <strong class="font-mono text-amber-900 text-sm tracking-wider">{{ demoOtpCode }}</strong>
           </div>
 
           <div class="space-y-3">
@@ -1454,6 +1458,8 @@ const otpCode = ref('')
 const otpError = ref('')
 const otpBusy = ref(false)
 const otpSent = ref(false)
+const demoOtpCode = ref('')
+const targetEmail = ref('')
 
 watch(selectedRewardPoints, async (newVal) => {
   if (newVal > 0) {
@@ -1464,6 +1470,7 @@ watch(selectedRewardPoints, async (newVal) => {
     }
     otpCode.value = ''
     otpError.value = ''
+    demoOtpCode.value = ''
     otpModalOpen.value = true
     otpSent.value = false
     await triggerSendOtp()
@@ -1478,10 +1485,16 @@ const triggerSendOtp = async () => {
     return
   }
   otpBusy.value = true
+  demoOtpCode.value = ''
   try {
-    await loyaltyApi.sendPublicOtp(customerId.value)
+    const res: any = await loyaltyApi.sendPublicOtp(customerId.value)
     otpSent.value = true
-    toast.success('Đã gửi mã OTP', 'Mã xác thực đã được gửi về email của bạn!')
+    targetEmail.value = res?.email || customerEmail.value || ''
+    if (res?.demoOtp) {
+      demoOtpCode.value = res.demoOtp
+    }
+    const demoNote = res?.demoOtp ? ` (Mã OTP: ${res.demoOtp})` : ''
+    toast.success('Đã gửi mã OTP', `Mã xác thực đã gửi về email ${targetEmail.value || 'của bạn'}!${demoNote}`)
   } catch (e: any) {
     toast.error('Lỗi gửi OTP', e.message || 'Không thể gửi mã OTP.')
     otpModalOpen.value = false
