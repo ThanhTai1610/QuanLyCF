@@ -933,6 +933,82 @@ public static class DbSeeder
 
             await db.SaveChangesAsync();
         }
+
+        // 10. Seed Nhật ký hệ thống mẫu
+        if (!await db.NhatKyHeThongs.AnyAsync())
+        {
+            var logs = new List<NhatKyHeThong>
+            {
+                new NhatKyHeThong
+                {
+                    MaNhanVien = 1,
+                    HanhDong = "ĐĂNG NHẬP",
+                    Module = "HỆ THỐNG",
+                    DuLieuCu = null,
+                    DuLieuMoi = "Quản trị viên đăng nhập hệ thống thành công",
+                    DiaChiIP = "192.168.1.15",
+                    ThietBi = "Chrome / Windows 11",
+                    ThoiGianTao = DateTime.UtcNow.AddMinutes(-120)
+                },
+                new NhatKyHeThong
+                {
+                    MaNhanVien = 1,
+                    HanhDong = "THÊM MỚI",
+                    Module = "SẢN PHẨM",
+                    DuLieuCu = null,
+                    DuLieuMoi = "Tạo mới món: Cà phê Muối (Size L, 35.000đ)",
+                    DiaChiIP = "192.168.1.15",
+                    ThietBi = "Chrome / Windows 11",
+                    ThoiGianTao = DateTime.UtcNow.AddMinutes(-90)
+                },
+                new NhatKyHeThong
+                {
+                    MaNhanVien = 2,
+                    HanhDong = "TẠO ĐƠN HÀNG",
+                    Module = "BÁN HÀNG POS",
+                    DuLieuCu = null,
+                    DuLieuMoi = "Tạo và thanh toán đơn hàng #1002 (Bàn 03) - 85.000đ",
+                    DiaChiIP = "192.168.1.20",
+                    ThietBi = "POS Terminal / Chrome",
+                    ThoiGianTao = DateTime.UtcNow.AddMinutes(-60)
+                },
+                new NhatKyHeThong
+                {
+                    MaNhanVien = 1,
+                    HanhDong = "NHẬP KHO",
+                    Module = "KHO & KIỂM KÊ",
+                    DuLieuCu = null,
+                    DuLieuMoi = "Nhập kho 100 hộp Sữa tươi thanh trùng từ Đại lý Sữa Vinamilk Quận 1 (Tổng: 4.500.000đ)",
+                    DiaChiIP = "192.168.1.15",
+                    ThietBi = "Chrome / Windows 11",
+                    ThoiGianTao = DateTime.UtcNow.AddMinutes(-40)
+                },
+                new NhatKyHeThong
+                {
+                    MaNhanVien = 1,
+                    HanhDong = "ĐỔI ĐIỂM DÙNG OTP",
+                    Module = "KHÁCH HÀNG",
+                    DuLieuCu = "Số dư điểm: 550 điểm",
+                    DuLieuMoi = "Đổi 50 điểm lấy voucher 20.000đ - Mã OTP gửi về phamthanhtai16102006@gmail.com",
+                    DiaChiIP = "14.232.180.9",
+                    ThietBi = "Mobile / Safari iOS",
+                    ThoiGianTao = DateTime.UtcNow.AddMinutes(-20)
+                },
+                new NhatKyHeThong
+                {
+                    MaNhanVien = 1,
+                    HanhDong = "CHỈNH SỬA VAI TRÒ",
+                    Module = "HỆ THỐNG",
+                    DuLieuCu = "Quyền cũ: Xem Kho, Nhập Kho",
+                    DuLieuMoi = "Quyền mới: Toàn quyền Kho & Quản lý nhân sự",
+                    DiaChiIP = "192.168.1.15",
+                    ThietBi = "Chrome / Windows 11",
+                    ThoiGianTao = DateTime.UtcNow.AddMinutes(-5)
+                }
+            };
+            db.NhatKyHeThongs.AddRange(logs);
+            await db.SaveChangesAsync();
+        }
     }
 }
 
