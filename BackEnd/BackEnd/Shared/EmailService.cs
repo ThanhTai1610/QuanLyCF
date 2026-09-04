@@ -15,9 +15,10 @@ public class EmailSettings
     public string ApiKeyBase64 { get; set; } = "";
     public string ApiKeyPart1 { get; set; } = "";
     public string ApiKeyPart2 { get; set; } = "";
-    public string SmtpServer { get; set; } = "smtp.gmail.com";
-    public int SmtpPort { get; set; } = 587;
-    public string SenderEmail { get; set; } = "";
+    public string SmtpServer { get; set; } = "smtp-relay.brevo.com";
+    public int SmtpPort { get; set; } = 2525;
+    public string SmtpUser { get; set; } = "b7e30a001@smtp-brevo.com";
+    public string SenderEmail { get; set; } = "taiptpk04158@gmail.com";
     public string SenderPassword { get; set; } = ""; // App password
     public string SenderName { get; set; } = "F6 Coffee";
 }
@@ -61,100 +62,94 @@ public class EmailService
         // 1. Nếu có ApiKey dạng xsmtpsib- -> Brevo SMTP Relay
         if (!string.IsNullOrWhiteSpace(effectiveApiKey) && effectiveApiKey.StartsWith("xsmtpsib-", StringComparison.OrdinalIgnoreCase))
         {
-            return await SendViaBrevoSmtpRelayAsync(settings, effectiveApiKey, toEmail, subject, body);
+            var brevoResult = await SendViaBrevoSmtpRelayAsync(settings, effectiveApiKey, toEmail, subject, body);
+            if (brevoResult.Success) return brevoResult;
+
+            _logger.LogWarning($"[BREVO SMTP RELAY FALLBACK] Brevo SMTP Relay thất bại ({brevoResult.ErrorMessage}), tự động chuyển sang Gmail SMTP...");
         }
 
         // 2. Nếu có ApiKey dạng xkeysib- hoặc Resend -> Thử gửi qua Brevo / Resend REST API (Port 443)
-        if (!string.IsNullOrWhiteSpace(effectiveApiKey))
+        if (!string.IsNullOrWhiteSpace(effectiveApiKey) && !effectiveApiKey.StartsWith("xsmtpsib-", StringComparison.OrdinalIgnoreCase))
         {
             settings.ApiKey = effectiveApiKey;
             if (settings.Provider.Equals("Resend", StringComparison.OrdinalIgnoreCase))
             {
-                return await SendViaResendApiAsync(settings, toEmail, subject, body);
+                var resendResult = await SendViaResendApiAsync(settings, toEmail, subject, body);
+                if (resendResult.Success) return resendResult;
             }
-
-            var brevoResult = await SendViaBrevoApiAsync(settings, toEmail, subject, body);
-            if (brevoResult.Success) return brevoResult;
-
-            // Nếu REST API trả về lỗi (ví dụ Key 401), tự động chuyển sang Brevo SMTP Relay
-            _logger.LogWarning($"[BREVO REST API FALLBACK] REST API lỗi ({brevoResult.ErrorMessage}), chuyển sang Brevo SMTP Relay...");
-            return await SendViaBrevoSmtpRelayAsync(settings, effectiveApiKey, toEmail, subject, body);
+            else
+            {
+                var brevoResult = await SendViaBrevoApiAsync(settings, toEmail, subject, body);
+                if (brevoResult.Success) return brevoResult;
+            }
         }
 
-        // 3. Gửi qua Gmail SMTP truyền thống (MailKit)
-        if (string.IsNullOrWhiteSpace(settings.SenderEmail) || string.IsNullOrWhiteSpace(settings.SenderPassword))
+        // 3. Fallback: Gửi qua Gmail SMTP truyền thống (MailKit)
+        if (!string.IsNullOrWhiteSpace(settings.SenderEmail) && !string.IsNullOrWhiteSpace(settings.SenderPassword))
         {
-            var msg = "Cấu hình gửi email (SenderEmail hoặc SenderPassword) chưa được thiết lập trong appsettings.json.";
-            _logger.LogWarning($"[EMAIL WARNING] {msg}");
-            return (false, msg);
+            var gmailResult = await SendViaGmailSmtpAsync(settings, toEmail, subject, body);
+            if (gmailResult.Success) return gmailResult;
+
+            return (false, $"Tất cả kênh gửi email đều thất bại. Gmail SMTP Lỗi: {gmailResult.ErrorMessage}");
         }
 
-        return await SendViaGmailSmtpAsync(settings, toEmail, subject, body);
+        return (false, "Cấu hình gửi email chưa đầy đủ trong appsettings.json.");
     }
 
     private async Task<(bool Success, string? ErrorMessage)> SendViaBrevoSmtpRelayAsync(EmailSettings settings, string smtpKey, string toEmail, string subject, string body)
     {
         var candidateUsers = new List<string>();
-        if (!string.IsNullOrWhiteSpace(settings.SenderEmail)) candidateUsers.Add(settings.SenderEmail.Trim());
-        if (!candidateUsers.Contains("phamthanhtai16102006@gmail.com", StringComparer.OrdinalIgnoreCase)) candidateUsers.Add("phamthanhtai16102006@gmail.com");
-        if (!candidateUsers.Contains("taiptpk04158@gmail.com", StringComparer.OrdinalIgnoreCase)) candidateUsers.Add("taiptpk04158@gmail.com");
+        if (!string.IsNullOrWhiteSpace(settings.SmtpUser)) candidateUsers.Add(settings.SmtpUser.Trim());
+        if (!candidateUsers.Contains("b7e30a001@smtp-brevo.com", StringComparer.OrdinalIgnoreCase)) candidateUsers.Add("b7e30a001@smtp-brevo.com");
+        if (!string.IsNullOrWhiteSpace(settings.SenderEmail) && !candidateUsers.Contains(settings.SenderEmail.Trim(), StringComparer.OrdinalIgnoreCase)) candidateUsers.Add(settings.SenderEmail.Trim());
+
+        var ports = new[] 
+        { 
+            (587, SecureSocketOptions.StartTls), 
+            (2525, SecureSocketOptions.StartTls), 
+            (465, SecureSocketOptions.SslOnConnect) 
+        };
 
         Exception? lastEx = null;
 
         foreach (var username in candidateUsers)
         {
-            try
+            foreach (var (port, options) in ports)
             {
-                var message = new MimeMessage();
-                var fromAddr = !string.IsNullOrWhiteSpace(settings.SenderEmail) ? settings.SenderEmail : username;
-                message.From.Add(new MailboxAddress(settings.SenderName, fromAddr));
-                message.To.Add(MailboxAddress.Parse(toEmail));
-                message.Subject = subject;
-
-                var bodyBuilder = new BodyBuilder { HtmlBody = body };
-                message.Body = bodyBuilder.ToMessageBody();
-
-                using var client = new SmtpClient();
-                client.ServerCertificateValidationCallback = (s, c, h, e) => true;
-
-                bool connected = false;
-                var ports = new[] 
-                { 
-                    (2525, SecureSocketOptions.StartTls), 
-                    (587, SecureSocketOptions.StartTls), 
-                    (465, SecureSocketOptions.SslOnConnect) 
-                };
-
-                foreach (var (port, options) in ports)
+                try
                 {
-                    try
-                    {
-                        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                        await client.ConnectAsync("smtp-relay.brevo.com", port, options, cts.Token);
-                        connected = true;
-                        break;
-                    }
-                    catch {}
+                    using var client = new SmtpClient();
+                    client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+
+                    using var ctsConn = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+                    await client.ConnectAsync("smtp-relay.brevo.com", port, options, ctsConn.Token);
+
+                    using var ctsAuth = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+                    await client.AuthenticateAsync(username, smtpKey, ctsAuth.Token);
+
+                    var message = new MimeMessage();
+                    var fromAddr = !string.IsNullOrWhiteSpace(settings.SenderEmail) ? settings.SenderEmail : username;
+                    message.From.Add(new MailboxAddress(settings.SenderName, fromAddr));
+                    message.To.Add(MailboxAddress.Parse(toEmail));
+                    message.Subject = subject;
+
+                    var bodyBuilder = new BodyBuilder { HtmlBody = body };
+                    message.Body = bodyBuilder.ToMessageBody();
+
+                    using var ctsSend = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+                    await client.SendAsync(message, ctsSend.Token);
+
+                    using var ctsDisc = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                    await client.DisconnectAsync(true, ctsDisc.Token);
+
+                    _logger.LogInformation($"[EMAIL BREVO RELAY SENT REAL] Đã gửi thành công email OTP tới {toEmail} qua Brevo SMTP (Port {port}, User: {username})");
+                    return (true, null);
                 }
-
-                if (!connected) continue;
-
-                using var ctsAuth = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                await client.AuthenticateAsync(username, smtpKey, ctsAuth.Token);
-
-                using var ctsSend = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                await client.SendAsync(message, ctsSend.Token);
-
-                using var ctsDisc = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-                await client.DisconnectAsync(true, ctsDisc.Token);
-
-                _logger.LogInformation($"[EMAIL BREVO RELAY SENT REAL] Đã gửi thành công mail OTP thực tế tới {toEmail} bằng tài khoản {username}");
-                return (true, null);
-            }
-            catch (Exception ex)
-            {
-                lastEx = ex;
-                _logger.LogWarning($"[BREVO AUTH LOGIN TRY '{username}' FAIL]: {ex.Message}");
+                catch (Exception ex)
+                {
+                    lastEx = ex;
+                    _logger.LogWarning($"[BREVO SMTP TRY User '{username}', Port {port} FAIL]: {ex.Message}");
+                }
             }
         }
 
@@ -167,55 +162,58 @@ public class EmailService
     {
         var cleanPassword = settings.SenderPassword.Replace(" ", "");
 
-        try
+        var ports = new[]
         {
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(settings.SenderName, settings.SenderEmail));
-            message.To.Add(MailboxAddress.Parse(toEmail));
-            message.Subject = subject;
+            (587, SecureSocketOptions.StartTls),
+            (465, SecureSocketOptions.SslOnConnect)
+        };
 
-            var bodyBuilder = new BodyBuilder { HtmlBody = body };
-            message.Body = bodyBuilder.ToMessageBody();
+        Exception? lastEx = null;
 
-            using var client = new SmtpClient();
-            client.ServerCertificateValidationCallback = (s, c, h, e) => true;
-
+        foreach (var (port, options) in ports)
+        {
             try
             {
-                using var cts1 = new CancellationTokenSource(TimeSpan.FromSeconds(6));
-                await client.ConnectAsync(settings.SmtpServer, settings.SmtpPort, SecureSocketOptions.StartTls, cts1.Token);
+                using var client = new SmtpClient();
+                client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+
+                var host = !string.IsNullOrWhiteSpace(settings.SmtpServer) && settings.SmtpServer.Contains("gmail", StringComparison.OrdinalIgnoreCase) 
+                    ? settings.SmtpServer 
+                    : "smtp.gmail.com";
+
+                using var ctsConn = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+                await client.ConnectAsync(host, port, options, ctsConn.Token);
+
+                using var ctsAuth = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+                await client.AuthenticateAsync(settings.SenderEmail, cleanPassword, ctsAuth.Token);
+
+                var message = new MimeMessage();
+                message.From.Add(new MailboxAddress(settings.SenderName, settings.SenderEmail));
+                message.To.Add(MailboxAddress.Parse(toEmail));
+                message.Subject = subject;
+
+                var bodyBuilder = new BodyBuilder { HtmlBody = body };
+                message.Body = bodyBuilder.ToMessageBody();
+
+                using var ctsSend = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+                await client.SendAsync(message, ctsSend.Token);
+
+                using var ctsDisc = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                await client.DisconnectAsync(true, ctsDisc.Token);
+
+                _logger.LogInformation($"[EMAIL GMAIL SENT REAL] Đã gửi thành công email OTP tới {toEmail} qua Gmail SMTP (Port {port})");
+                return (true, null);
             }
-            catch (Exception exStartTls)
+            catch (Exception ex)
             {
-                _logger.LogWarning($"[SMTP STARTTLS FAIL] Port 587 failed: {exStartTls.Message}. Retrying port 465 SSL...");
-                using var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(6));
-                await client.ConnectAsync(settings.SmtpServer, 465, SecureSocketOptions.SslOnConnect, cts2.Token);
+                lastEx = ex;
+                _logger.LogWarning($"[GMAIL SMTP Port {port} FAIL]: {ex.Message}");
             }
+        }
 
-            using var ctsAuth = new CancellationTokenSource(TimeSpan.FromSeconds(6));
-            await client.AuthenticateAsync(settings.SenderEmail, cleanPassword, ctsAuth.Token);
-            
-            using var ctsSend = new CancellationTokenSource(TimeSpan.FromSeconds(6));
-            await client.SendAsync(message, ctsSend.Token);
-            
-            using var ctsDisc = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-            await client.DisconnectAsync(true, ctsDisc.Token);
-
-            _logger.LogInformation($"[EMAIL SENT REAL] Đã gửi thành công email OTP thực tế tới {toEmail} qua Gmail SMTP");
-            return (true, null);
-        }
-        catch (OperationCanceledException)
-        {
-            var err = "Hạ tầng Cloud (Render/VPS) chặn cổng SMTP 587/465. Vui lòng sử dụng Brevo API Key.";
-            _logger.LogError($"[EMAIL TIMEOUT] {err}");
-            return (false, err);
-        }
-        catch (Exception ex)
-        {
-            var err = ex.InnerException != null ? $"{ex.Message} -> {ex.InnerException.Message}" : ex.Message;
-            _logger.LogError(ex, $"[EMAIL ERROR] Không thể gửi email tới {toEmail}: {err}");
-            return (false, err);
-        }
+        var err = lastEx?.InnerException != null ? $"{lastEx.Message} -> {lastEx.InnerException.Message}" : lastEx?.Message;
+        _logger.LogError(lastEx, $"[EMAIL GMAIL ERROR] Không thể gửi email tới {toEmail}: {err}");
+        return (false, err);
     }
 
     private async Task<(bool Success, string? ErrorMessage)> SendViaBrevoApiAsync(EmailSettings settings, string toEmail, string subject, string body)
