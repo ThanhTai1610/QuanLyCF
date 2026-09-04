@@ -1,6 +1,7 @@
 using BackEnd.Domain.Entities;
 using BackEnd.Features.Inventory.StockReceipts;
 using BackEnd.Infrastructure.Persistence;
+using BackEnd.Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace BackEnd.Features.Finance.CashFlows;
@@ -57,12 +58,12 @@ public class CashFlowService
 
         var ky = $"{year}-{month:D2}";
         var query = _db.BangLuongs.Include(x => x.NhanVien).ThenInclude(x => x.VaiTro)
-            .Where(x => x.Ky == ky && x.NhanVien.HoTen != "Quản trị viên" && (x.NhanVien.VaiTro == null || x.NhanVien.VaiTro.TenVaiTro != "Quản trị viên"));
+            .Where(x => x.Ky == ky && (x.NhanVien == null || (x.NhanVien.HoTen != "Quản trị viên" && (x.NhanVien.VaiTro == null || x.NhanVien.VaiTro.TenVaiTro != "Quản trị viên"))));
 
         return await query.Select(x => new SalaryListItem(
             x.MaBangLuong,
-            x.NhanVien.HoTen,
-            x.NhanVien.VaiTro.TenVaiTro,
+            x.NhanVien != null ? x.NhanVien.HoTen : "Nhân viên",
+            (x.NhanVien != null && x.NhanVien.VaiTro != null) ? x.NhanVien.VaiTro.TenVaiTro : "Nhân viên",
             x.LuongTheoGio,
             x.SoGioThuong,
             x.SoGioOT,
@@ -100,14 +101,49 @@ public class CashFlowService
     {
         var ky = $"{year}-{month:D2}";
 
+        // 0. Đảm bảo nhân viên mặc định tồn tại trong CSDL để không vi phạm FK
+        var adminNv = await _db.NhanViens.FirstOrDefaultAsync();
+        if (adminNv == null)
+        {
+            adminNv = new NhanVien
+            {
+                HoTen = "Quản trị viên",
+                Email = "admin@brew.vn",
+                MaVaiTro = 1,
+                MatKhauHash = PasswordHasher.Hash("demo1234"),
+                MaPinHash = PasswordHasher.Hash("2006"),
+                TrangThaiHoatDong = true,
+                ThoiGianTao = DateTime.UtcNow,
+                ThoiGianCapNhat = DateTime.UtcNow
+            };
+            _db.NhanViens.Add(adminNv);
+            await _db.SaveChangesAsync();
+        }
+        int defaultNvId = adminNv.MaNhanVien;
+
+        // Đảm bảo có ít nhất các nhân viên mẫu khác ngoại trừ Admin
+        var nhanViens = await _db.NhanViens.Include(x => x.VaiTro)
+            .Where(x => x.TrangThaiHoatDong == true && x.HoTen != "Quản trị viên" && (x.VaiTro == null || x.VaiTro.TenVaiTro != "Quản trị viên"))
+            .ToListAsync();
+
+        if (!nhanViens.Any())
+        {
+            var sampleStaff = new List<NhanVien>
+            {
+                new NhanVien { HoTen = "Nguyễn Văn Pha", Email = "phache@brew.vn", MaVaiTro = 2, MatKhauHash = PasswordHasher.Hash("demo1234"), MaPinHash = PasswordHasher.Hash("1234"), LuongCoBan = 6000000, TrangThaiHoatDong = true, ThoiGianTao = DateTime.UtcNow, ThoiGianCapNhat = DateTime.UtcNow },
+                new NhanVien { HoTen = "Trần Thị Thu", Email = "thungan@brew.vn", MaVaiTro = 3, MatKhauHash = PasswordHasher.Hash("demo1234"), MaPinHash = PasswordHasher.Hash("5678"), LuongCoBan = 5500000, TrangThaiHoatDong = true, ThoiGianTao = DateTime.UtcNow, ThoiGianCapNhat = DateTime.UtcNow },
+                new NhanVien { HoTen = "Lê Văn Phục", Email = "phucvu@brew.vn", MaVaiTro = 4, MatKhauHash = PasswordHasher.Hash("demo1234"), MaPinHash = PasswordHasher.Hash("9012"), LuongCoBan = 5000000, TrangThaiHoatDong = true, ThoiGianTao = DateTime.UtcNow, ThoiGianCapNhat = DateTime.UtcNow }
+            };
+            _db.NhanViens.AddRange(sampleStaff);
+            await _db.SaveChangesAsync();
+            nhanViens = sampleStaff;
+        }
+
         // 1. Sinh bảng lương trước nếu chưa có để lấy con số chi lương chính xác
         var existsBangLuong = await _db.BangLuongs.AnyAsync(x => x.Ky == ky);
         decimal tongLuong = 0;
         if (!existsBangLuong)
         {
-            var nhanViens = await _db.NhanViens.Include(x => x.VaiTro)
-                .Where(x => x.TrangThaiHoatDong == true && x.HoTen != "Quản trị viên" && (x.VaiTro == null || x.VaiTro.TenVaiTro != "Quản trị viên"))
-                .ToListAsync();
             var listNew = new List<BangLuong>();
             var random = new Random(year * 100 + month);
             foreach (var nv in nhanViens)
@@ -152,9 +188,6 @@ public class CashFlowService
         }
 
         // 2. Kiểm tra dòng tiền trong tháng này đã có chưa
-        var defaultNvId = await _db.NhanViens.Select(x => x.MaNhanVien).FirstOrDefaultAsync();
-        if (defaultNvId == 0) defaultNvId = 1;
-
         var hasDongTienInMonth = await _db.DongTiens.AnyAsync(x => x.ThoiGianTao.Year == year && x.ThoiGianTao.Month == month);
         if (!hasDongTienInMonth)
         {
