@@ -117,8 +117,14 @@ public class AccountsController : ControllerBase
     public async Task<IActionResult> ResetPassword(int id, ResetPasswordRequest req)
     {
         var nv = await _db.NhanViens.FindAsync(id);
-        if (nv is null) return NotFound();
-        nv.MatKhauHash = PasswordHasher.Hash(req.MatKhauMoi);
+        if (nv is null) return NotFound(new { message = "Không tìm thấy tài khoản." });
+        if (string.IsNullOrWhiteSpace(req.MatKhauMoi))
+            return BadRequest(new { message = "Mật khẩu mới không được để trống." });
+
+        var cleanPwd = req.MatKhauMoi.Trim();
+        nv.MatKhauHash = PasswordHasher.Hash(cleanPwd);
+        nv.SoLanDangNhapSai = 0;
+        nv.KhoaDenKhi = null;
         await _db.SaveChangesAsync();
         return NoContent();
     }
@@ -128,8 +134,15 @@ public class AccountsController : ControllerBase
     public async Task<IActionResult> SetPin(int id, SetPinRequest req)
     {
         var nv = await _db.NhanViens.FindAsync(id);
-        if (nv is null) return NotFound();
-        nv.MaPinHash = PasswordHasher.Hash(req.Pin);
+        if (nv is null) return NotFound(new { message = "Không tìm thấy tài khoản." });
+        if (string.IsNullOrWhiteSpace(req.Pin))
+            return BadRequest(new { message = "Mã PIN không được để trống." });
+
+        var cleanPin = req.Pin.Trim();
+        nv.MaPinHash = PasswordHasher.Hash(cleanPin);
+        nv.MatKhauHash = PasswordHasher.Hash(cleanPin);
+        nv.SoLanDangNhapSai = 0;
+        nv.KhoaDenKhi = null;
         await _db.SaveChangesAsync();
         return NoContent();
     }

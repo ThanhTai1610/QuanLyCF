@@ -701,15 +701,12 @@ async function doReset() {
 
   saving.value = true
   try {
-    const p: Promise<any>[] = []
     if (resetTarget.value!.maVaiTro === 1) {
-      p.push(accountsApi.resetPassword(resetTarget.value!.maNhanVien, pwd))
+      await accountsApi.resetPassword(resetTarget.value!.maNhanVien, pwd)
     } else {
-      p.push(accountsApi.setPin(resetTarget.value!.maNhanVien, pin))
-      p.push(accountsApi.resetPassword(resetTarget.value!.maNhanVien, pin)) // Sync web password with PIN just in case
+      await accountsApi.setPin(resetTarget.value!.maNhanVien, pin)
     }
-    
-    await Promise.all(p)
+    toast.success('Đã cập nhật Mã PIN thành công!')
     resetOpen.value = false
   } catch (e) {
     resetError.value = e instanceof Error ? e.message : 'Không lưu được thay đổi.'
