@@ -182,40 +182,73 @@ HƯỚNG DẪN QUAN TRỌNG:
             string reply;
             var recommendedIds = new List<int>();
 
-            // 1. Hỏi về trái cây / nước ép / sinh tố / trà
-            if (msgLower.Contains("trái cây") || msgLower.Contains("trai cay") || msgLower.Contains("nước ép") || msgLower.Contains("sinh tố"))
+            // 1. Hỏi về nước ép / sinh tố
+            if (msgLower.Contains("nước ép") || msgLower.Contains("nuoc ep") || msgLower.Contains("ép") || msgLower.Contains("sinh tố") || msgLower.Contains("sinh to"))
             {
-                reply = "🍹 Quán mình có nhiều món Trà Trái Cây & Nước Ép tươi mát lạnh nguyên chất siêu ngon nè bạn ơi! Uống vào là sảng khoái tức thì nha:";
-                var items = sanPhams.Where(s => ((string)s.TenSanPham).ToLower().Contains("trà") || ((string)s.TenSanPham).ToLower().Contains("ép") || ((string)s.TenSanPham).ToLower().Contains("cam") || ((string)s.TenSanPham).ToLower().Contains("xoài") || ((string)s.TenSanPham).ToLower().Contains("chanh")).Take(3).ToList();
+                reply = "🍹 Quán mình có món Nước Ép Tươi nguyên chất mát lạnh siêu ngon nè bạn ơi! Thử ngay ly Nước ép cam tươi thanh mát nha:";
+                var items = sanPhams.Where(s => ((string)s.TenSanPham).ToLower().Contains("ép") || ((string)s.TenSanPham).ToLower().Contains("sinh tố") || ((string)s.TenSanPham).ToLower().Contains("cam")).Take(3).ToList();
+                if (items.Count == 0) items = sanPhams.Take(2).ToList();
                 foreach (var it in items) recommendedIds.Add((int)it.MaSanPham);
             }
-            // 2. Hỏi về câu đố / game
+            // 2. Hỏi về Cà phê
+            else if (msgLower.Contains("cà phê") || msgLower.Contains("ca phe") || msgLower.Contains("cafe") || msgLower.Contains("bạc xỉu") || msgLower.Contains("espresso") || msgLower.Contains("đen đá") || msgLower.Contains("sữa đá"))
+            {
+                reply = "☕ Đam mê gu cà phê đượm vị, thơm nức mũi thì thử ngay các món Cà Phê đặc sản này của quán nhé:";
+                var items = sanPhams.Where(s => ((string)s.TenSanPham).ToLower().Contains("cà phê") || ((string)s.TenSanPham).ToLower().Contains("cafe") || ((string)s.TenSanPham).ToLower().Contains("bạc xỉu") || ((string)s.TenSanPham).ToLower().Contains("espresso")).Take(3).ToList();
+                if (items.Count == 0) items = sanPhams.Take(2).ToList();
+                foreach (var it in items) recommendedIds.Add((int)it.MaSanPham);
+            }
+            // 3. Hỏi về Trà / Trà trái cây / Trà sữa
+            else if (msgLower.Contains("trà") || msgLower.Contains("tra ") || msgLower == "tra" || msgLower.Contains("trái cây") || msgLower.Contains("trai cay") || msgLower.Contains("hạt sen") || msgLower.Contains("vải") || msgLower.Contains("đào"))
+            {
+                reply = "🍵 Thanh mát giải nhiệt với các món Trà hoa quả & Trà đặc sản ngon tuyệt này của quán nha:";
+                var items = sanPhams.Where(s => ((string)s.TenSanPham).ToLower().Contains("trà") || ((string)s.TenSanPham).ToLower().Contains("tea")).Take(3).ToList();
+                if (items.Count == 0) items = sanPhams.Take(2).ToList();
+                foreach (var it in items) recommendedIds.Add((int)it.MaSanPham);
+            }
+            // 4. Hỏi về Đá xay / Smoothie / Macchiato
+            else if (msgLower.Contains("đá xay") || msgLower.Contains("da xay") || msgLower.Contains("smoothie") || msgLower.Contains("macchiato"))
+            {
+                reply = "🧊 Sảng khoái mát lạnh cùng các món Đá Xay & Smoothie béo ngậy thơm ngon nè:";
+                var items = sanPhams.Where(s => ((string)s.TenSanPham).ToLower().Contains("đá xay") || ((string)s.TenSanPham).ToLower().Contains("smoothie")).Take(3).ToList();
+                if (items.Count == 0) items = sanPhams.Take(2).ToList();
+                foreach (var it in items) recommendedIds.Add((int)it.MaSanPham);
+            }
+            // 5. Hỏi về Bánh ngọt / Ăn kèm
+            else if (msgLower.Contains("bánh") || msgLower.Contains("banh") || msgLower.Contains("cake") || msgLower.Contains("croissant"))
+            {
+                reply = "🍰 Thưởng thức bánh ngọt thơm lừng ăn kèm đồ uống ngon ngây ngất nha:";
+                var items = sanPhams.Where(s => ((string)s.TenSanPham).ToLower().Contains("bánh") || ((string)s.TenSanPham).ToLower().Contains("cake")).Take(3).ToList();
+                if (items.Count == 0) items = sanPhams.Take(2).ToList();
+                foreach (var it in items) recommendedIds.Add((int)it.MaSanPham);
+            }
+            // 6. Hỏi về câu đố / game
             else if (msgLower.Contains("đố") || msgLower.Contains("riddle") || msgLower.Contains("câu đố") || msgLower.Contains("chơi"))
             {
                 reply = "🎯 CÂU ĐỐ: Món nước nào có vị béo thơm ngậy của sữa hòa quyện cà phê đắng nhẹ, được mệnh danh là 'cà phê dành cho người sợ đắng'?\n\nA. Bạc xỉu\nB. Espresso\nC. Cà phê đen đá";
                 var item = sanPhams.FirstOrDefault(s => ((string)s.TenSanPham).ToLower().Contains("bạc xỉu") || ((string)s.TenSanPham).ToLower().Contains("bac xiu"));
                 if (item != null) recommendedIds.Add((int)item.MaSanPham);
             }
-            // 3. Hỏi bói / tâm trạng
+            // 7. Hỏi bói / tâm trạng
             else if (msgLower.Contains("bói") || msgLower.Contains("tâm trạng") || msgLower.Contains("buồn") || msgLower.Contains("vui") || msgLower.Contains("mệt") || msgLower.Contains("áp lực"))
             {
                 reply = "🔮 Bói ly nước theo tâm trạng: Hôm nay lá trà phán rằng bạn đang cần một nguồn năng lượng sảng khoái! Thử ngay một ly Trà Trái Cây hoặc Bạc Xỉu của quán nhé! 🍹";
                 var item = sanPhams.FirstOrDefault(s => ((string)s.TenSanPham).ToLower().Contains("trà") || ((string)s.TenSanPham).ToLower().Contains("bạc xỉu"));
                 if (item != null) recommendedIds.Add((int)item.MaSanPham);
             }
-            // 4. Hỏi bán chạy / bestseller / menu / giá / món ngon
+            // 8. Hỏi bán chạy / bestseller / menu / giá / món ngon
             else if (msgLower.Contains("bán chạy") || msgLower.Contains("bestseller") || msgLower.Contains("ngon") || msgLower.Contains("món gì") || msgLower.Contains("thực đơn") || msgLower.Contains("menu"))
             {
                 reply = "🔥 Các món Best-Seller ngon nức tiếng tại quán hôm nay nè bạn ơi! Uống một ngụm là say đắm ngay ☕:";
                 recommendedIds = sanPhams.Take(3).Select(s => (int)s.MaSanPham).ToList();
             }
-            // 5. Hỏi chào hỏi (chào, hi, hello)
+            // 9. Hỏi chào hỏi (chào, hi, hello)
             else if (msgLower == "chào" || msgLower == "hi" || msgLower == "hello" || msgLower == "xin chào")
             {
                 reply = "Chào bạn nha! ☕ Mình là Barista AI đây. Quán mình đang phục vụ rất nhiều loại Cà phê pha máy, Trà trái cây sảng khoái và Bánh ngọt thơm lừng. Bạn muốn uống món gì nhâm nhi hôm nay?";
                 recommendedIds = sanPhams.Take(2).Select(s => (int)s.MaSanPham).ToList();
             }
-            // 6. Hỏi ngoài lề (lịch sử, thời tiết, chính trị, toán, con người... không liên quan đến quán)
+            // 10. Hỏi ngoài lề (lịch sử, thời tiết, chính trị, toán, con người... không liên quan đến quán)
             else
             {
                 reply = "Dạ xin lỗi bạn nha, mình là Barista AI chuyên tư vấn đồ uống và thông tin của quán thôi nè! ☕ Mình không có thông tin về các chủ đề ngoài lề này. Bạn có muốn mình gợi ý một món nước ngon tuyệt cho hôm nay không ạ?";
