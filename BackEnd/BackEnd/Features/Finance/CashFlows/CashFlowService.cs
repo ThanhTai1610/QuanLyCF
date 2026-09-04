@@ -160,13 +160,21 @@ public class CashFlowService
         }
 
         // 2. Kiểm tra dòng tiền trong tháng này đã có chưa
+        var defaultNvId = await _db.NhanViens.Select(x => x.MaNhanVien).FirstOrDefaultAsync();
+        if (defaultNvId == 0) defaultNvId = 1;
+
         var hasDongTienInMonth = await _db.DongTiens.AnyAsync(x => x.ThoiGianTao >= start && x.ThoiGianTao < end);
         if (!hasDongTienInMonth)
         {
-            // Nếu CSDL hoàn toàn rỗng và là tháng 5/2026, có thể nạp DongTienSeedData nếu có
+            // Nếu CSDL hoàn toàn rỗng, nạp DongTienSeedData nếu có
             if (!await _db.DongTiens.AnyAsync())
             {
-                _db.DongTiens.AddRange(DongTienSeedData.GetSeedData());
+                var seedData = DongTienSeedData.GetSeedData();
+                foreach (var s in seedData)
+                {
+                    s.MaNhanVienGhiNhan = defaultNvId;
+                }
+                _db.DongTiens.AddRange(seedData);
                 await _db.SaveChangesAsync();
                 
                 // Re-check after seeding
@@ -188,7 +196,7 @@ public class CashFlowService
                     SoTien = 15000000.00m,
                     NguoiNopNhan = "Chủ nhà số 123",
                     GhiChu = $"Chi phí thuê mặt bằng {ky}",
-                    MaNhanVienGhiNhan = 1,
+                    MaNhanVienGhiNhan = defaultNvId,
                     ThoiGianTao = new DateTime(year, month, 1, 9, 0, 0, DateTimeKind.Utc)
                 });
 
@@ -201,7 +209,7 @@ public class CashFlowService
                     SoTien = rnd.Next(280, 350) * 10000m,
                     NguoiNopNhan = "Điện lực & Cấp nước Quận 1",
                     GhiChu = $"Hóa đơn điện nước kinh doanh {ky}",
-                    MaNhanVienGhiNhan = 1,
+                    MaNhanVienGhiNhan = defaultNvId,
                     ThoiGianTao = new DateTime(year, month, Math.Min(5, daysInMonth), 10, 0, 0, DateTimeKind.Utc)
                 });
 
@@ -216,7 +224,7 @@ public class CashFlowService
                         SoTien = tongLuong,
                         NguoiNopNhan = "Tập thể nhân viên",
                         GhiChu = $"Thanh toán lương nhân sự kì {ky}",
-                        MaNhanVienGhiNhan = 1,
+                        MaNhanVienGhiNhan = defaultNvId,
                         ThoiGianTao = new DateTime(year, month, Math.Min(10, daysInMonth), 15, 0, 0, DateTimeKind.Utc)
                     });
                 }
@@ -235,7 +243,7 @@ public class CashFlowService
                             SoTien = rnd.Next(150, 280) * 10000m,
                             NguoiNopNhan = "Nhà cung cấp Nguyên liệu",
                             GhiChu = $"Chi phí nhập nguyên liệu định kỳ ngày {d}/{month:D2}",
-                            MaNhanVienGhiNhan = 1,
+                            MaNhanVienGhiNhan = defaultNvId,
                             ThoiGianTao = new DateTime(year, month, d, 14, 0, 0, DateTimeKind.Utc)
                         });
                     }
@@ -252,7 +260,7 @@ public class CashFlowService
                             SoTien = rnd.Next(250, 580) * 10000m,
                             NguoiNopNhan = "Khách hàng POS",
                             GhiChu = $"Tổng doanh thu bán hàng ngày {d}/{month:D2}",
-                            MaNhanVienGhiNhan = 1,
+                            MaNhanVienGhiNhan = defaultNvId,
                             ThoiGianTao = new DateTime(year, month, d, 18 + t, 30, 0, DateTimeKind.Utc)
                         });
                     }
