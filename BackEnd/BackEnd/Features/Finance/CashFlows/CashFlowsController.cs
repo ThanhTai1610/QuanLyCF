@@ -79,4 +79,37 @@ public class CashFlowsController : ControllerBase
             return Ok(new List<SalaryListItem>());
         }
     }
+
+    [HttpGet("test-debug")]
+    [AllowAnonymous]
+    public async Task<IActionResult> TestDebug([FromQuery] int year = 2026, [FromQuery] int month = 9)
+    {
+        try
+        {
+            var summary = await _service.TinhTongKetAsync(year, month);
+            var list = await _service.LayDanhSachAsync(year, month);
+            var salaries = await _service.LayBangLuongAsync(year, month);
+
+            return Ok(new
+            {
+                success = true,
+                year,
+                month,
+                summary,
+                listCount = list.Count,
+                salariesCount = salaries.Count,
+                sampleItem = list.FirstOrDefault()
+            });
+        }
+        catch (Exception ex)
+        {
+            return Ok(new
+            {
+                success = false,
+                year,
+                month,
+                error = ex.ToString()
+            });
+        }
+    }
 }
