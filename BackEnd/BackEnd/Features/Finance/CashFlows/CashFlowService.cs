@@ -36,11 +36,15 @@ public class CashFlowService
     {
         await DamBaoDuLieuKhaoSatAsync(year, month);
 
-        var list = await _db.DongTiens
+        var listRaw = await _db.DongTiens
             .Where(x => x.ThoiGianTao.Year == year && x.ThoiGianTao.Month == month)
+            .Select(x => new { x.LoaiGiaoDich, x.NhomGiaoDich, x.SoTien })
+            .ToListAsync();
+
+        var list = listRaw
             .GroupBy(x => new { x.LoaiGiaoDich, x.NhomGiaoDich })
             .Select(g => new { g.Key.LoaiGiaoDich, g.Key.NhomGiaoDich, Tong = g.Sum(x => x.SoTien) })
-            .ToListAsync();
+            .ToList();
 
         var thu = list.Where(x => x.LoaiGiaoDich == "Thu").Sum(x => x.Tong);
         var chi = list.Where(x => x.LoaiGiaoDich == "Chi").Sum(x => x.Tong);
@@ -184,7 +188,8 @@ public class CashFlowService
         }
         else
         {
-            tongLuong = await _db.BangLuongs.Where(x => x.Ky == ky).SumAsync(x => x.ThucLanh);
+            var luongs = await _db.BangLuongs.Where(x => x.Ky == ky).Select(x => x.ThucLanh).ToListAsync();
+            tongLuong = luongs.Sum();
         }
 
         // 2. Kiểm tra dòng tiền trong tháng này đã có chưa
