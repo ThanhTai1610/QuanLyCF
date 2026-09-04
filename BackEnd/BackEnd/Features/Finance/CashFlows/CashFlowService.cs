@@ -14,11 +14,8 @@ public class CashFlowService
     {
         await DamBaoDuLieuKhaoSatAsync(year, month);
 
-        var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var end = start.AddMonths(1);
-
         var query = _db.DongTiens.Include(x => x.NhanVienGhiNhan)
-            .Where(x => x.ThoiGianTao >= start && x.ThoiGianTao < end)
+            .Where(x => x.ThoiGianTao.Year == year && x.ThoiGianTao.Month == month)
             .OrderByDescending(x => x.ThoiGianTao);
 
         return await query.Select(x => new CashFlowListItem(
@@ -38,11 +35,8 @@ public class CashFlowService
     {
         await DamBaoDuLieuKhaoSatAsync(year, month);
 
-        var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var end = start.AddMonths(1);
-
         var list = await _db.DongTiens
-            .Where(x => x.ThoiGianTao >= start && x.ThoiGianTao < end)
+            .Where(x => x.ThoiGianTao.Year == year && x.ThoiGianTao.Month == month)
             .GroupBy(x => new { x.LoaiGiaoDich, x.NhomGiaoDich })
             .Select(g => new { g.Key.LoaiGiaoDich, g.Key.NhomGiaoDich, Tong = g.Sum(x => x.SoTien) })
             .ToListAsync();
@@ -105,8 +99,6 @@ public class CashFlowService
     private async Task DamBaoDuLieuKhaoSatAsync(int year, int month)
     {
         var ky = $"{year}-{month:D2}";
-        var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var end = start.AddMonths(1);
 
         // 1. Sinh bảng lương trước nếu chưa có để lấy con số chi lương chính xác
         var existsBangLuong = await _db.BangLuongs.AnyAsync(x => x.Ky == ky);
@@ -163,7 +155,7 @@ public class CashFlowService
         var defaultNvId = await _db.NhanViens.Select(x => x.MaNhanVien).FirstOrDefaultAsync();
         if (defaultNvId == 0) defaultNvId = 1;
 
-        var hasDongTienInMonth = await _db.DongTiens.AnyAsync(x => x.ThoiGianTao >= start && x.ThoiGianTao < end);
+        var hasDongTienInMonth = await _db.DongTiens.AnyAsync(x => x.ThoiGianTao.Year == year && x.ThoiGianTao.Month == month);
         if (!hasDongTienInMonth)
         {
             // Nếu CSDL hoàn toàn rỗng, nạp DongTienSeedData nếu có
@@ -178,7 +170,7 @@ public class CashFlowService
                 await _db.SaveChangesAsync();
                 
                 // Re-check after seeding
-                hasDongTienInMonth = await _db.DongTiens.AnyAsync(x => x.ThoiGianTao >= start && x.ThoiGianTao < end);
+                hasDongTienInMonth = await _db.DongTiens.AnyAsync(x => x.ThoiGianTao.Year == year && x.ThoiGianTao.Month == month);
             }
 
             if (!hasDongTienInMonth)
