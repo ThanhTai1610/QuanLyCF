@@ -95,9 +95,10 @@ HƯỚNG DẪN QUAN TRỌNG:
 1. Trả lời NGẮN GỌN (tối đa 3-4 câu), ngôn từ tự nhiên, ấm áp, hóm hỉnh và cuốn hút.
 2. XƯNG HÔ MẶC ĐỊNH VỚI KHÁCH: {xungHoAI}
 3. Nếu khách hỏi về món ăn/thức uống, CHỈ tư vấn những món có trong THỰC ĐƠN ở trên.
-4. TUYỆT ĐỐI KHÔNG viết ID của món vào câu trả lời (phần 'reply'). Chỉ nhắc tên món.
-5. Khi bạn gợi ý món (kể cả khi đố vui hoặc bói món), hãy lấy ID của món đó ở THỰC ĐƠN và chỉ điền vào mảng 'recommend_item_ids'.
-6. BẮT BUỘC TRẢ VỀ CHÍNH XÁC MỘT ĐỐI TƯỢNG JSON CÓ CẤU TRÚC SAU (không có thẻ ```json):
+4. KHI KHÁCH HỎI CÁC CÂU HỎI NGOÀI LỀ KHÔNG LIÊN QUAN ĐẾN CÀ PHÊ, ĐỒ UỐNG, MENU HOẶC QUÁN (như lịch sử, con người, chính trị, toán học, thời tiết...): Hãy lịch sự từ chối khéo léo: ""Dạ xin lỗi bạn nha, mình là Barista AI chỉ am hiểu về đồ uống, bánh ngọt và thông tin của quán thôi nè! ☕ Mình không nắm được thông tin ngoài lề này. Bạn có muốn mình tư vấn một món nước ngon cho hôm nay không ạ?""
+5. TUYỆT ĐỐI KHÔNG viết ID của món vào câu trả lời (phần 'reply'). Chỉ nhắc tên món.
+6. Khi bạn gợi ý món (kể cả khi đố vui hoặc bói món), hãy lấy ID của món đó ở THỰC ĐƠN và chỉ điền vào mảng 'recommend_item_ids'.
+7. BẮT BUỘC TRẢ VỀ CHÍNH XÁC MỘT ĐỐI TƯỢNG JSON CÓ CẤU TRÚC SAU (không có thẻ ```json):
 {{
   ""reply"": ""Nội dung trả lời/câu đố/lời bói dí dỏm của bạn (Không chứa ID)..."",
   ""recommend_item_ids"": [danh_sách_ID_món_bạn_muốn_gợi_ý_nếu_có_nhưng_tối_đa_3_id]
@@ -177,31 +178,47 @@ HƯỚNG DẪN QUAN TRỌNG:
 
         private IActionResult GenerateFallbackResponse(string message, List<dynamic> sanPhams)
         {
-            var msgLower = (message ?? "").ToLower();
+            var msgLower = (message ?? "").ToLower().Trim();
             string reply;
             var recommendedIds = new List<int>();
 
-            if (msgLower.Contains("đố") || msgLower.Contains("riddle") || msgLower.Contains("câu đố"))
+            // 1. Hỏi về trái cây / nước ép / sinh tố / trà
+            if (msgLower.Contains("trái cây") || msgLower.Contains("trai cay") || msgLower.Contains("nước ép") || msgLower.Contains("sinh tố"))
+            {
+                reply = "🍹 Quán mình có nhiều món Trà Trái Cây & Nước Ép tươi mát lạnh nguyên chất siêu ngon nè bạn ơi! Uống vào là sảng khoái tức thì nha:";
+                var items = sanPhams.Where(s => ((string)s.TenSanPham).ToLower().Contains("trà") || ((string)s.TenSanPham).ToLower().Contains("ép") || ((string)s.TenSanPham).ToLower().Contains("cam") || ((string)s.TenSanPham).ToLower().Contains("xoài") || ((string)s.TenSanPham).ToLower().Contains("chanh")).Take(3).ToList();
+                foreach (var it in items) recommendedIds.Add((int)it.MaSanPham);
+            }
+            // 2. Hỏi về câu đố / game
+            else if (msgLower.Contains("đố") || msgLower.Contains("riddle") || msgLower.Contains("câu đố") || msgLower.Contains("chơi"))
             {
                 reply = "🎯 CÂU ĐỐ: Món nước nào có vị béo thơm ngậy của sữa hòa quyện cà phê đắng nhẹ, được mệnh danh là 'cà phê dành cho người sợ đắng'?\n\nA. Bạc xỉu\nB. Espresso\nC. Cà phê đen đá";
                 var item = sanPhams.FirstOrDefault(s => ((string)s.TenSanPham).ToLower().Contains("bạc xỉu") || ((string)s.TenSanPham).ToLower().Contains("bac xiu"));
                 if (item != null) recommendedIds.Add((int)item.MaSanPham);
             }
-            else if (msgLower.Contains("bói") || msgLower.Contains("tâm trạng") || msgLower.Contains("buồn") || msgLower.Contains("vui"))
+            // 3. Hỏi bói / tâm trạng
+            else if (msgLower.Contains("bói") || msgLower.Contains("tâm trạng") || msgLower.Contains("buồn") || msgLower.Contains("vui") || msgLower.Contains("mệt") || msgLower.Contains("áp lực"))
             {
                 reply = "🔮 Bói ly nước theo tâm trạng: Hôm nay lá trà phán rằng bạn đang cần một nguồn năng lượng sảng khoái! Thử ngay một ly Trà Trái Cây hoặc Bạc Xỉu của quán nhé! 🍹";
                 var item = sanPhams.FirstOrDefault(s => ((string)s.TenSanPham).ToLower().Contains("trà") || ((string)s.TenSanPham).ToLower().Contains("bạc xỉu"));
                 if (item != null) recommendedIds.Add((int)item.MaSanPham);
             }
-            else if (msgLower.Contains("bán chạy") || msgLower.Contains("bestseller") || msgLower.Contains("ngon"))
+            // 4. Hỏi bán chạy / bestseller / menu / giá / món ngon
+            else if (msgLower.Contains("bán chạy") || msgLower.Contains("bestseller") || msgLower.Contains("ngon") || msgLower.Contains("món gì") || msgLower.Contains("thực đơn") || msgLower.Contains("menu"))
             {
                 reply = "🔥 Các món Best-Seller ngon nức tiếng tại quán hôm nay nè bạn ơi! Uống một ngụm là say đắm ngay ☕:";
                 recommendedIds = sanPhams.Take(3).Select(s => (int)s.MaSanPham).ToList();
             }
-            else
+            // 5. Hỏi chào hỏi (chào, hi, hello)
+            else if (msgLower == "chào" || msgLower == "hi" || msgLower == "hello" || msgLower == "xin chào")
             {
                 reply = "Chào bạn nha! ☕ Mình là Barista AI đây. Quán mình đang phục vụ rất nhiều loại Cà phê pha máy, Trà trái cây sảng khoái và Bánh ngọt thơm lừng. Bạn muốn uống món gì nhâm nhi hôm nay?";
                 recommendedIds = sanPhams.Take(2).Select(s => (int)s.MaSanPham).ToList();
+            }
+            // 6. Hỏi ngoài lề (lịch sử, thời tiết, chính trị, toán, con người... không liên quan đến quán)
+            else
+            {
+                reply = "Dạ xin lỗi bạn nha, mình là Barista AI chuyên tư vấn đồ uống và thông tin của quán thôi nè! ☕ Mình không có thông tin về các chủ đề ngoài lề này. Bạn có muốn mình gợi ý một món nước ngon tuyệt cho hôm nay không ạ?";
             }
 
             return Ok(new { reply, recommendedIds });
