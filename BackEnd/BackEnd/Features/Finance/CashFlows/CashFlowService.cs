@@ -14,7 +14,7 @@ public class CashFlowService
     {
         await DamBaoDuLieuKhaoSatAsync(year, month);
 
-        var start = new DateTime(year, month, 1);
+        var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
         var end = start.AddMonths(1);
 
         var query = _db.DongTiens.Include(x => x.NhanVienGhiNhan)
@@ -38,7 +38,7 @@ public class CashFlowService
     {
         await DamBaoDuLieuKhaoSatAsync(year, month);
 
-        var start = new DateTime(year, month, 1);
+        var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
         var end = start.AddMonths(1);
 
         var list = await _db.DongTiens
@@ -105,7 +105,9 @@ public class CashFlowService
     private async Task DamBaoDuLieuKhaoSatAsync(int year, int month)
     {
         var ky = $"{year}-{month:D2}";
-        
+        var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var end = start.AddMonths(1);
+
         // 1. Sinh bảng lương trước nếu chưa có để lấy con số chi lương chính xác
         var existsBangLuong = await _db.BangLuongs.AnyAsync(x => x.Ky == ky);
         decimal tongLuong = 0;
@@ -115,7 +117,7 @@ public class CashFlowService
                 .Where(x => x.TrangThaiHoatDong == true && x.HoTen != "Quản trị viên" && (x.VaiTro == null || x.VaiTro.TenVaiTro != "Quản trị viên"))
                 .ToListAsync();
             var listNew = new List<BangLuong>();
-            var random = new Random();
+            var random = new Random(year * 100 + month);
             foreach (var nv in nhanViens)
             {
                 var hourlyRate = (nv.LuongCoBan ?? 0) > 0 ? (nv.LuongCoBan ?? 0) / 200 : 25000;
@@ -157,14 +159,108 @@ public class CashFlowService
             tongLuong = await _db.BangLuongs.Where(x => x.Ky == ky).SumAsync(x => x.ThucLanh);
         }
 
-        var start = new DateTime(year, month, 1);
-        var end = start.AddMonths(1);
-
-        // 2. Nạp dữ liệu dòng tiền chính xác từ SQL Server gốc nếu CSDL rỗng
-        if (!await _db.DongTiens.AnyAsync())
+        // 2. Kiểm tra dòng tiền trong tháng này đã có chưa
+        var hasDongTienInMonth = await _db.DongTiens.AnyAsync(x => x.ThoiGianTao >= start && x.ThoiGianTao < end);
+        if (!hasDongTienInMonth)
         {
-            _db.DongTiens.AddRange(DongTienSeedData.GetSeedData());
-            await _db.SaveChangesAsync();
+            // Nếu CSDL hoàn toàn rỗng và là tháng 5/2026, có thể nạp DongTienSeedData nếu có
+            if (!await _db.DongTiens.AnyAsync())
+            {
+                _db.DongTiens.AddRange(DongTienSeedData.GetSeedData());
+                await _db.SaveChangesAsync();
+                
+                // Re-check after seeding
+                hasDongTienInMonth = await _db.DongTiens.AnyAsync(x => x.ThoiGianTao >= start && x.ThoiGianTao < end);
+            }
+
+            if (!hasDongTienInMonth)
+            {
+                var newDongTiens = new List<DongTien>();
+                var rnd = new Random(year * 1000 + month);
+                int daysInMonth = DateTime.DaysInMonth(year, month);
+
+                // Chi mặt bằng
+                newDongTiens.Add(new DongTien
+                {
+                    LoaiGiaoDich = "Chi",
+                    NhomGiaoDich = "MatBang",
+                    PhuongThucThanhToan = "ChuyenKhoan",
+                    SoTien = 15000000.00m,
+                    NguoiNopNhan = "Chủ nhà số 123",
+                    GhiChu = $"Chi phí thuê mặt bằng {ky}",
+                    MaNhanVienGhiNhan = 1,
+                    ThoiGianTao = new DateTime(year, month, 1, 9, 0, 0, DateTimeKind.Utc)
+                });
+
+                // Chi điện nước
+                newDongTiens.Add(new DongTien
+                {
+                    LoaiGiaoDich = "Chi",
+                    NhomGiaoDich = "DienNuoc",
+                    PhuongThucThanhToan = "ChuyenKhoan",
+                    SoTien = rnd.Next(280, 350) * 10000m,
+                    NguoiNopNhan = "Điện lực & Cấp nước Quận 1",
+                    GhiChu = $"Hóa đơn điện nước kinh doanh {ky}",
+                    MaNhanVienGhiNhan = 1,
+                    ThoiGianTao = new DateTime(year, month, Math.Min(5, daysInMonth), 10, 0, 0, DateTimeKind.Utc)
+                });
+
+                // Chi trả lương
+                if (tongLuong > 0)
+                {
+                    newDongTiens.Add(new DongTien
+                    {
+                        LoaiGiaoDich = "Chi",
+                        NhomGiaoDich = "TraLuong",
+                        PhuongThucThanhToan = "ChuyenKhoan",
+                        SoTien = tongLuong,
+                        NguoiNopNhan = "Tập thể nhân viên",
+                        GhiChu = $"Thanh toán lương nhân sự kì {ky}",
+                        MaNhanVienGhiNhan = 1,
+                        ThoiGianTao = new DateTime(year, month, Math.Min(10, daysInMonth), 15, 0, 0, DateTimeKind.Utc)
+                    });
+                }
+
+                // Chi nhập hàng và Thu doanh thu POS hàng ngày
+                for (int d = 1; d <= daysInMonth; d++)
+                {
+                    // Nhập hàng định kỳ 3 ngày 1 lần
+                    if (d % 3 == 1)
+                    {
+                        newDongTiens.Add(new DongTien
+                        {
+                            LoaiGiaoDich = "Chi",
+                            NhomGiaoDich = "NhapHang",
+                            PhuongThucThanhToan = "TienMat",
+                            SoTien = rnd.Next(150, 280) * 10000m,
+                            NguoiNopNhan = "Nhà cung cấp Nguyên liệu",
+                            GhiChu = $"Chi phí nhập nguyên liệu định kỳ ngày {d}/{month:D2}",
+                            MaNhanVienGhiNhan = 1,
+                            ThoiGianTao = new DateTime(year, month, d, 14, 0, 0, DateTimeKind.Utc)
+                        });
+                    }
+
+                    // Doanh thu POS daily 2-3 giao dịch
+                    int txCount = rnd.Next(2, 4);
+                    for (int t = 0; t < txCount; t++)
+                    {
+                        newDongTiens.Add(new DongTien
+                        {
+                            LoaiGiaoDich = "Thu",
+                            NhomGiaoDich = "DoanhThuPOS",
+                            PhuongThucThanhToan = "ChuyenKhoan",
+                            SoTien = rnd.Next(250, 580) * 10000m,
+                            NguoiNopNhan = "Khách hàng POS",
+                            GhiChu = $"Tổng doanh thu bán hàng ngày {d}/{month:D2}",
+                            MaNhanVienGhiNhan = 1,
+                            ThoiGianTao = new DateTime(year, month, d, 18 + t, 30, 0, DateTimeKind.Utc)
+                        });
+                    }
+                }
+
+                _db.DongTiens.AddRange(newDongTiens);
+                await _db.SaveChangesAsync();
+            }
         }
     }
 }
