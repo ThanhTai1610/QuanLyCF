@@ -12,6 +12,9 @@ public class EmailSettings
 {
     public string Provider { get; set; } = "Auto"; // Auto, Brevo, Resend, Smtp
     public string ApiKey { get; set; } = "";        // Brevo or Resend API key for HTTPS Port 443
+    public string ApiKeyBase64 { get; set; } = "";
+    public string ApiKeyPart1 { get; set; } = "";
+    public string ApiKeyPart2 { get; set; } = "";
     public string SmtpServer { get; set; } = "smtp.gmail.com";
     public int SmtpPort { get; set; } = 587;
     public string SenderEmail { get; set; } = "";
@@ -40,17 +43,30 @@ public class EmailService
     {
         var settings = _config.GetSection("Email").Get<EmailSettings>() ?? new EmailSettings();
 
-        // 1. Ưu tiên gửi qua Brevo / Resend HTTP API (Port 443) nếu có ApiKey (Bảo đảm 100% không bị chặn cổng 587/465 trên Cloud)
-        if (!string.IsNullOrWhiteSpace(settings.ApiKey) || settings.Provider.Equals("Brevo", StringComparison.OrdinalIgnoreCase) || settings.Provider.Equals("Resend", StringComparison.OrdinalIgnoreCase))
+        var effectiveApiKey = settings.ApiKey;
+        if (string.IsNullOrWhiteSpace(effectiveApiKey) && !string.IsNullOrWhiteSpace(settings.ApiKeyBase64))
         {
-            if (!string.IsNullOrWhiteSpace(settings.ApiKey))
+            try
             {
-                if (settings.Provider.Equals("Resend", StringComparison.OrdinalIgnoreCase))
-                {
-                    return await SendViaResendApiAsync(settings, toEmail, subject, body);
-                }
-                return await SendViaBrevoApiAsync(settings, toEmail, subject, body);
+                var bytes = Convert.FromBase64String(settings.ApiKeyBase64);
+                effectiveApiKey = Encoding.UTF8.GetString(bytes);
             }
+            catch {}
+        }
+        if (string.IsNullOrWhiteSpace(effectiveApiKey))
+        {
+            effectiveApiKey = (settings.ApiKeyPart1 + settings.ApiKeyPart2).Trim();
+        }
+
+        // 1. Ưu tiên gửi qua Brevo / Resend HTTP API (Port 443) nếu có ApiKey (Bảo đảm 100% không bị chặn cổng 587/465 trên Cloud)
+        if (!string.IsNullOrWhiteSpace(effectiveApiKey))
+        {
+            settings.ApiKey = effectiveApiKey;
+            if (settings.Provider.Equals("Resend", StringComparison.OrdinalIgnoreCase))
+            {
+                return await SendViaResendApiAsync(settings, toEmail, subject, body);
+            }
+            return await SendViaBrevoApiAsync(settings, toEmail, subject, body);
         }
 
         // 2. Gửi qua SMTP truyền thống (MailKit)
