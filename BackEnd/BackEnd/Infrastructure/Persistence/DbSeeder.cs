@@ -716,6 +716,39 @@ public static class DbSeeder
             await db.SaveChangesAsync();
         }
 
+        // 7.5. Tự động sinh Hóa đơn cho các Đơn hàng đã hoàn tất / đóng bàn mà chưa có Hóa đơn
+        var completedOrders = await db.DonHangs
+            .Where(d => d.TrangThaiDon == "HoanThanh" || d.TrangThaiDon == "DaDongBan")
+            .ToListAsync();
+
+        var existingHoaDonOrderIds = await db.HoaDons.Select(h => h.MaDonHang).ToListAsync();
+        var missingHoaDonOrders = completedOrders.Where(o => !existingHoaDonOrderIds.Contains(o.MaDonHang)).ToList();
+
+        if (missingHoaDonOrders.Count > 0)
+        {
+            foreach (var o in missingHoaDonOrders)
+            {
+                var hd = new HoaDon
+                {
+                    MaDonHang = o.MaDonHang,
+                    MaNhanVienThuNgan = o.MaNhanVien ?? 1,
+                    TongThanhTien = o.ThanhTien,
+                    SoTienKhachTra = o.ThanhTien,
+                    TienThoiLai = 0,
+                    TrangThai = "DaThanhToan",
+                    ThoiGianThanhToan = o.ThoiGianCapNhat != default ? o.ThoiGianCapNhat : o.ThoiGianTao
+                };
+                hd.ChiTietThanhToans.Add(new ThanhToanChiTiet
+                {
+                    PhuongThuc = "TienMat",
+                    SoTien = o.ThanhTien,
+                    ThoiGianThanhToan = hd.ThoiGianThanhToan
+                });
+                db.HoaDons.Add(hd);
+            }
+            await db.SaveChangesAsync();
+        }
+
         // 8. Seed Dòng Tiền từ SQL Server gốc
         if (!await db.DongTiens.AnyAsync(x => x.GhiChu != null && x.GhiChu.Contains("Chủ nhà số 123")))
         {

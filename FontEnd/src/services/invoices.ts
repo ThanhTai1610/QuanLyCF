@@ -54,7 +54,19 @@ export interface InvoiceListResponse {
 }
 
 export const invoicesApi = {
-  list: (params?: InvoiceQueryParams) => api.get<InvoiceListResponse>('/api/invoices', { params }),
+  list: (params?: InvoiceQueryParams) => {
+    let url = '/api/invoices'
+    if (params) {
+      const q = new URLSearchParams()
+      if (params.search) q.append('search', params.search)
+      if (params.trangThai) q.append('trangThai', params.trangThai)
+      if (params.tuNgay) q.append('tuNgay', params.tuNgay)
+      if (params.denNgay) q.append('denNgay', params.denNgay)
+      const qs = q.toString()
+      if (qs) url += `?${qs}`
+    }
+    return api.get<InvoiceListResponse>(url)
+  },
   get: (id: number) => api.get<InvoiceDetailDto>(`/api/invoices/${id}`),
   clearAll: () => api.del<{ message: string; deletedCount: number }>('/api/invoices/clear-all')
 }
