@@ -651,25 +651,60 @@ public static class DbSeeder
         }
 
         // 7. Seed Đơn Hàng & Chi Tiết Đơn Hàng từ SQL Server gốc
-        if (!await db.DonHangs.AnyAsync(x => x.MaDonHang == 179))
+        if (await db.DonHangs.CountAsync() < 5)
         {
-            var (orders, details) = DonHangSeedData.GetSeedData();
-            var existingIds = await db.DonHangs.Select(d => d.MaDonHang).ToListAsync();
-            var newOrders = orders.Where(o => !existingIds.Contains(o.MaDonHang)).ToList();
-            
-            if (newOrders.Count > 0)
+            var validBanIds = await db.Bans.Select(b => b.MaBan).ToListAsync();
+            var validKhachIds = await db.KhachHangs.Select(k => k.MaKhachHang).ToListAsync();
+            var validPromoIds = await db.KhuyenMais.Select(k => k.MaKhuyenMai).ToListAsync();
+            var validSpIds = await db.SanPhams.Select(s => s.MaSanPham).ToListAsync();
+            var validKcIds = await db.KichCoSanPhams.Select(kc => kc.MaKichCo).ToListAsync();
+
+            var (rawOrders, rawDetails) = DonHangSeedData.GetSeedData();
+            var detailsByOrder = rawDetails.GroupBy(d => d.MaDonHang).ToDictionary(g => g.Key, g => g.ToList());
+
+            var defaultBanId = validBanIds.FirstOrDefault();
+            var defaultSpId = validSpIds.FirstOrDefault();
+
+            foreach (var rawOrder in rawOrders)
             {
-                db.DonHangs.AddRange(newOrders);
-                await db.SaveChangesAsync();
+                var newOrder = new DonHang
+                {
+                    MaBan = (rawOrder.MaBan.HasValue && validBanIds.Contains(rawOrder.MaBan.Value)) ? rawOrder.MaBan : (defaultBanId > 0 ? defaultBanId : null),
+                    LoaiDonHang = rawOrder.LoaiDonHang ?? "DineIn",
+                    TrangThaiDon = rawOrder.TrangThaiDon ?? "HoanThanh",
+                    TongTienHang = rawOrder.TongTienHang,
+                    TienGiamGia = rawOrder.TienGiamGia,
+                    ThanhTien = rawOrder.ThanhTien,
+                    MaKhachHang = (rawOrder.MaKhachHang.HasValue && validKhachIds.Contains(rawOrder.MaKhachHang.Value)) ? rawOrder.MaKhachHang : null,
+                    MaKhuyenMai = (rawOrder.MaKhuyenMai.HasValue && validPromoIds.Contains(rawOrder.MaKhuyenMai.Value)) ? rawOrder.MaKhuyenMai : null,
+                    GhiChuDonHang = rawOrder.GhiChuDonHang,
+                    ThoiGianTao = rawOrder.ThoiGianTao != default ? rawOrder.ThoiGianTao : DateTime.UtcNow,
+                    ThoiGianCapNhat = rawOrder.ThoiGianTao != default ? rawOrder.ThoiGianTao : DateTime.UtcNow
+                };
+
+                if (detailsByOrder.TryGetValue(rawOrder.MaDonHang, out var orderDetails))
+                {
+                    foreach (var rawDet in orderDetails)
+                    {
+                        var det = new ChiTietDonHang
+                        {
+                            MaSanPham = (rawDet.MaSanPham.HasValue && validSpIds.Contains(rawDet.MaSanPham.Value)) ? rawDet.MaSanPham : (defaultSpId > 0 ? defaultSpId : null),
+                            MaKichCo = (rawDet.MaKichCo.HasValue && validKcIds.Contains(rawDet.MaKichCo.Value)) ? rawDet.MaKichCo : null,
+                            SoLuong = rawDet.SoLuong > 0 ? rawDet.SoLuong : 1,
+                            DonGia = rawDet.DonGia,
+                            TienGiamGia = rawDet.TienGiamGia,
+                            ThanhTien = rawDet.ThanhTien,
+                            GhiChuMon = rawDet.GhiChuMon,
+                            TrangThaiBep = "HoanThanh"
+                        };
+                        newOrder.ChiTiets.Add(det);
+                    }
+                }
+
+                db.DonHangs.Add(newOrder);
             }
 
-            var existingDetailIds = await db.ChiTietDonHangs.Select(c => c.MaChiTiet).ToListAsync();
-            var newDetails = details.Where(d => !existingDetailIds.Contains(d.MaChiTiet)).ToList();
-            if (newDetails.Count > 0)
-            {
-                db.ChiTietDonHangs.AddRange(newDetails);
-                await db.SaveChangesAsync();
-            }
+            await db.SaveChangesAsync();
         }
 
         // 8. Seed Dòng Tiền từ SQL Server gốc

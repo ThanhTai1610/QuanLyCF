@@ -92,6 +92,7 @@ export const useOrderStore = defineStore('orders', () => {
       case 'DangPha': return 'preparing'
       case 'DaPhaXong': return 'ready'
       case 'HoanThanh': return 'done'
+      case 'DaDongBan': return 'done'
       case 'Huy': return 'cancelled'
       default: return 'pending'
     }
