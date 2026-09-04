@@ -634,21 +634,55 @@ public static class DbSeeder
         }
 
         // 6. Seed Bảng Lương từ SQL Server gốc
-        if (!await db.BangLuongs.AnyAsync())
+        if (!await db.BangLuongs.AnyAsync(x => x.Ky == "2026-05"))
         {
-            db.BangLuongs.AddRange(BangLuongSeedData.GetSeedData());
-            await db.SaveChangesAsync();
+            var existingKyList = await db.BangLuongs.Select(b => b.Ky).Distinct().ToListAsync();
+            var seedSalaries = BangLuongSeedData.GetSeedData();
+            var toAdd = seedSalaries.Where(s => !existingKyList.Contains(s.Ky)).ToList();
+            if (!await db.BangLuongs.AnyAsync())
+            {
+                toAdd = seedSalaries;
+            }
+            if (toAdd.Count > 0)
+            {
+                db.BangLuongs.AddRange(toAdd);
+                await db.SaveChangesAsync();
+            }
         }
 
         // 7. Seed Đơn Hàng & Chi Tiết Đơn Hàng từ SQL Server gốc
-        if (!await db.DonHangs.AnyAsync())
+        if (!await db.DonHangs.AnyAsync(x => x.MaDonHang == 179))
         {
             var (orders, details) = DonHangSeedData.GetSeedData();
-            db.DonHangs.AddRange(orders);
-            await db.SaveChangesAsync();
+            var existingIds = await db.DonHangs.Select(d => d.MaDonHang).ToListAsync();
+            var newOrders = orders.Where(o => !existingIds.Contains(o.MaDonHang)).ToList();
+            
+            if (newOrders.Count > 0)
+            {
+                db.DonHangs.AddRange(newOrders);
+                await db.SaveChangesAsync();
+            }
 
-            db.ChiTietDonHangs.AddRange(details);
-            await db.SaveChangesAsync();
+            var existingDetailIds = await db.ChiTietDonHangs.Select(c => c.MaChiTiet).ToListAsync();
+            var newDetails = details.Where(d => !existingDetailIds.Contains(d.MaChiTiet)).ToList();
+            if (newDetails.Count > 0)
+            {
+                db.ChiTietDonHangs.AddRange(newDetails);
+                await db.SaveChangesAsync();
+            }
+        }
+
+        // 8. Seed Dòng Tiền từ SQL Server gốc
+        if (!await db.DongTiens.AnyAsync(x => x.GhiChu != null && x.GhiChu.Contains("Chủ nhà số 123")))
+        {
+            var existingIds = await db.DongTiens.Select(x => x.MaDongTien).ToListAsync();
+            var seedCash = DongTienSeedData.GetSeedData();
+            var toAdd = seedCash.Where(x => !existingIds.Contains(x.MaDongTien)).ToList();
+            if (toAdd.Count > 0)
+            {
+                db.DongTiens.AddRange(toAdd);
+                await db.SaveChangesAsync();
+            }
         }
     }
 }

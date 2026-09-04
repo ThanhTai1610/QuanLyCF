@@ -627,6 +627,8 @@ const onPeriodChange = () => {
   }
 }
 
+const isInitialLoad = ref(true)
+
 const loadData = async () => {
   loading.value = true
   try {
@@ -638,6 +640,19 @@ const loadData = async () => {
     summaryData.value = summary
     journalList.value = list
     salariesList.value = salaries
+
+    if (isInitialLoad.value && list.length === 0 && salaries.length === 0) {
+      isInitialLoad.value = false
+      const mayIdx = monthOptions.value.findIndex(opt => opt.month === 5 && opt.year === 2026)
+      if (mayIdx !== -1 && selectedOptionIdx.value !== mayIdx) {
+        selectedOptionIdx.value = mayIdx
+        selectedYear.value = monthOptions.value[mayIdx].year
+        selectedMonth.value = monthOptions.value[mayIdx].month
+        await loadData()
+        return
+      }
+    }
+    isInitialLoad.value = false
   } catch (err: any) {
     console.error(err)
     alert(err.message || 'Lỗi kết nối API dòng tiền')
