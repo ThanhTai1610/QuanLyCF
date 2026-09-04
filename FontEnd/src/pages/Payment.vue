@@ -633,7 +633,6 @@ const syncMockOrderToBackend = async () => {
     const foundTable = tablesList.find(t => t.tenBan.toLowerCase() === tableLabel.value.toLowerCase() || t.tenBan.replace(/\s+/g, '').toLowerCase() === tableLabel.value.replace(/\s+/g, '').toLowerCase())
     let maBan: number | null = foundTable ? foundTable.maBan : null
 
-    // Nếu không tìm thấy bàn nào khớp, lấy bàn đầu tiên có trạng thái "Trong" hoặc bất kỳ bàn nào
     if (!maBan && tablesList.length > 0) {
       maBan = tablesList[0].maBan
     }
@@ -654,15 +653,39 @@ const syncMockOrderToBackend = async () => {
   }
 }
 
-const initPayment = async () => {
-  if (!effectiveOrderId.value) {
-    // Chưa đồng bộ xong hoặc không có ID
-    qrCodeUrl.value = null
-    qrRawString.value = null
-    payUrl.value = null
-    return
+const ensureBackendOrderId = async (): Promise<number | null> => {
+  if (effectiveOrderId.value) return effectiveOrderId.value
+
+  if (pendingCart.value) {
+    try {
+      const orderRes: any = await ordersApi.guestCreate({
+        maBan: pendingCart.value.maBan,
+        items: pendingCart.value.items,
+        ghiChuDonHang: pendingCart.value.ghiChuDonHang,
+        maKhachHang: pendingCart.value.maKhachHang
+      })
+      const createdOrder = orderRes?.order || orderRes
+      if (createdOrder && createdOrder.maDonHang) {
+        realBackendOrderId.value = createdOrder.maDonHang
+        if (orderRes?.maPinSession && pendingCart.value.maBan) {
+          sessionStorage.setItem(`table_pin_${pendingCart.value.maBan}`, orderRes.maPinSession)
+        }
+        return createdOrder.maDonHang
+      }
+    } catch (e) {
+      console.error('Lỗi khi tạo đơn hàng khách từ pendingCart:', e)
+    }
   }
 
+  if (!isRealOrder.value) {
+    await syncMockOrderToBackend()
+    return realBackendOrderId.value
+  }
+
+  return null
+}
+
+const initPayment = async () => {
   loading.value = true
   errorMessage.value = null
   qrCodeUrl.value = null
@@ -671,8 +694,18 @@ const initPayment = async () => {
   stopStatusPolling()
 
   try {
+    let orderBeId = effectiveOrderId.value
+    if (!orderBeId) {
+      orderBeId = await ensureBackendOrderId()
+    }
+
+    if (!orderBeId) {
+      errorMessage.value = "Chưa có thông tin đơn hàng để tạo mã QR."
+      return
+    }
+
     if (method.value === 'momo') {
-      const res = await paymentsApi.payMomo({ maDonHang: effectiveOrderId.value, maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null })
+      const res = await paymentsApi.payMomo({ maDonHang: orderBeId, maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null })
       if (res.success) {
         payUrl.value = res.payUrl
         qrCodeUrl.value = res.qrCodeUrl
@@ -682,7 +715,7 @@ const initPayment = async () => {
         errorMessage.value = res.message
       }
     } else if (method.value === 'qr') {
-      const res = await paymentsApi.payVietQr({ maDonHang: effectiveOrderId.value, maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null })
+      const res = await paymentsApi.payVietQr({ maDonHang: orderBeId, maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null })
       if (res.success) {
         payUrl.value = res.payUrl
         qrCodeUrl.value = res.qrCodeUrl
@@ -836,8 +869,8 @@ onMounted(async () => {
   loadPendingCart()
   if (isRealOrder.value) {
     await fetchBackendOrderDetails()
-  } else if (!pendingCart.value) {
-    await syncMockOrderToBackend()
+  } else {
+    await ensureBackendOrderId()
   }
   await initPayment()
   loadActivePromotions()
