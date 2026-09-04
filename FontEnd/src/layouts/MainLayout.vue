@@ -187,6 +187,7 @@ import { useAuthStore } from '../stores/auth'
 import { useStoreInfoStore } from '../stores/storeInfo'
 import { useToast } from '@/stores/toast'
 import { ordersApi } from '@/services/orders'
+import { BASE_URL } from '@/services/api'
 import {
   LayoutDashboard, ShoppingBag, Coffee, Users, Settings, LogOut,
   QrCode, FileText, FolderTree, Package, ClipboardCheck, CalendarDays, BookOpen, ChefHat, Bell, ShieldCheck,
@@ -287,7 +288,7 @@ const isSystemMaintenance = ref(false)
 
 const checkMaintenanceStatus = async () => {
   try {
-    const res = await fetch('/api/settings/maintenance')
+    const res = await fetch(`${BASE_URL}/api/settings/maintenance`)
     if (res.ok) {
       const data = await res.json()
       isSystemMaintenance.value = data.isMaintenance

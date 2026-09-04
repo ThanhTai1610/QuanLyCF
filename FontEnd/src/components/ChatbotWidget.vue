@@ -138,6 +138,7 @@ import { useCartStore } from '@/stores/cart'
 import { menuItems } from '@/data/menu'
 import { ordersApi, type MenuItem } from '@/services/orders'
 import { useStoreInfoStore } from '@/stores/storeInfo'
+import { api } from '@/services/api'
 
 interface Msg {
   role: "bot" | "user"
@@ -239,20 +240,11 @@ const respond = async (q: string): Promise<Msg> => {
 
   // Gửi trực tiếp yêu cầu (Đố vui / Bói nước / Hỏi đáp) lên AI Backend!
   try {
-    const res = await fetch('/api/chatbot/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: q })
-    })
+    const data = await api.post<any>('/api/chatbot/ask', { message: q })
     
-    if (!res.ok) {
-        throw new Error('Server AI đang cập nhật')
-    }
-    
-    const data = await res.json()
     const botReply: Msg = { 
       role: "bot", 
-      text: data.reply,
+      text: data.reply || 'Dạ, em nghe đây ạ!',
       suggestions: ["🎯 Đố câu khác đi!", "🔮 Bói đồ uống khác", "☕ Món hot hôm nay"]
     }
     

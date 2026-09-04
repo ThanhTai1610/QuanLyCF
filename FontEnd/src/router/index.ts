@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { routePermission } from './permissions'
+import { BASE_URL } from '@/services/api'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -125,7 +126,7 @@ async function checkMaintenanceMode(): Promise<boolean> {
   if (now - lastMaintCheck < 60000) return isMaintenanceCached
   lastMaintCheck = now
   try {
-    const res = await fetch('/api/settings/maintenance')
+    const res = await fetch(`${BASE_URL}/api/settings/maintenance`)
     if (res.ok) {
       const data = await res.json()
       isMaintenanceCached = !!data.isMaintenance

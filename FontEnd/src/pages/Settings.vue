@@ -207,7 +207,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Coffee, Bell, CreditCard, Wrench, RefreshCw, Upload, Sparkles, Landmark } from 'lucide-vue-next'
-import { api } from '@/services/api'
+import { api, BASE_URL } from '@/services/api'
 import { useStoreInfoStore } from '@/stores/storeInfo'
 import { useAlert } from '@/stores/alert'
 import Button from '@/components/ui/Button.vue'
@@ -358,7 +358,7 @@ const handleFileUpload = async (event: Event) => {
   formData.append('file', file);
 
   try {
-    const response = await fetch('/api/uploads/image', {
+    const response = await fetch(`${BASE_URL}/api/uploads/image`, {
       method: 'POST',
       body: formData,
       headers: {

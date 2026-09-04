@@ -54,6 +54,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Wrench, RefreshCw, Coffee } from 'lucide-vue-next'
 import { useStoreInfoStore } from '@/stores/storeInfo'
+import { BASE_URL } from '@/services/api'
 
 import { useAlert } from '@/stores/alert'
 
@@ -66,7 +67,7 @@ const loading = ref(false)
 // Lấy thông điệp bảo trì từ API
 const fetchStatus = async () => {
   try {
-    const res = await fetch('/api/settings/maintenance')
+    const res = await fetch(`${BASE_URL}/api/settings/maintenance`)
     if (res.ok) {
       const data = await res.json()
       message.value = data.message
@@ -85,7 +86,7 @@ const checkStatus = async () => {
   // Trì hoãn nhẹ 500ms tạo hiệu ứng kiểm tra thực tế
   await new Promise(resolve => setTimeout(resolve, 500))
   try {
-    const res = await fetch('/api/settings/maintenance')
+    const res = await fetch(`${BASE_URL}/api/settings/maintenance`)
     if (res.ok) {
       const data = await res.json()
       message.value = data.message
