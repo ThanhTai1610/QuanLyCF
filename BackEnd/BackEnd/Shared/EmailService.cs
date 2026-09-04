@@ -58,7 +58,7 @@ public class EmailService
             effectiveApiKey = (settings.ApiKeyPart1 + settings.ApiKeyPart2).Trim();
         }
 
-        // 1. Nếu Key bắt đầu bằng xsmtpsib- -> Đây là Brevo SMTP Relay Key
+        // 1. Nếu có ApiKey dạng xsmtpsib- -> Brevo SMTP Relay
         if (!string.IsNullOrWhiteSpace(effectiveApiKey) && effectiveApiKey.StartsWith("xsmtpsib-", StringComparison.OrdinalIgnoreCase))
         {
             return await SendViaBrevoSmtpRelayAsync(settings, effectiveApiKey, toEmail, subject, body);
@@ -76,7 +76,7 @@ public class EmailService
             var brevoResult = await SendViaBrevoApiAsync(settings, toEmail, subject, body);
             if (brevoResult.Success) return brevoResult;
 
-            // Nếu REST API trả về lỗi 401 (Key not found), tự động chuyển sang Brevo SMTP Relay
+            // Nếu REST API trả về lỗi (ví dụ Key 401), tự động chuyển sang Brevo SMTP Relay
             _logger.LogWarning($"[BREVO REST API FALLBACK] REST API lỗi ({brevoResult.ErrorMessage}), chuyển sang Brevo SMTP Relay...");
             return await SendViaBrevoSmtpRelayAsync(settings, effectiveApiKey, toEmail, subject, body);
         }
@@ -94,67 +94,73 @@ public class EmailService
 
     private async Task<(bool Success, string? ErrorMessage)> SendViaBrevoSmtpRelayAsync(EmailSettings settings, string smtpKey, string toEmail, string subject, string body)
     {
-        try
+        var candidateUsers = new List<string>();
+        if (!string.IsNullOrWhiteSpace(settings.SenderEmail)) candidateUsers.Add(settings.SenderEmail.Trim());
+        if (!candidateUsers.Contains("phamthanhtai16102006@gmail.com", StringComparer.OrdinalIgnoreCase)) candidateUsers.Add("phamthanhtai16102006@gmail.com");
+        if (!candidateUsers.Contains("taiptpk04158@gmail.com", StringComparer.OrdinalIgnoreCase)) candidateUsers.Add("taiptpk04158@gmail.com");
+
+        Exception? lastEx = null;
+
+        foreach (var username in candidateUsers)
         {
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(settings.SenderName, settings.SenderEmail));
-            message.To.Add(MailboxAddress.Parse(toEmail));
-            message.Subject = subject;
-
-            var bodyBuilder = new BodyBuilder { HtmlBody = body };
-            message.Body = bodyBuilder.ToMessageBody();
-
-            using var client = new SmtpClient();
-            client.ServerCertificateValidationCallback = (s, c, h, e) => true;
-
-            // Thử cổng 2525 (Cổng phụ của Brevo không bị nhà mạng/Cloud chặn), cổng 587, và 465 SSL
-            bool connected = false;
-            var ports = new[] 
-            { 
-                (2525, SecureSocketOptions.StartTls), 
-                (587, SecureSocketOptions.StartTls), 
-                (465, SecureSocketOptions.SslOnConnect) 
-            };
-
-            foreach (var (port, options) in ports)
+            try
             {
-                try
-                {
-                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                    await client.ConnectAsync("smtp-relay.brevo.com", port, options, cts.Token);
-                    connected = true;
-                    _logger.LogInformation($"[BREVO SMTP CONNECTED] Kết nối thành công smtp-relay.brevo.com cổng {port}");
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning($"[BREVO SMTP PORT {port} FAIL]: {ex.Message}");
-                }
-            }
+                var message = new MimeMessage();
+                var fromAddr = !string.IsNullOrWhiteSpace(settings.SenderEmail) ? settings.SenderEmail : username;
+                message.From.Add(new MailboxAddress(settings.SenderName, fromAddr));
+                message.To.Add(MailboxAddress.Parse(toEmail));
+                message.Subject = subject;
 
-            if (!connected)
+                var bodyBuilder = new BodyBuilder { HtmlBody = body };
+                message.Body = bodyBuilder.ToMessageBody();
+
+                using var client = new SmtpClient();
+                client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+
+                bool connected = false;
+                var ports = new[] 
+                { 
+                    (2525, SecureSocketOptions.StartTls), 
+                    (587, SecureSocketOptions.StartTls), 
+                    (465, SecureSocketOptions.SslOnConnect) 
+                };
+
+                foreach (var (port, options) in ports)
+                {
+                    try
+                    {
+                        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                        await client.ConnectAsync("smtp-relay.brevo.com", port, options, cts.Token);
+                        connected = true;
+                        break;
+                    }
+                    catch {}
+                }
+
+                if (!connected) continue;
+
+                using var ctsAuth = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                await client.AuthenticateAsync(username, smtpKey, ctsAuth.Token);
+
+                using var ctsSend = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                await client.SendAsync(message, ctsSend.Token);
+
+                using var ctsDisc = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                await client.DisconnectAsync(true, ctsDisc.Token);
+
+                _logger.LogInformation($"[EMAIL BREVO RELAY SENT REAL] Đã gửi thành công mail OTP thực tế tới {toEmail} bằng tài khoản {username}");
+                return (true, null);
+            }
+            catch (Exception ex)
             {
-                return (false, "Không thể kết nối smtp-relay.brevo.com qua các cổng 2525, 587, 465.");
+                lastEx = ex;
+                _logger.LogWarning($"[BREVO AUTH LOGIN TRY '{username}' FAIL]: {ex.Message}");
             }
-
-            using var ctsAuth = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            await client.AuthenticateAsync(settings.SenderEmail, smtpKey, ctsAuth.Token);
-
-            using var ctsSend = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            await client.SendAsync(message, ctsSend.Token);
-
-            using var ctsDisc = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-            await client.DisconnectAsync(true, ctsDisc.Token);
-
-            _logger.LogInformation($"[EMAIL BREVO RELAY SENT] Đã gửi thành công mail OTP thực tế tới {toEmail} qua Brevo SMTP Relay");
-            return (true, null);
         }
-        catch (Exception ex)
-        {
-            var err = ex.InnerException != null ? $"{ex.Message} -> {ex.InnerException.Message}" : ex.Message;
-            _logger.LogError(ex, $"[EMAIL BREVO RELAY ERROR]: {err}");
-            return (false, $"Brevo SMTP Relay Error: {err}");
-        }
+
+        var err = lastEx?.InnerException != null ? $"{lastEx.Message} -> {lastEx.InnerException.Message}" : lastEx?.Message;
+        _logger.LogError(lastEx, $"[EMAIL BREVO RELAY ERROR]: {err}");
+        return (false, $"Brevo SMTP Relay Error: {err}");
     }
 
     private async Task<(bool Success, string? ErrorMessage)> SendViaGmailSmtpAsync(EmailSettings settings, string toEmail, string subject, string body)
@@ -223,7 +229,7 @@ public class EmailService
 
             var payload = new
             {
-                sender = new { name = settings.SenderName, email = settings.SenderEmail },
+                sender = new { name = settings.SenderName, email = !string.IsNullOrWhiteSpace(settings.SenderEmail) ? settings.SenderEmail : "phamthanhtai16102006@gmail.com" },
                 to = new[] { new { email = toEmail } },
                 subject = subject,
                 htmlContent = body
