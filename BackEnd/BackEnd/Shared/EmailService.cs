@@ -58,7 +58,13 @@ public class EmailService
             effectiveApiKey = (settings.ApiKeyPart1 + settings.ApiKeyPart2).Trim();
         }
 
-        // 1. Ưu tiên gửi qua Brevo / Resend HTTP API (Port 443) nếu có ApiKey (Bảo đảm 100% không bị chặn cổng 587/465 trên Cloud)
+        // 1. Nếu Key bắt đầu bằng xsmtpsib- -> Đây là Brevo SMTP Relay Key
+        if (!string.IsNullOrWhiteSpace(effectiveApiKey) && effectiveApiKey.StartsWith("xsmtpsib-", StringComparison.OrdinalIgnoreCase))
+        {
+            return await SendViaBrevoSmtpRelayAsync(settings, effectiveApiKey, toEmail, subject, body);
+        }
+
+        // 2. Nếu có ApiKey dạng xkeysib- hoặc Resend -> Thử gửi qua Brevo / Resend REST API (Port 443)
         if (!string.IsNullOrWhiteSpace(effectiveApiKey))
         {
             settings.ApiKey = effectiveApiKey;
@@ -66,10 +72,16 @@ public class EmailService
             {
                 return await SendViaResendApiAsync(settings, toEmail, subject, body);
             }
-            return await SendViaBrevoApiAsync(settings, toEmail, subject, body);
+
+            var brevoResult = await SendViaBrevoApiAsync(settings, toEmail, subject, body);
+            if (brevoResult.Success) return brevoResult;
+
+            // Nếu REST API trả về lỗi 401 (Key not found), tự động chuyển sang Brevo SMTP Relay
+            _logger.LogWarning($"[BREVO REST API FALLBACK] REST API lỗi ({brevoResult.ErrorMessage}), chuyển sang Brevo SMTP Relay...");
+            return await SendViaBrevoSmtpRelayAsync(settings, effectiveApiKey, toEmail, subject, body);
         }
 
-        // 2. Gửi qua SMTP truyền thống (MailKit)
+        // 3. Gửi qua Gmail SMTP truyền thống (MailKit)
         if (string.IsNullOrWhiteSpace(settings.SenderEmail) || string.IsNullOrWhiteSpace(settings.SenderPassword))
         {
             var msg = "Cấu hình gửi email (SenderEmail hoặc SenderPassword) chưa được thiết lập trong appsettings.json.";
@@ -77,6 +89,76 @@ public class EmailService
             return (false, msg);
         }
 
+        return await SendViaGmailSmtpAsync(settings, toEmail, subject, body);
+    }
+
+    private async Task<(bool Success, string? ErrorMessage)> SendViaBrevoSmtpRelayAsync(EmailSettings settings, string smtpKey, string toEmail, string subject, string body)
+    {
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(settings.SenderName, settings.SenderEmail));
+            message.To.Add(MailboxAddress.Parse(toEmail));
+            message.Subject = subject;
+
+            var bodyBuilder = new BodyBuilder { HtmlBody = body };
+            message.Body = bodyBuilder.ToMessageBody();
+
+            using var client = new SmtpClient();
+            client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+
+            // Thử cổng 2525 (Cổng phụ của Brevo không bị nhà mạng/Cloud chặn), cổng 587, và 465 SSL
+            bool connected = false;
+            var ports = new[] 
+            { 
+                (2525, SecureSocketOptions.StartTls), 
+                (587, SecureSocketOptions.StartTls), 
+                (465, SecureSocketOptions.SslOnConnect) 
+            };
+
+            foreach (var (port, options) in ports)
+            {
+                try
+                {
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    await client.ConnectAsync("smtp-relay.brevo.com", port, options, cts.Token);
+                    connected = true;
+                    _logger.LogInformation($"[BREVO SMTP CONNECTED] Kết nối thành công smtp-relay.brevo.com cổng {port}");
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"[BREVO SMTP PORT {port} FAIL]: {ex.Message}");
+                }
+            }
+
+            if (!connected)
+            {
+                return (false, "Không thể kết nối smtp-relay.brevo.com qua các cổng 2525, 587, 465.");
+            }
+
+            using var ctsAuth = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await client.AuthenticateAsync(settings.SenderEmail, smtpKey, ctsAuth.Token);
+
+            using var ctsSend = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await client.SendAsync(message, ctsSend.Token);
+
+            using var ctsDisc = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            await client.DisconnectAsync(true, ctsDisc.Token);
+
+            _logger.LogInformation($"[EMAIL BREVO RELAY SENT] Đã gửi thành công mail OTP thực tế tới {toEmail} qua Brevo SMTP Relay");
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            var err = ex.InnerException != null ? $"{ex.Message} -> {ex.InnerException.Message}" : ex.Message;
+            _logger.LogError(ex, $"[EMAIL BREVO RELAY ERROR]: {err}");
+            return (false, $"Brevo SMTP Relay Error: {err}");
+        }
+    }
+
+    private async Task<(bool Success, string? ErrorMessage)> SendViaGmailSmtpAsync(EmailSettings settings, string toEmail, string subject, string body)
+    {
         var cleanPassword = settings.SenderPassword.Replace(" ", "");
 
         try
@@ -86,10 +168,7 @@ public class EmailService
             message.To.Add(MailboxAddress.Parse(toEmail));
             message.Subject = subject;
 
-            var bodyBuilder = new BodyBuilder
-            {
-                HtmlBody = body
-            };
+            var bodyBuilder = new BodyBuilder { HtmlBody = body };
             message.Body = bodyBuilder.ToMessageBody();
 
             using var client = new SmtpClient();
@@ -121,7 +200,7 @@ public class EmailService
         }
         catch (OperationCanceledException)
         {
-            var err = "Hạ tầng Cloud (Render/VPS) chặn cổng SMTP 587/465. Vui lòng cấu hình Brevo ApiKey (gửi qua HTTPS Port 443) để gửi mail tức thì.";
+            var err = "Hạ tầng Cloud (Render/VPS) chặn cổng SMTP 587/465. Vui lòng sử dụng Brevo API Key.";
             _logger.LogError($"[EMAIL TIMEOUT] {err}");
             return (false, err);
         }
