@@ -28,11 +28,19 @@ public class EmailService
 
     public async Task<bool> SendEmailAsync(string toEmail, string subject, string body)
     {
+        var (success, _) = await SendEmailExAsync(toEmail, subject, body);
+        return success;
+    }
+
+    public async Task<(bool Success, string? ErrorMessage)> SendEmailExAsync(string toEmail, string subject, string body)
+    {
         var settings = _config.GetSection("Email").Get<EmailSettings>() ?? new EmailSettings();
 
         if (string.IsNullOrWhiteSpace(settings.SenderEmail) || string.IsNullOrWhiteSpace(settings.SenderPassword))
         {
-            throw new InvalidOperationException("Cấu hình gửi email (SenderEmail hoặc SenderPassword) chưa được thiết lập trong appsettings.json.");
+            var msg = "Cấu hình gửi email (SenderEmail hoặc SenderPassword) chưa được thiết lập trong appsettings.json.";
+            _logger.LogWarning($"[EMAIL WARNING] {msg}");
+            return (false, msg);
         }
 
         try
@@ -48,7 +56,8 @@ public class EmailService
                 using (var client = new SmtpClient(settings.SmtpServer, settings.SmtpPort))
                 {
                     client.UseDefaultCredentials = false;
-                    client.Credentials = new NetworkCredential(settings.SenderEmail, settings.SenderPassword);
+                    var cleanPassword = settings.SenderPassword.Replace(" ", "");
+                    client.Credentials = new NetworkCredential(settings.SenderEmail, cleanPassword);
                     client.EnableSsl = true;
 
                     await client.SendMailAsync(message);
@@ -56,12 +65,13 @@ public class EmailService
             }
 
             _logger.LogInformation($"[EMAIL SENT] Đã gửi email tới {toEmail} qua SMTP");
-            return true;
+            return (true, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"[EMAIL ERROR] Không thể gửi email tới {toEmail}");
-            return false;
+            var err = ex.InnerException != null ? $"{ex.Message} -> {ex.InnerException.Message}" : ex.Message;
+            _logger.LogError(ex, $"[EMAIL ERROR] Không thể gửi email tới {toEmail}: {err}");
+            return (false, err);
         }
     }
 }

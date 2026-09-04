@@ -169,8 +169,13 @@ public class CustomerController : ControllerBase
         {
             var kh = await _service.GetByIdAsync(id);
             var email = kh?.Email ?? "";
-            var otp = await _service.GenerateOtpAsync(id);
-            return Ok(new { message = $"Mã OTP đã được gửi tới địa chỉ email ({email}) của bạn.", email, demoOtp = otp });
+            var (otp, emailSent, emailError) = await _service.GenerateOtpAsync(id);
+
+            string message = emailSent 
+                ? $"Mã OTP đã được gửi tới địa chỉ email ({email}) của bạn." 
+                : $"Máy chủ SMTP không gửi được mail tới {email} ({emailError}). Bạn có thể dùng mã OTP thử nghiệm.";
+
+            return Ok(new { message, email, emailSent, emailError, demoOtp = otp });
         }
         catch (InvalidOperationException ex)
         {

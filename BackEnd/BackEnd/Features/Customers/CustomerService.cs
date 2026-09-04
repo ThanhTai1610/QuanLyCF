@@ -205,7 +205,7 @@ public class CustomerService
     private static readonly ConcurrentDictionary<int, (string Otp, DateTime Expires)> _otpStore = new();
 
 
-    public async Task<string> GenerateOtpAsync(int customerId)
+    public async Task<(string Otp, bool EmailSent, string? EmailError)> GenerateOtpAsync(int customerId)
     {
         var kh = await _db.KhachHangs.FindAsync(customerId);
         if (kh == null) throw new InvalidOperationException("Không tìm thấy khách hàng.");
@@ -234,10 +234,10 @@ public class CustomerService
                 <p style='font-size: 11px; color: #999; text-align: center;'>Đây là email tự động từ hệ thống F6 Coffee. Vui lòng không phản hồi email này.</p>
             </div>";
 
-        await _email.SendEmailAsync(email, subject, body);
+        var (emailSent, emailError) = await _email.SendEmailExAsync(email, subject, body);
 
-        Console.WriteLine($"\n[OTP EMAIL SIMULATION] Mã OTP của khách hàng {customerId} ({email}) là: {otp} (Hiệu lực 5 phút)\n");
-        return otp;
+        Console.WriteLine($"\n[OTP EMAIL LOG] Khách hàng {customerId} ({email}) | Gửi Email: {emailSent} | Lỗi: {emailError} | Mã OTP: {otp}\n");
+        return (otp, emailSent, emailError);
     }
 
     public bool VerifyOtp(int customerId, string otp)
