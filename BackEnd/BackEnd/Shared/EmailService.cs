@@ -59,8 +59,10 @@ public class EmailService
                     var cleanPassword = settings.SenderPassword.Replace(" ", "");
                     client.Credentials = new NetworkCredential(settings.SenderEmail, cleanPassword);
                     client.EnableSsl = true;
+                    client.Timeout = 4000; // 4 giây timeout
 
-                    await client.SendMailAsync(message);
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
+                    await client.SendMailAsync(message, cts.Token);
                 }
             }
 
