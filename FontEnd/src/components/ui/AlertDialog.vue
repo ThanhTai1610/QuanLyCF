@@ -3,71 +3,54 @@
     <Transition name="alert-fade">
       <div
         v-if="store.visible"
-        class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
         @click.self="onBackdropClick"
       >
-        <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-
-        <!-- Dialog -->
+        <!-- Card -->
         <Transition name="alert-scale">
           <div
             v-if="store.visible"
-            class="relative w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
-            :class="cardClass"
+            class="relative w-full max-w-[380px] bg-white rounded-3xl p-6 shadow-[0_25px_60px_-15px_rgba(42,35,30,0.3)] border border-[#EAE3D9] text-center space-y-5 overflow-hidden"
           >
-            <!-- Top glow strip -->
-            <div class="absolute top-0 left-0 right-0 h-1 rounded-t-3xl" :class="stripClass" />
+            <!-- Top decorative accent line -->
+            <div class="absolute top-0 left-0 right-0 h-1.5 rounded-t-3xl" :class="accentBarClass" />
 
-            <!-- Body -->
-            <div class="px-8 pt-10 pb-8 flex flex-col items-center text-center">
-
-              <!-- Icon circle -->
-              <div
-                class="w-20 h-20 rounded-full flex items-center justify-center mb-6 shadow-lg"
-                :class="iconBgClass"
-              >
-                <component :is="iconComponent" class="w-10 h-10" :class="iconColorClass" stroke-width="1.8" />
-              </div>
-
-              <!-- Title -->
-              <h2 class="text-2xl font-bold mb-2 leading-tight" :class="titleColorClass">
-                {{ store.options.title }}
-              </h2>
-
-              <!-- Message -->
-              <p v-if="store.options.message" class="text-base leading-relaxed opacity-75 whitespace-pre-wrap text-left" :class="messageColorClass">
-                {{ store.options.message }}
-              </p>
-
-              <!-- Buttons -->
-              <div class="flex gap-3 mt-8 w-full" :class="store.options.type === 'confirm' ? 'flex-row' : 'flex-col'">
-
-                <!-- Cancel (only confirm) -->
-                <button
-                  v-if="store.options.type === 'confirm'"
-                  class="flex-1 h-16 rounded-2xl text-lg font-semibold transition-all duration-200 border"
-                  :class="cancelBtnClass"
-                  @click="store.cancel()"
-                >
-                  {{ store.options.cancelText ?? 'Hủy' }}
-                </button>
-
-                <!-- Confirm -->
-                <button
-                  class="flex-1 h-16 rounded-2xl text-xl font-extrabold tracking-widest transition-all duration-200 shadow-xl active:scale-95 uppercase"
-                  :class="confirmBtnClass"
-                  @click="store.confirm()"
-                >
-                  {{ store.options.confirmText ?? 'OK' }}
-                </button>
-
-              </div>
+            <!-- Icon -->
+            <div
+              class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto shadow-sm border mt-1"
+              :class="iconBgClass"
+            >
+              <component :is="iconComponent" class="w-7 h-7" :class="iconColorClass" stroke-width="2" />
             </div>
 
-            <!-- Decorative coffee beans (subtle) -->
-            <div class="absolute -bottom-6 -right-6 w-24 h-24 rounded-full opacity-[0.04]" :class="decorClass" />
-            <div class="absolute -top-4 -left-4 w-16 h-16 rounded-full opacity-[0.04]" :class="decorClass" />
+            <!-- Content -->
+            <div class="space-y-1.5 px-2">
+              <h3 class="text-lg font-bold text-[#2A231E] leading-snug font-premium-serif">
+                {{ store.options.title }}
+              </h3>
+              <p v-if="store.options.message" class="text-xs text-[#786E65] font-medium leading-relaxed">
+                {{ store.options.message }}
+              </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-3 pt-2">
+              <button
+                v-if="store.options.type === 'confirm'"
+                @click="store.cancel()"
+                class="flex-1 h-11 rounded-2xl bg-[#F5F2ED] hover:bg-[#EAE3D9] text-[#5C544E] font-bold text-xs transition-all active:scale-95 border border-[#EAE3D9]"
+              >
+                {{ store.options.cancelText ?? 'Hủy' }}
+              </button>
+
+              <button
+                @click="store.confirm()"
+                class="flex-1 h-11 rounded-2xl text-white font-bold text-xs shadow-md transition-all active:scale-95 uppercase tracking-wider"
+                :class="confirmBtnClass"
+              >
+                {{ getConfirmText() }}
+              </button>
+            </div>
           </div>
         </Transition>
       </div>
@@ -81,44 +64,42 @@ import { useAlertStore } from '@/stores/alert'
 import { CheckCircle2, XCircle, AlertTriangle, Info, HelpCircle } from 'lucide-vue-next'
 
 const store = useAlertStore()
-
 const type = computed(() => store.options.type)
 
-// Đóng khi click backdrop (chỉ với info/success/warning/error, không phải confirm)
 function onBackdropClick() {
   if (type.value !== 'confirm') store.confirm()
 }
 
-const cardClass = computed(() => ({
-  success: 'bg-[#FDF6EC] border border-[#EBE0D0] shadow-warm', // bg-card
-  error:   'bg-[#FDF8F7] border border-[#F2D7D7] shadow-warm',
-  warning: 'bg-[#FCFAF2] border border-[#EADFBA] shadow-warm',
-  info:    'bg-[#FAFBFD] border border-[#D5E1F2] shadow-warm',
-  confirm: 'bg-[#2C1A0E] border border-[#3E291C]', // bg-espresso and border-espresso-soft
-}[type.value]))
+const getConfirmText = () => {
+  if (store.options.confirmText) {
+    if (store.options.confirmText === 'HOÀN TẤT' || store.options.confirmText === 'OK') return 'Hoàn tất'
+    return store.options.confirmText
+  }
+  return type.value === 'confirm' ? 'Xác nhận' : 'Hoàn tất'
+}
 
-const stripClass = computed(() => ({
-  success: 'bg-gradient-to-r from-caramel to-brown',
-  error:   'bg-gradient-to-r from-[#E57373] to-[#C62828]',
-  warning: 'bg-gradient-to-r from-[#F6D07A] to-caramel',
-  info:    'bg-gradient-to-r from-[#90A4AE] to-[#546E7A]',
-  confirm: 'bg-gradient-to-r from-caramel to-brown',
+const accentBarClass = computed(() => ({
+  success: 'bg-gradient-to-r from-[#CC8033] to-[#D97724]',
+  error:   'bg-gradient-to-r from-red-500 to-rose-600',
+  warning: 'bg-gradient-to-r from-amber-400 to-orange-500',
+  info:    'bg-gradient-to-r from-blue-400 to-indigo-500',
+  confirm: 'bg-gradient-to-r from-[#4A3224] to-[#CC8033]',
 }[type.value]))
 
 const iconBgClass = computed(() => ({
-  success: 'bg-[#F6E4CF]', // bg-caramel-light
-  error:   'bg-[#FCECEB]',
-  warning: 'bg-[#FCF5E3]',
-  info:    'bg-[#ECEFF1]',
-  confirm: 'bg-caramel/20',
+  success: 'bg-[#FFF9F2] border-[#E8C5A5]/60',
+  error:   'bg-red-50 border-red-100',
+  warning: 'bg-amber-50 border-amber-100',
+  info:    'bg-blue-50 border-blue-100',
+  confirm: 'bg-[#F5F2ED] border-[#EAE3D9]',
 }[type.value]))
 
 const iconColorClass = computed(() => ({
-  success: 'text-caramel', 
-  error:   'text-[#C62828]',
-  warning: 'text-caramel',  
-  info:    'text-[#455A64]',
-  confirm: 'text-caramel',
+  success: 'text-[#CC8033]',
+  error:   'text-red-500',
+  warning: 'text-amber-500',
+  info:    'text-blue-500',
+  confirm: 'text-[#4A3224]',
 }[type.value]))
 
 const iconComponent = computed(() => ({
@@ -129,65 +110,37 @@ const iconComponent = computed(() => ({
   confirm: HelpCircle,
 }[type.value]))
 
-const titleColorClass = computed(() => ({
-  success: 'text-espresso font-extrabold font-display',
-  error:   'text-espresso font-extrabold font-display',
-  warning: 'text-espresso font-extrabold font-display',
-  info:    'text-espresso font-extrabold font-display',
-  confirm: 'text-cream font-extrabold font-display',
-}[type.value]))
-
-const messageColorClass = computed(() => ({
-  success: 'text-espresso/70',
-  error:   'text-[#7A5A58]',
-  warning: 'text-espresso/70',
-  info:    'text-[#54626F]',
-  confirm: 'text-cream/80',
-}[type.value]))
-
 const confirmBtnClass = computed(() => ({
-  success: 'bg-espresso hover:bg-brown text-cream shadow-lg shadow-espresso/25',
-  error:   'bg-[#C62828] hover:bg-[#A32222] text-white shadow-lg shadow-[#C62828]/25',
-  warning: 'bg-caramel hover:bg-brown text-cream shadow-lg shadow-caramel/25',
-  info:    'bg-espresso hover:bg-brown text-cream shadow-lg shadow-espresso/25',
-  confirm: 'bg-caramel hover:bg-caramel-light hover:text-brown text-cream shadow-lg shadow-caramel/25',
-}[type.value]))
-
-const cancelBtnClass = computed(() => 'bg-white/5 hover:bg-white/10 text-cream/70 border-white/10')
-
-const decorClass = computed(() => ({
-  success: 'bg-caramel',
-  error:   'bg-red-500',
-  warning: 'bg-caramel',
-  info:    'bg-espresso',
-  confirm: 'bg-caramel',
+  success: 'bg-[#CC8033] hover:bg-[#B8722D] text-white shadow-[#CC8033]/20',
+  error:   'bg-red-600 hover:bg-red-700 text-white shadow-red-600/20',
+  warning: 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-600/20',
+  info:    'bg-[#4A3224] hover:bg-[#382418] text-white shadow-[#4A3224]/20',
+  confirm: 'bg-[#CC8033] hover:bg-[#B8722D] text-white shadow-[#CC8033]/20',
 }[type.value]))
 </script>
 
 <style scoped>
-/* Backdrop fade */
 .alert-fade-enter-active,
 .alert-fade-leave-active {
-  transition: opacity 0.25s ease;
+  transition: opacity 0.2s ease;
 }
 .alert-fade-enter-from,
 .alert-fade-leave-to {
   opacity: 0;
 }
 
-/* Card scale bounce */
 .alert-scale-enter-active {
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .alert-scale-leave-active {
-  transition: all 0.2s cubic-bezier(0.4, 0, 1, 1);
+  transition: all 0.15s ease-in;
 }
 .alert-scale-enter-from {
   opacity: 0;
-  transform: scale(0.75) translateY(20px);
+  transform: scale(0.9) translateY(10px);
 }
 .alert-scale-leave-to {
   opacity: 0;
-  transform: scale(0.9) translateY(-10px);
+  transform: scale(0.95);
 }
 </style>

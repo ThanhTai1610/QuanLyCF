@@ -93,6 +93,18 @@ public class TablesController : ControllerBase
                 ban.SoDienThoaiDatBan = null;
                 updated = true;
             }
+            else if (ban.TrangThai == "CoKhach" && ban.MaBanChinh == null)
+            {
+                bool hasActive = await _db.DonHangs.AnyAsync(d => d.MaBan == ban.MaBan && d.TrangThaiDon != "Huy" && d.TrangThaiDon != "DaDongBan");
+                if (!hasActive)
+                {
+                    ban.TrangThai = "Trong";
+                    ban.MaPinSession = null;
+                    ban.ThoiGianKhoaHetHan = null;
+                    ban.SoDienThoaiDatBan = null;
+                    updated = true;
+                }
+            }
         }
 
         if (updated)
@@ -374,11 +386,41 @@ public class TablesController : ControllerBase
         var ban = await _db.Bans.FindAsync(id);
         if (ban is null) return NotFound();
 
+        var unmergedTables = new List<Ban>();
+
         var thanhVien = await _db.Bans.Where(x => x.MaBanChinh == id).ToListAsync();
         if (thanhVien.Count > 0)
-            foreach (var tv in thanhVien) tv.MaBanChinh = null;   // là bàn chính → giải tán
+        {
+            foreach (var tv in thanhVien)
+            {
+                tv.MaBanChinh = null;
+                unmergedTables.Add(tv);
+            }
+            unmergedTables.Add(ban);
+        }
         else if (ban.MaBanChinh != null)
-            ban.MaBanChinh = null;                                // là thành viên → tách riêng
+        {
+            ban.MaBanChinh = null;
+            unmergedTables.Add(ban);
+        }
+
+        foreach (var b in unmergedTables)
+        {
+            bool hasActiveOrders = await _db.DonHangs.AnyAsync(d => d.MaBan == b.MaBan && d.TrangThaiDon != "Huy" && d.TrangThaiDon != "DaDongBan");
+            if (!hasActiveOrders)
+            {
+                b.TrangThai = "Trong";
+                b.MaPinSession = null;
+                b.ThoiGianKhoaHetHan = null;
+                b.SoDienThoaiDatBan = null;
+            }
+            else
+            {
+                b.TrangThai = "CoKhach";
+                b.MaPinSession = Random.Shared.Next(1000, 9999).ToString();
+                b.ThoiGianKhoaHetHan = DateTime.UtcNow.AddHours(2);
+            }
+        }
 
         await _db.SaveChangesAsync();
         return NoContent();
