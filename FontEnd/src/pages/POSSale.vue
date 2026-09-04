@@ -1738,6 +1738,7 @@ async function confirmPay() {
         soTienKhachTra: cashReceived.value || finalTotal.value,
         maKhuyenMai: appliedPromo.value?.maKhuyenMai ?? null,
         maKhachHang: customerProfile.value?.id ?? null,
+        tienGiamGia: (appliedPromo.value?.tienGiam || 0) + (redeemedDiscount.value || 0),
       })
       toastChange.value = res.tienThoiLai
       orderIdResponse.value = res.maDonHang
@@ -1766,6 +1767,7 @@ async function confirmPay() {
         items,
         ghiChuDonHang: note.value.trim() || null,
         maKhachHang: customerProfile.value?.id ?? null,
+        tienGiamGia: (appliedPromo.value?.tienGiam || 0) + (redeemedDiscount.value || 0),
       })
       createdOrderId.value = order.maDonHang
       orderIdResponse.value = order.maDonHang

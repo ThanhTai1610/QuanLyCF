@@ -55,6 +55,7 @@ export interface CreateOrderBody {
   items: OrderLineBody[]
   ghiChuDonHang: string | null
   maKhachHang?: number | null
+  tienGiamGia?: number | null
 }
 export interface MoveOrderResult {
   ketQua: 'moved' | 'merged'
@@ -69,6 +70,8 @@ export interface CheckoutBody {
   phuongThuc: string          // TienMat, ChuyenKhoan, Momo
   soTienKhachTra: number | null
   maKhuyenMai: number | null  // khuyến mãi áp dụng (tuỳ chọn)
+  maKhachHang?: number | null
+  tienGiamGia?: number | null
 }
 export interface CheckoutResult {
   maDonHang: number

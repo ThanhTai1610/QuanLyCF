@@ -135,7 +135,7 @@ public class OrderService
 
     /// <summary>Tạo + lưu đơn hàng (entity). Dùng chung cho tạo đơn và thanh toán.</summary>
     private async Task<(DonHang? Don, string? Error)> TaoDonHangAsync(
-        int? maBan, List<OrderLineRequest>? items, string? ghiChu, int? maNhanVien, int? maKhachHang = null)
+        int? maBan, List<OrderLineRequest>? items, string? ghiChu, int? maNhanVien, int? maKhachHang = null, decimal tienGiamGia = 0)
     {
         if (items is null || items.Count == 0) return (null, "Đơn phải có ít nhất 1 món.");
         Ban? ban = null;
@@ -231,7 +231,8 @@ public class OrderService
         if (don.ChiTiets.Count == 0) return (null, "Đơn phải có ít nhất 1 món.");
 
         don.TongTienHang = tong;
-        don.ThanhTien = tong;
+        don.TienGiamGia = Math.Max(0, tienGiamGia);
+        don.ThanhTien = Math.Max(0, tong - don.TienGiamGia);
         _db.DonHangs.Add(don);
         if (ban is not null)
         {
@@ -259,7 +260,7 @@ public class OrderService
 
     public async Task<(OrderDto? Data, string? Error)> TaoDonAsync(CreateOrderRequest req, int? maNhanVien)
     {
-        var (don, err) = await TaoDonHangAsync(req.MaBan, req.Items, req.GhiChuDonHang, maNhanVien, req.MaKhachHang);
+        var (don, err) = await TaoDonHangAsync(req.MaBan, req.Items, req.GhiChuDonHang, maNhanVien, req.MaKhachHang, req.TienGiamGia);
         if (err is not null) return (null, err);
 
         await _db.Entry(don!).Reference(d => d.Ban).LoadAsync();
@@ -275,7 +276,7 @@ public class OrderService
     public async Task<(CheckoutResult? Data, string? Error)> ThanhToanAsync(CheckoutRequest req, int? maNhanVien)
     {
         if (string.IsNullOrWhiteSpace(req.PhuongThuc)) return (null, "Thiếu phương thức thanh toán.");
-        var (don, err) = await TaoDonHangAsync(req.MaBan, req.Items, req.GhiChuDonHang, maNhanVien, req.MaKhachHang);
+        var (don, err) = await TaoDonHangAsync(req.MaBan, req.Items, req.GhiChuDonHang, maNhanVien, req.MaKhachHang, req.TienGiamGia);
         if (err is not null) return (null, err);
 
         // Áp dụng khuyến mãi (nếu có) — kiểm tra + tính giảm + tăng lượt đã dùng
@@ -286,8 +287,8 @@ public class OrderService
             if (kmErr != null) return (null, kmErr);
             tienGiam = giam;
             don.MaKhuyenMai = km!.MaKhuyenMai;
-            don.TienGiamGia = giam;
-            don.ThanhTien = don.TongTienHang - giam;
+            don.TienGiamGia += giam;
+            don.ThanhTien = Math.Max(0, don.TongTienHang - don.TienGiamGia);
         }
 
         var khachTra = req.SoTienKhachTra ?? don!.ThanhTien;
