@@ -636,6 +636,8 @@ public static class DbSeeder
         // 6. Seed Bảng Lương từ SQL Server gốc
         if (!await db.BangLuongs.AnyAsync(x => x.Ky == "2026-05"))
         {
+            var validNvIds = await db.NhanViens.Select(n => n.MaNhanVien).ToListAsync();
+            var defaultNvId = validNvIds.FirstOrDefault();
             var existingKyList = await db.BangLuongs.Select(b => b.Ky).Distinct().ToListAsync();
             var seedSalaries = BangLuongSeedData.GetSeedData();
             var toAdd = seedSalaries.Where(s => !existingKyList.Contains(s.Ky)).ToList();
@@ -645,6 +647,13 @@ public static class DbSeeder
             }
             if (toAdd.Count > 0)
             {
+                foreach (var s in toAdd)
+                {
+                    if (!validNvIds.Contains(s.MaNhanVien))
+                    {
+                        s.MaNhanVien = defaultNvId > 0 ? defaultNvId : 1;
+                    }
+                }
                 db.BangLuongs.AddRange(toAdd);
                 await db.SaveChangesAsync();
             }
