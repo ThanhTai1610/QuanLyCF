@@ -1,5 +1,6 @@
-using System.Net;
-using System.Net.Mail;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -7,7 +8,7 @@ namespace BackEnd.Shared;
 
 public class EmailSettings
 {
-    public string Provider { get; set; } = "None"; // Smtp, None
+    public string Provider { get; set; } = "Smtp";
     public string SmtpServer { get; set; } = "smtp.gmail.com";
     public int SmtpPort { get; set; } = 587;
     public string SenderEmail { get; set; } = "";
@@ -43,30 +44,49 @@ public class EmailService
             return (false, msg);
         }
 
+        var cleanPassword = settings.SenderPassword.Replace(" ", "");
+
         try
         {
-            using (var message = new MailMessage())
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(settings.SenderName, settings.SenderEmail));
+            message.To.Add(MailboxAddress.Parse(toEmail));
+            message.Subject = subject;
+
+            var bodyBuilder = new BodyBuilder
             {
-                message.From = new MailAddress(settings.SenderEmail, settings.SenderName);
-                message.To.Add(new MailAddress(toEmail));
-                message.Subject = subject;
-                message.Body = body;
-                message.IsBodyHtml = true;
+                HtmlBody = body
+            };
+            message.Body = bodyBuilder.ToMessageBody();
 
-                using (var client = new SmtpClient(settings.SmtpServer, settings.SmtpPort))
-                {
-                    client.UseDefaultCredentials = false;
-                    var cleanPassword = settings.SenderPassword.Replace(" ", "");
-                    client.Credentials = new NetworkCredential(settings.SenderEmail, cleanPassword);
-                    client.EnableSsl = true;
-                    client.Timeout = 4000; // 4 giây timeout
+            using var client = new SmtpClient();
+            
+            // Bypass SSL certificate errors if any
+            client.ServerCertificateValidationCallback = (s, c, h, e) => true;
 
-                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(4));
-                    await client.SendMailAsync(message, cts.Token);
-                }
+            // Try primary port 587 with STARTTLS, fallback to port 465 with SSL
+            try
+            {
+                using var cts1 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                await client.ConnectAsync(settings.SmtpServer, settings.SmtpPort, SecureSocketOptions.StartTls, cts1.Token);
+            }
+            catch (Exception exStartTls)
+            {
+                _logger.LogWarning($"[SMTP STARTTLS FAIL] Port 587 failed: {exStartTls.Message}. Retrying port 465 SSL...");
+                using var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                await client.ConnectAsync(settings.SmtpServer, 465, SecureSocketOptions.SslOnConnect, cts2.Token);
             }
 
-            _logger.LogInformation($"[EMAIL SENT] Đã gửi email tới {toEmail} qua SMTP");
+            using var ctsAuth = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await client.AuthenticateAsync(settings.SenderEmail, cleanPassword, ctsAuth.Token);
+            
+            using var ctsSend = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await client.SendAsync(message, ctsSend.Token);
+            
+            using var ctsDisc = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            await client.DisconnectAsync(true, ctsDisc.Token);
+
+            _logger.LogInformation($"[EMAIL SENT REAL] Đã gửi thành công email OTP thực tế tới {toEmail} qua Gmail MailKit");
             return (true, null);
         }
         catch (Exception ex)

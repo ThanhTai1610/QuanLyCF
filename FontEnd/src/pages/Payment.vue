@@ -276,10 +276,6 @@
           </p>
         </div>
 
-        <div v-if="demoOtpCode" class="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-xs text-amber-800 font-medium text-center">
-          Mã OTP thử nghiệm: <strong class="font-mono text-amber-900 text-sm tracking-wider">{{ demoOtpCode }}</strong>
-        </div>
-
         <div class="space-y-3">
           <input
             type="text"

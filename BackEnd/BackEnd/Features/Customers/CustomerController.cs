@@ -171,11 +171,12 @@ public class CustomerController : ControllerBase
             var email = kh?.Email ?? "";
             var (otp, emailSent, emailError) = await _service.GenerateOtpAsync(id);
 
-            string message = emailSent 
-                ? $"Mã OTP đã được gửi tới địa chỉ email ({email}) của bạn." 
-                : $"Máy chủ SMTP không gửi được mail tới {email} ({emailError}). Bạn có thể dùng mã OTP thử nghiệm.";
+            if (!emailSent)
+            {
+                return BadRequest(new { message = $"Không thể gửi email OTP thực tế tới ({email}). Lý do: {emailError}. Vui lòng kiểm tra lại cấu hình Gmail gốc trong appsettings.json." });
+            }
 
-            return Ok(new { message, email, emailSent, emailError, demoOtp = otp });
+            return Ok(new { message = $"Mã OTP thực tế đã được gửi thành công tới địa chỉ email ({email}) của bạn. Vui lòng kiểm tra hộp thư.", email, emailSent });
         }
         catch (InvalidOperationException ex)
         {
