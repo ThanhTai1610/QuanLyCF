@@ -265,7 +265,7 @@
                 Tạm hết
               </button>
               <div v-else-if="getCartItemLine(m)" class="flex items-center bg-[#FDFBF7] rounded-xl border border-[#EAE3D9] p-0.5 shadow-sm h-10 shrink-0">
-                <button @click="cart.setQty(getCartItemLine(m)!.cartLineId, getCartItemLine(m)!.qty - 1)" class="w-8 h-full rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
+                <button @click="handleDecrementQty(getCartItemLine(m)!.cartLineId, getCartItemLine(m)!.qty, m.name || m.tenSanPham)" class="w-8 h-full rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
                   <Minus class="w-3.5 h-3.5" stroke-width="2.5" />
                 </button>
                 <span class="w-7 text-center text-sm font-bold text-[#2A231E]">
@@ -451,7 +451,7 @@
                       Chỉnh sửa món
                     </button>
                   </div>
-                  <button @click="cart.remove(l.cartLineId)" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center text-[#C5BEB8] hover:text-red-500 hover:bg-red-50 transition-colors">
+                  <button @click="confirmRemoveCartItem(l.cartLineId, l.item.name || l.item.tenSanPham)" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center text-[#C5BEB8] hover:text-red-500 hover:bg-red-50 transition-colors">
                     <Trash2 class="w-3.5 h-3.5" stroke-width="2" />
                   </button>
                 </div>
@@ -459,7 +459,7 @@
                 <!-- Qty + line total -->
                 <div class="flex items-center justify-between mt-2">
                   <div class="flex items-center bg-[#FDFBF7] rounded-xl border border-[#EAE3D9] p-0.5">
-                    <button @click="cart.setQty(l.cartLineId, l.qty - 1)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
+                    <button @click="handleDecrementQty(l.cartLineId, l.qty, l.item.name || l.item.tenSanPham)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white hover:shadow-sm transition-all">
                       <Minus class="w-3 h-3" stroke-width="2.5" />
                     </button>
                     <span class="w-8 text-center text-xs font-bold text-[#2A231E]">{{ l.qty }}</span>
@@ -668,13 +668,13 @@
                   Chỉnh sửa món
                 </button>
               </div>
-              <button @click="cart.remove(l.cartLineId)" class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-[#C5BEB8] hover:text-red-500 hover:bg-red-50 transition-colors">
+              <button @click="confirmRemoveCartItem(l.cartLineId, l.item.name || l.item.tenSanPham)" class="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-[#C5BEB8] hover:text-red-500 hover:bg-red-50 transition-colors">
                 <Trash2 class="w-3.5 h-3.5" stroke-width="2" />
               </button>
             </div>
             <div class="flex items-center justify-between mt-2">
               <div class="flex items-center bg-[#FDFBF7] rounded-xl border border-[#EAE3D9] p-0.5">
-                <button @click="cart.setQty(l.cartLineId, l.qty - 1)" class="w-6 h-6 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white transition-all"><Minus class="w-3 h-3" stroke-width="2.5" /></button>
+                <button @click="handleDecrementQty(l.cartLineId, l.qty, l.item.name || l.item.tenSanPham)" class="w-6 h-6 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white transition-all"><Minus class="w-3 h-3" stroke-width="2.5" /></button>
                 <span class="w-7 text-center text-xs font-bold text-[#2A231E]">{{ l.qty }}</span>
                 <button @click="cart.setQty(l.cartLineId, l.qty + 1)" class="w-6 h-6 rounded-lg flex items-center justify-center text-[#5C544E] hover:bg-white transition-all"><Plus class="w-3 h-3" stroke-width="2.5" /></button>
               </div>
@@ -1188,13 +1188,44 @@
         </div>
       </TransitionGroup>
     </div>
+
+    <!-- Modal xác nhận xóa sản phẩm khỏi giỏ hàng -->
+    <Teleport to="body">
+      <div v-if="showDeleteConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-[#EAE3D9] space-y-5 text-center transform scale-100">
+          <div class="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto border border-red-100 shadow-sm">
+            <AlertTriangle class="w-7 h-7" />
+          </div>
+          <div class="space-y-2">
+            <h3 class="text-lg font-bold text-[#2A231E]">Xác nhận xóa món</h3>
+            <p class="text-sm text-[#786E65]">
+              Bạn có chắc chắn muốn xóa <span class="font-bold text-[#2A231E]">"{{ itemToDelete?.name }}"</span> khỏi giỏ hàng không?
+            </p>
+          </div>
+          <div class="flex items-center gap-3 pt-2">
+            <button
+              @click="showDeleteConfirmModal = false; itemToDelete = null"
+              class="flex-1 py-3 px-4 rounded-2xl bg-[#F5F2ED] text-[#5C544E] font-bold text-sm hover:bg-[#EAE3D9] transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              @click="executeRemoveCartItem"
+              class="flex-1 py-3 px-4 rounded-2xl bg-red-600 text-white font-bold text-sm shadow-md hover:bg-red-700 transition-colors"
+            >
+              Xóa món
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ShoppingBag, Plus, Minus, Trash2, Coffee, X, ChevronLeft, ChevronRight, Gift, CheckCircle2, User, Check, AlertCircle, Search, Star, Settings2, Sparkles, Mail, Ticket, Lock, Key, QrCode, Crown, Bell, BellRing, CreditCard } from 'lucide-vue-next'
+import { ShoppingBag, Plus, Minus, Trash2, Coffee, X, ChevronLeft, ChevronRight, Gift, CheckCircle2, User, Check, AlertCircle, AlertTriangle, Search, Star, Settings2, Sparkles, Mail, Ticket, Lock, Key, QrCode, Crown, Bell, BellRing, CreditCard } from 'lucide-vue-next'
 import { formatVND } from '@/data/menu'
 import { useCartStore } from '@/stores/cart'
 import { useOrderStore } from '@/stores/orders'
@@ -1330,6 +1361,31 @@ const isNewCustomer = ref(false)
 const cart         = useCartStore()
 const orderStore   = useOrderStore()
 const storeInfoStore = useStoreInfoStore()
+
+const showDeleteConfirmModal = ref(false)
+const itemToDelete = ref<{ cartLineId: string, name: string } | null>(null)
+
+const confirmRemoveCartItem = (cartLineId: string, name: string) => {
+  itemToDelete.value = { cartLineId, name }
+  showDeleteConfirmModal.value = true
+}
+
+const handleDecrementQty = (cartLineId: string, currentQty: number, name: string) => {
+  if (currentQty <= 1) {
+    confirmRemoveCartItem(cartLineId, name)
+  } else {
+    cart.setQty(cartLineId, currentQty - 1)
+  }
+}
+
+const executeRemoveCartItem = () => {
+  if (itemToDelete.value) {
+    cart.remove(itemToDelete.value.cartLineId)
+    toast.success('Đã xóa món', `Đã xóa "${itemToDelete.value.name}" khỏi giỏ hàng`)
+  }
+  showDeleteConfirmModal.value = false
+  itemToDelete.value = null
+}
 
 const getCartItemLine = (m: any) => {
   if (!m || !cart.lines || cart.lines.length === 0) return null

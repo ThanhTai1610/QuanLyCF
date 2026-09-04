@@ -131,10 +131,6 @@
             <Input v-model="nganHangTen" placeholder="TEN CHU TAI KHOAN (không dấu)" class="bg-background border border-cream-deep rounded-lg shadow-card uppercase" />
           </div>
         </div>
-        <div class="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-100 text-xs text-blue-700 font-medium space-y-1">
-          <p>📌 <strong>Mã ngân hàng phổ biến:</strong> MB · VCB · TCB · ACB · VPB · BIDV · Agribank · OCB · SHB · TPB · MSB</p>
-          <p>📌 Xem danh sách đầy đủ tại: <a href="https://api.vietqr.io/v2/banks" target="_blank" class="underline">api.vietqr.io/v2/banks</a></p>
-        </div>
       </section>
 
       <!-- Bảo trì hệ thống -->
