@@ -514,7 +514,9 @@ import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Modal from '@/components/ui/Modal.vue'
 import { accountsApi, rolesApi, type Account, type RoleDetail } from '@/services/accounts'
+import { useToast } from '@/stores/toast'
 
+const toast = useToast()
 const accounts = ref<Account[]>([])
 const roles = ref<RoleDetail[]>([])
 const loading = ref(false)
@@ -708,6 +710,7 @@ async function doReset() {
     }
     toast.success('Đã cập nhật Mã PIN thành công!')
     resetOpen.value = false
+    await loadAll()
   } catch (e) {
     resetError.value = e instanceof Error ? e.message : 'Không lưu được thay đổi.'
   } finally { saving.value = false }
