@@ -861,6 +861,7 @@ watch(selectedShiftId, (newId) => {
 })
 
 // --- Check-in State ---
+const submittingCheckin = ref(false)
 const showCheckInModal = ref(false)
 const showCreateModal = ref(false)
 const showForceCheckoutModal = ref(false)
