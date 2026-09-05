@@ -127,6 +127,12 @@ namespace BackEnd.Features.Hr
                     }
                 }
 
+                // Nếu đi trễ (>= 5 phút) hoặc có ghi chú giải trình -> Trạng thái Chờ Admin duyệt
+                if (cc.SoPhutDiTre >= 5 || !string.IsNullOrWhiteSpace(cc.GhiChu))
+                {
+                    cc.TrangThai = "ChoDuyet";
+                }
+
                 _db.ChamCongs.Add(cc);
 
                 // Ghi Nhật Ký Hệ Thống (Audit Log)
