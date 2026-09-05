@@ -150,7 +150,7 @@ const takePhoto = () => {
       const ctx = canvas.getContext('2d')
       if (ctx) {
         ctx.drawImage(videoElement.value, 0, 0, canvas.width, canvas.height)
-        photoUrl.value = canvas.toDataURL('image/jpeg')
+        photoUrl.value = canvas.toDataURL('image/jpeg', 0.7)
         photoCaptured.value = true
         stopCamera()
       }

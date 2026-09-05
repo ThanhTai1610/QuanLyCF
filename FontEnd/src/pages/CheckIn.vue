@@ -1204,7 +1204,7 @@ const takePhoto = () => {
       const ctx = canvas.getContext('2d')
       if (ctx) {
         ctx.drawImage(videoElement.value, 0, 0, canvas.width, canvas.height)
-        photoUrl.value = canvas.toDataURL('image/jpeg')
+        photoUrl.value = canvas.toDataURL('image/jpeg', 0.7)
         stopCamera()
         checkInStep.value = 3
         return
@@ -1234,18 +1234,27 @@ const closeCheckIn = () => {
 }
 
 const lateMinutesNumber = computed(() => {
-  if (checkInType.value !== 'in') return 0
-  if (!selectedShiftId.value) return 0
-  const shiftObj = activeShifts.value.find(s => s.maCa === selectedShiftId.value)
-  if (!shiftObj) return 0
+  try {
+    if (checkInType.value !== 'in') return 0
+    if (!selectedShiftId.value) return 0
+    const shiftObj = activeShifts.value?.find(s => s.maCa === selectedShiftId.value)
+    if (!shiftObj || !shiftObj.gioBatDau) return 0
 
-  const [startH, startM] = shiftObj.gioBatDau.split(':').map(Number)
-  const startTotalMin = (startH || 0) * 60 + (startM || 0)
+    const parts = shiftObj.gioBatDau.split(':')
+    if (parts.length < 2) return 0
+    const startH = Number(parts[0]) || 0
+    const startM = Number(parts[1]) || 0
+    const startTotalMin = startH * 60 + startM
 
-  const now = new Date()
-  const currentTotalMin = now.getHours() * 60 + now.getMinutes()
+    const now = new Date()
+    const currentTotalMin = now.getHours() * 60 + now.getMinutes()
 
-  return currentTotalMin - startTotalMin
+    const diff = currentTotalMin - startTotalMin
+    return diff > 0 ? diff : 0
+  } catch (e) {
+    console.error('Lỗi tính số phút trễ:', e)
+    return 0
+  }
 })
 
 const isCheckInLateOver5Minutes = computed(() => {
@@ -1253,28 +1262,35 @@ const isCheckInLateOver5Minutes = computed(() => {
 })
 
 const confirmCheckIn = async () => {
-  if (!checkWiFiIP()) {
-    closeCheckIn()
+  if (submittingCheckin.value) return
+
+  if (!photoUrl.value) {
+    toast.warning('Chưa có ảnh chấm công. Vui lòng bấm "Chụp lại" để chụp ảnh trước.', 'Chưa có ảnh')
     return
   }
+
   if (isCheckInLateOver5Minutes.value && !checkInNotes.value.trim()) {
     toast.warning(`Bạn đang vào ca trễ ${lateMinutesNumber.value} phút. Vui lòng nhập lý do đi trễ trước khi xác nhận.`, 'Bắt buộc nhập lý do')
     return
   }
+
   submittingCheckin.value = true
   try {
-    const res = await hrApi.checkIn({
+    const payload = {
       type: checkInType.value,
       maCa: selectedShiftId.value,
       photoUrl: photoUrl.value,
-      ghiChu: checkInNotes.value,
+      ghiChu: checkInNotes.value ? checkInNotes.value.trim() : null,
       maNhanVien: selectedEmployeeId.value
-    })
-    toast.success(res.message, 'Chấm công')
+    }
+    console.log('[CheckIn] Submitting check-in payload:', payload)
+    const res = await hrApi.checkIn(payload)
+    toast.success(res.message || 'Chấm công thành công!', 'Chấm công')
     closeCheckIn()
     notifyHrChange()
     await loadData()
   } catch (err: any) {
+    console.error('[CheckIn] Error during check-in submit:', err)
     toast.error(err.message || 'Lỗi khi chấm công')
   } finally {
     submittingCheckin.value = false
